@@ -1,0 +1,97 @@
+set -e # Stop on first error
+set -v # Verbose
+
+export WORKSPACE="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
+# Static Library Compilation
+export BUILD_ROOT=$WORKSPACE/buildtools
+mkdir -p $BUILD_ROOT
+tmp_cpus=$(grep -w processor /proc/cpuinfo | wc -l);
+
+# Compile ncurses static
+# ! SKIP IF ./buildtools/ncurses-6.5 exists
+cd $BUILD_ROOT;
+[ ! -d "ncurses-6.5" ] && \
+  git clone https://gitcode.com/openharmony/third_party_ncurses.git \
+  -b OpenHarmony-v6.0-Release ncurses-6.5;
+
+cd ncurses-6.5;
+./configure --with-termlib CC=clang CXX=clang++ CFLAGS=-fPIC CPPFLAGS=-fPIC \
+  CFLAGS="-fstack-protector-strong -Wl,-z,relro,-z,now,-z,noexecstack" \
+  CXXFLAGS="-fstack-protector-strong -Wl,-z,relro,-z,now,-z,noexecstack" \
+  --with-terminfo-dirs=/etc/terminfo:/lib/terminfo:/usr/share/terminfo \
+  --disable-widec --disable-overwrite --disable-root-environ;
+make -j ${tmp_cpus};
+make install DESTDIR=${BUILD_ROOT}/ncurses-6.5;
+
+# Compile libedit 3.1 static
+# ! SKIP IF ./buildtools/libedit exists
+cd $BUILD_ROOT;
+[ ! -d "third_party_libedit" ] && \
+  git clone https://gitcode.com/openharmony/third_party_libedit.git \
+  -b OpenHarmony-5.0.0-Release;
+cd third_party_libedit && tar xf libedit-20210910-3.1.tar.gz;
+cd libedit-20210910-3.1;
+./configure --with-pic --enable-shared=no --prefix=${BUILD_ROOT}/libedit-3.1;
+make -j ${tmp_cpus};
+make install;
+
+# https://gitcode.com/Cangjie/cangjie_build/blob/main/doc_en/linux.md#24-set-environment-variables
+# ? WHAT IF THIS DOES NOT EXIST?
+export OPENSSL_PATH=/usr/lib/x86_64-linux-gnu/libssl.so
+export LD_LIBRARY_PATH=$OPENSSL_PATH:$LD_LIBRARY_PATH
+
+export PATH=/usr/lib/llvm-18/bin:$PATH; # clang-18 is available?
+# Architecture name
+export ARCH=x86_64 # or aarch64
+# Cangjie SDK version number
+export CANGJIE_VERSION=1.0.0
+# Stdx version number
+export STDX_VERSION=1
+export SDK_NAME=linux-x64 # or linux-aarch64
+
+# Build process
+export CMAKE_PREFIX_PATH=$BUILD_ROOT/libedit-3.1:$BUILD_ROOT/ncurses-6.5/usr;
+
+# Initilialize submodules if needed.
+cd $WORKSPACE
+git submodule update --init --recursive
+
+# Execute build
+cd $WORKSPACE/cangjie_compiler;
+python3 build.py clean;
+python3 build.py build -t debug \
+  -v ${CANGJIE_VERSION} \
+  --no-tests \
+  --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
+  --build-cjdb;
+python3 build.py install;
+
+source $WORKSPACE/cangjie_compiler/output/envsetup.sh
+cjc -v
+
+# Build cangjie runtime
+cd $WORKSPACE/cangjie_runtime/runtime;
+python3 build.py clean;
+python3 build.py build -t debug -v ${CANGJIE_VERSION};
+python3 build.py install;
+cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
+
+# Build cangjie stdlib
+cd $WORKSPACE/cangjie_runtime/stdlib;
+python3 build.py clean;
+python3 build.py build -t debug \
+  --target-lib=$WORKSPACE/cangjie_runtime/runtime/output \
+  --target-lib=$OPENSSL_PATH;
+python3 build.py install;
+cp -R output/* ../../cangjie_compiler/output/;
+
+# cjpm
+exit
+cd ${WORKSPACE}/cangjie_tools/cjpm/build;
+python3 build.py clean;
+python3 build.py build -t debug --set-rpath \$ORIGIN/../../runtime/lib/linux_${ARCH}_cjnative;
+python3 build.py install;
+mkdir -p ${WORKSPACE}/cangjie_compiler/output/tools/config;
+cp ${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm   ${WORKSPACE}/cangjie_compiler/output/tools/bin;
+mv ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
+
