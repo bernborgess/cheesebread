@@ -7,8 +7,8 @@ export BUILD_ROOT=$WORKSPACE/buildtools
 mkdir -p $BUILD_ROOT
 tmp_cpus=$(grep -w processor /proc/cpuinfo | wc -l);
 
-# Compile ncurses static
-# ! SKIP IF ./buildtools/ncurses-6.5 exists
+# Compile ncurses static, skip if ./buildtools/ncurses-6.5/usr exists
+if [ ! -d "$BUILD_ROOT/ncurses-6.5/usr" ]; then
 cd $BUILD_ROOT;
 [ ! -d "ncurses-6.5" ] && \
   git clone https://gitcode.com/openharmony/third_party_ncurses.git \
@@ -22,9 +22,10 @@ cd ncurses-6.5;
   --disable-widec --disable-overwrite --disable-root-environ;
 make -j ${tmp_cpus};
 make install DESTDIR=${BUILD_ROOT}/ncurses-6.5;
+fi
 
-# Compile libedit 3.1 static
-# ! SKIP IF ./buildtools/libedit exists
+# Compile libedit 3.1 static, skip if ./buildtools/libedit-3.1 exists
+if [ ! -d "$BUILD_ROOT/libedit-3.1" ]; then
 cd $BUILD_ROOT;
 [ ! -d "third_party_libedit" ] && \
   git clone https://gitcode.com/openharmony/third_party_libedit.git \
@@ -34,13 +35,22 @@ cd libedit-20210910-3.1;
 ./configure --with-pic --enable-shared=no --prefix=${BUILD_ROOT}/libedit-3.1;
 make -j ${tmp_cpus};
 make install;
+fi
 
 # https://gitcode.com/Cangjie/cangjie_build/blob/main/doc_en/linux.md#24-set-environment-variables
-# ? WHAT IF THIS DOES NOT EXIST?
 export OPENSSL_PATH=/usr/lib/x86_64-linux-gnu/libssl.so
+if [ ! -f "$OPENSSL_PATH" ]; then
+    echo "$OPENSSL_PATH does not exist. Please fix your libssl installation."
+    exit 1
+fi
 export LD_LIBRARY_PATH=$OPENSSL_PATH:$LD_LIBRARY_PATH
 
+if [ ! -f "/usr/lib/llvm-18/bin/clang-18" ]; then
+    echo "clang-18 does not exist. Please fix your clang installation."
+    exit 1
+fi
 export PATH=/usr/lib/llvm-18/bin:$PATH; # clang-18 is available?
+
 # Architecture name
 export ARCH=x86_64 # or aarch64
 # Cangjie SDK version number
@@ -58,7 +68,7 @@ git submodule update --init --recursive
 
 # Execute build
 cd $WORKSPACE/cangjie_compiler;
-python3 build.py clean;
+python3 build.py clean; # TODO: Bypass this for faster recompilation.
 python3 build.py build -t debug \
   -v ${CANGJIE_VERSION} \
   --no-tests \
@@ -68,6 +78,8 @@ python3 build.py install;
 
 source $WORKSPACE/cangjie_compiler/output/envsetup.sh
 cjc -v
+
+exit
 
 # Build cangjie runtime
 cd $WORKSPACE/cangjie_runtime/runtime;

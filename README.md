@@ -9,6 +9,13 @@
 - [reference](https://gitcode.com/Cangjie/cangjie_build/blob/main/doc_en/linux.md)
 - Initialize submodules
 - Run the setup script.
+- To avoid the error:
+```
+[2026-07-01 10:46:40] [build] [INFO] In file included from /home/bernborgess/repos/cheesebread/cangjie_compiler/src/Basic/InteropCJPackageConfigReader.cpp:27:
+[2026-07-01 10:46:40] [build] [INFO] /home/bernborgess/repos/cheesebread/cangjie_compiler/third_party/tinytoml/toml.h:1440:28: error: comparing floating point with == or != is unsafe [-Werror,-Wfloat-equal]
+[2026-07-01 10:46:40] [build] [INFO]  1440 |         return lhs.double_ == rhs.double_;
+[2026-07-01 10:46:40] [build] [INFO]       |                ~~~~~~~~~~~ ^  ~~~~~~~~~~~
+```
 
 ## TODO:
 - [ ] Read ranges from a `input.txt` file
