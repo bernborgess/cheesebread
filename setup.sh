@@ -67,6 +67,7 @@ cd $WORKSPACE
 git submodule update --init --recursive
 
 # Execute build
+# if [ -n "$1" ]; then # TODO: Check if cjc exists in output?
 cd $WORKSPACE/cangjie_compiler;
 python3 build.py clean; # TODO: Bypass this for faster recompilation.
 python3 build.py build -t debug \
@@ -75,20 +76,23 @@ python3 build.py build -t debug \
   --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
   --build-cjdb;
 python3 build.py install;
+# fi
 
 source $WORKSPACE/cangjie_compiler/output/envsetup.sh
 cjc -v
 
-exit
-
 # Build cangjie runtime
+# ! SKIP IF DONE
 cd $WORKSPACE/cangjie_runtime/runtime;
 python3 build.py clean;
 python3 build.py build -t debug -v ${CANGJIE_VERSION};
 python3 build.py install;
 cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
 
+echo "HERE AND OK"
+exit
 # Build cangjie stdlib
+# ! SKIP IF DONE
 cd $WORKSPACE/cangjie_runtime/stdlib;
 python3 build.py clean;
 python3 build.py build -t debug \
@@ -98,7 +102,7 @@ python3 build.py install;
 cp -R output/* ../../cangjie_compiler/output/;
 
 # cjpm
-exit
+echo "HERE"
 cd ${WORKSPACE}/cangjie_tools/cjpm/build;
 python3 build.py clean;
 python3 build.py build -t debug --set-rpath \$ORIGIN/../../runtime/lib/linux_${ARCH}_cjnative;
