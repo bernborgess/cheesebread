@@ -1,6 +1,10 @@
 set -e # Stop on first error
 set -v # Verbose
 
+# Architecture name
+export ARCH=$(uname -m)
+#export ARCH=x86_64 or aarch64
+
 export WORKSPACE="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 # Static Library Compilation
 export BUILD_ROOT=$WORKSPACE/buildtools
@@ -38,36 +42,43 @@ make install;
 fi
 
 # https://gitcode.com/Cangjie/cangjie_build/blob/main/doc_en/linux.md#24-set-environment-variables
-export OPENSSL_PATH=/usr/lib/x86_64-linux-gnu/libssl.so
+export OPENSSL_PATH=/usr/lib/${ARCH}-linux-gnu/libssl.so
 if [ ! -f "$OPENSSL_PATH" ]; then
     echo "$OPENSSL_PATH does not exist. Please fix your libssl installation."
     exit 1
 fi
 export LD_LIBRARY_PATH=$OPENSSL_PATH:$LD_LIBRARY_PATH
 
+# https://gitcode.com/Cangjie/cangjie_build/blob/main/docs/env.md
+# ? Looks like they want clang-16 (support)
 if [ ! -f "/usr/lib/llvm-18/bin/clang-18" ]; then
     echo "clang-18 does not exist. Please fix your clang installation."
     exit 1
 fi
 export PATH=/usr/lib/llvm-18/bin:$PATH; # clang-18 is available?
 
-# Architecture name
-export ARCH=x86_64 # or aarch64
 # Cangjie SDK version number
 export CANGJIE_VERSION=1.0.0
 # Stdx version number
 export STDX_VERSION=1
-export SDK_NAME=linux-x64 # or linux-aarch64
+
+if [ "$ARCH" = "x86_64" ]; then
+export SDK_NAME=linux-x64
+else
+export SDK_NAME=linux-aarch64
+fi
 
 # Build process
 export CMAKE_PREFIX_PATH=$BUILD_ROOT/libedit-3.1:$BUILD_ROOT/ncurses-6.5/usr;
 
 # Initilialize submodules if needed.
 cd $WORKSPACE
-git submodule update --init --recursive
+#git submodule update --init --recursive 
+# ! The main branch of cangjie_runtime has compilation issues,
+# using their branch "release/OpenHarmony-release-6.0.2"
 
 # Execute build
-# if [ -n "$1" ]; then # TODO: Check if cjc exists in output?
+if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
 cd $WORKSPACE/cangjie_compiler;
 python3 build.py clean; # TODO: Bypass this for faster recompilation.
 python3 build.py build -t debug \
@@ -76,7 +87,7 @@ python3 build.py build -t debug \
   --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
   --build-cjdb;
 python3 build.py install;
-# fi
+fi
 
 source $WORKSPACE/cangjie_compiler/output/envsetup.sh
 cjc -v
