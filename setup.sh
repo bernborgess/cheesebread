@@ -5,6 +5,8 @@ set -v # Verbose
 export ARCH=$(uname -m)
 #export ARCH=x86_64 or aarch64
 
+FRESH="${FRESH:-false}"
+
 export WORKSPACE="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
 # Static Library Compilation
 export BUILD_ROOT=$WORKSPACE/buildtools
@@ -85,7 +87,7 @@ if [ ! -f "$WORKSPACE/cangjie_runtime/README.md" ]; then
 fi
 
 # Execute build
-if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
+if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ] || $FRESH; then
 cd $WORKSPACE/cangjie_compiler;
 python3 build.py clean; # TODO: Bypass this for faster recompilation.
 python3 build.py build -t debug \
@@ -100,7 +102,7 @@ source $WORKSPACE/cangjie_compiler/output/envsetup.sh
 cjc -v
 
 # Build cangjie runtime
-if [ ! -d "$WORKSPACE/cangjie_runtime/runtime/output/common" ]; then
+if [ ! -d "$WORKSPACE/cangjie_runtime/runtime/output/common" ] || $FRESH; then
 cd $WORKSPACE/cangjie_runtime/runtime;
 python3 build.py clean;
 python3 build.py build -t debug -v ${CANGJIE_VERSION};
