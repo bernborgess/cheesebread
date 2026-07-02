@@ -78,7 +78,7 @@ export CMAKE_PREFIX_PATH=$BUILD_ROOT/libedit-3.1:$BUILD_ROOT/ncurses-6.5/usr;
 cd $WORKSPACE
 #git submodule update --init --recursive 
 # ! The main branch of cangjie_runtime has compilation issues,
-# using their branch "release/OpenHarmony-release-6.0.2"
+# using the tag v1.2.0-beta.02
 
 # Initialized the submodules?
 if [ ! -f "$WORKSPACE/cangjie_runtime/README.md" ]; then
@@ -111,7 +111,7 @@ cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compile
 fi
 
 # Build cangjie stdlib
-# ! SKIP IF DONE
+if [ ! -d "$WORKSPACE/cangjie_runtime/stdlib/output" ] || $FRESH; then
 cd $WORKSPACE/cangjie_runtime/stdlib;
 python3 build.py clean;
 python3 build.py build -t debug \
@@ -119,10 +119,21 @@ python3 build.py build -t debug \
   --target-lib=$OPENSSL_PATH;
 python3 build.py install;
 cp -R output/* ../../cangjie_compiler/output/;
+fi
+
+# Build STDX Extension Library
+if [ ! -d "$WORKSPACE/cangjie_stdx/target/linux_${ARCH}_cjnative/static/stdx" ] || $FRESH; then
+cd $WORKSPACE/cangjie_stdx;
+python3 build.py clean;
+python3 build.py build -t release \
+  --include=${WORKSPACE}/cangjie_compiler/include \
+  --target-lib=$OPENSSL_PATH;
+python3 build.py install;
+fi
+export CANGJIE_STDX_PATH=$WORKSPACE/cangjie_stdx/target/linux_${ARCH}_cjnative/static/stdx;
 
 # cjpm
-echo "HERE"
-exit
+if [ ! -f "${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm" ] || $FRESH; then
 cd ${WORKSPACE}/cangjie_tools/cjpm/build;
 python3 build.py clean;
 python3 build.py build -t debug --set-rpath \$ORIGIN/../../runtime/lib/linux_${ARCH}_cjnative;
@@ -130,4 +141,7 @@ python3 build.py install;
 mkdir -p ${WORKSPACE}/cangjie_compiler/output/tools/config;
 cp ${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm   ${WORKSPACE}/cangjie_compiler/output/tools/bin;
 mv ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
+fi
+
+echo "All projects built successfully!"
 
