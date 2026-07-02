@@ -51,11 +51,12 @@ export LD_LIBRARY_PATH=$OPENSSL_PATH:$LD_LIBRARY_PATH
 
 # https://gitcode.com/Cangjie/cangjie_build/blob/main/docs/env.md
 # ? Looks like they want clang-16 (support)
-if [ ! -f "/usr/lib/llvm-18/bin/clang-18" ]; then
-    echo "clang-18 does not exist. Please fix your clang installation."
+CLANG_VERSION="${CLANG_VERSION:-18}"
+if [ ! -f "/usr/lib/llvm-$CLANG_VERSION/bin/clang-$CLANG_VERSION" ]; then
+    echo "clang-$CLANG_VERSION does not exist. Please fix your clang installation."
     exit 1
 fi
-export PATH=/usr/lib/llvm-18/bin:$PATH; # clang-18 is available?
+export PATH=/usr/lib/llvm-$CLANG_VERSION/bin:$PATH; # clang-18 is available?
 
 # Cangjie SDK version number
 export CANGJIE_VERSION=1.0.0
