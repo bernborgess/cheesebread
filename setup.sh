@@ -77,6 +77,12 @@ cd $WORKSPACE
 # ! The main branch of cangjie_runtime has compilation issues,
 # using their branch "release/OpenHarmony-release-6.0.2"
 
+# Initialized the submodules?
+if [ ! -d "$WORKSPACE/cangjie_runtime" ]; then
+    echo "cangjie_runtime submodule does not exist. Please run 'git submodule update --init --recursive'"
+    exit
+fi
+
 # Execute build
 if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
 cd $WORKSPACE/cangjie_compiler;
@@ -93,15 +99,14 @@ source $WORKSPACE/cangjie_compiler/output/envsetup.sh
 cjc -v
 
 # Build cangjie runtime
-# ! SKIP IF DONE
+if [ ! -d "$WORKSPACE/cangjie_runtime/runtime/output/common" ]; then
 cd $WORKSPACE/cangjie_runtime/runtime;
 python3 build.py clean;
 python3 build.py build -t debug -v ${CANGJIE_VERSION};
 python3 build.py install;
 cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
+fi
 
-echo "HERE AND OK"
-exit
 # Build cangjie stdlib
 # ! SKIP IF DONE
 cd $WORKSPACE/cangjie_runtime/stdlib;
@@ -114,6 +119,7 @@ cp -R output/* ../../cangjie_compiler/output/;
 
 # cjpm
 echo "HERE"
+exit
 cd ${WORKSPACE}/cangjie_tools/cjpm/build;
 python3 build.py clean;
 python3 build.py build -t debug --set-rpath \$ORIGIN/../../runtime/lib/linux_${ARCH}_cjnative;
