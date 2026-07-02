@@ -6,6 +6,4 @@
 	path = cangjie_stdx
 	url = https://gitcode.com/Cangjie/cangjie_stdx.git
 	branch = main
-[submodule "cangjie_runtime"]
-	path = cangjie_runtime
-	url = https://gitcode.com/Cangjie/cangjie_runtime.git
+
