@@ -3,7 +3,7 @@
 
 ## Prerequisites
 - Python3
-- Clang-20
+- Clang-{16,18,20}
 
 ## Setup
 - [reference](https://gitcode.com/Cangjie/cangjie_build/blob/main/doc_en/linux.md)
@@ -61,34 +61,8 @@ class AddConstraint public OpConstraint {
 - After a successful submission, the backend will evaluate the code you
   submitted and return the results like follows:
 
-| testcase             | ra_result | corr_% | time_s | note |
-|----------------------|-----------|--------|--------|------|
-| cj_syntax_enum_match | [-9223372036854775808, 9223372036854775807:1]       | 0.0    | 0.4    |      |
-|                      |           |        |        |      |
-|                      |           |        |        |      |
+  <img width="1225" height="535" alt="image" src="https://github.com/user-attachments/assets/89e8dfcf-f6d5-4056-9519-e4f247b3fa23" />
 
-testcase                 | ra_result | corr_% | time_s | note
--------------------------+-----------+--------+--------+---------------------
-cj_syntax_enum_match     |[-9223372036854775808, 9223372036854775807:1] 10.0 0.4608 |
-cj_syntax_global_range   |[-9223372036854775808, 9223372036854775807:1] 0.0 0.3307 |
-cj_syntax_lambda_generic | [-9223372036854775808, 9223372036854775807:1] 0.0 0.3305 |
-cj_syntax_open_override |[-9223372036854775808, 9223372036854775807:1] |0.0 | 0.3306 |
-cj_syntax_overflow_annotations | [-9223372036854775808, 9223372036854775807:1]; [-9223372036854775808, 9223372036854775807:1]... | 20.0 | 0.3307 |
-cj_syntax_overflow_shifts | [-9223372036854775808, 9223372036854775807:1]; [-4611686018427387904, 4611686018427387903:1] 0.0 0.3404 |
-cj_syntax_spawn_try |11;0 | 50.0 0.3307 | Ilvm_cr_ipsccp_f2 47, 7, 301, 12, 13, 14, 15, 16 | 70.0 0.7326 |
-llvm_ip_chain_call |[-9223372036854775808, 50:1]; [-9223372036854775808, 9223372036854775807:1] ; 0 0.0 0.3404 |
-llvm_ip_phi_call |[-9223372036854775808, 9223372036854775807:1]; [-6, 6:1] | 27.0 0.3404 |
-llvm_multi_loop_pair |[-9223372036854775808, 9223372036854775807:1] ; 0 |0.0 | 0.3407 |
-llvm_multi_xy_phi 13,9; 1,4 | 100.0 | 0.3508 |
-llvm_strict_cmp_chain | 4, 8, 15 | 100.0 | 0.3908 |
-llvm_strict_cmp_gt |[-9223372036854775808, 9223372036854775807:1] 0.0 0.4613 |
-llvm_style_bitmask 10, 2, 3 | 100.0 | 0.3505 |
-llvm_style_iv_loop | [-9223372036854775808, 9223372036854775807:1]; [-9223372036854775808, 9223372036854775807:1]... | 0.0 | 0.4309 |
-llvm_style_mul_affine 7, 11, 17 | 100.0 | 0.3411 |
-llvm_style_phi_mix 10, 1, 3 | 100.0 | 0.3406 |
-llvm_style_public_example | [-9223372036854775808, 9223372036854775807:1] ; 0, 5 | 50.0 0.3508 |
-range 10 0.0 0.3307 |
-```
 
 ---
 # Statement
