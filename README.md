@@ -8,20 +8,87 @@
 ## Setup
 - [reference](https://gitcode.com/Cangjie/cangjie_build/blob/main/doc_en/linux.md)
 - Initialize submodules
-- Run the setup script.
-- To avoid the error:
+```sh
+git submodule update --init --recursive
+cd cangjie_runtime
+git checkout v1.2.0-beta.02
 ```
-[2026-07-01 10:46:40] [build] [INFO] In file included from /home/bernborgess/repos/cheesebread/cangjie_compiler/src/Basic/InteropCJPackageConfigReader.cpp:27:
-[2026-07-01 10:46:40] [build] [INFO] /home/bernborgess/repos/cheesebread/cangjie_compiler/third_party/tinytoml/toml.h:1440:28: error: comparing floating point with == or != is unsafe [-Werror,-Wfloat-equal]
-[2026-07-01 10:46:40] [build] [INFO]  1440 |         return lhs.double_ == rhs.double_;
-[2026-07-01 10:46:40] [build] [INFO]       |                ~~~~~~~~~~~ ^  ~~~~~~~~~~~
-```
+- Run the setup script. `./setup.sh`
 
 ## TODO:
 - [ ] Read ranges from a `input.txt` file
 - [ ] Output results to a `output.txt` file
 - [ ] Teams must provide a video introduction of their work
 - [ ] build the cangjie-sdk on a Linux aarch64 machine
+- [ ] Define the constraints:
+```c++
+class Constraint {
+    public:
+        virtual void eval() = 0;
+    private:
+        std::set<unsigned> liverange; // lines where the variable is alive!
+}
+
+class PhiConstraint public Constraint {
+    public:
+        virtual void eval() { /* meet of intervals of the parameters */};
+}
+
+class InitConstraint public Constraint {
+    public:
+        virtual void eval() { /* assignment of a constant */};
+}
+
+class IntersectionConstraint public Constraint {
+    public:
+        virtual void eval() { /* Intersection with stuff */};
+}
+
+class OpConstraint public Constraint {
+    public:
+        virtual void eval() = 0;
+}
+
+class AddConstraint public OpConstraint {
+    public:
+        virtual void eval() { /* [L0 + L1, U0 + U1] */};
+}
+```
+
+
+
+## Submitting:
+- After a successful submission, the backend will evaluate the code you
+  submitted and return the results like follows:
+
+| testcase             | ra_result | corr_% | time_s | note |
+|----------------------|-----------|--------|--------|------|
+| cj_syntax_enum_match | [-9223372036854775808, 9223372036854775807:1]       | 0.0    | 0.4    |      |
+|                      |           |        |        |      |
+|                      |           |        |        |      |
+
+testcase                 | ra_result | corr_% | time_s | note
+-------------------------+-----------+--------+--------+---------------------
+cj_syntax_enum_match     |[-9223372036854775808, 9223372036854775807:1] 10.0 0.4608 |
+cj_syntax_global_range   |[-9223372036854775808, 9223372036854775807:1] 0.0 0.3307 |
+cj_syntax_lambda_generic | [-9223372036854775808, 9223372036854775807:1] 0.0 0.3305 |
+cj_syntax_open_override |[-9223372036854775808, 9223372036854775807:1] |0.0 | 0.3306 |
+cj_syntax_overflow_annotations | [-9223372036854775808, 9223372036854775807:1]; [-9223372036854775808, 9223372036854775807:1]... | 20.0 | 0.3307 |
+cj_syntax_overflow_shifts | [-9223372036854775808, 9223372036854775807:1]; [-4611686018427387904, 4611686018427387903:1] 0.0 0.3404 |
+cj_syntax_spawn_try |11;0 | 50.0 0.3307 | Ilvm_cr_ipsccp_f2 47, 7, 301, 12, 13, 14, 15, 16 | 70.0 0.7326 |
+llvm_ip_chain_call |[-9223372036854775808, 50:1]; [-9223372036854775808, 9223372036854775807:1] ; 0 0.0 0.3404 |
+llvm_ip_phi_call |[-9223372036854775808, 9223372036854775807:1]; [-6, 6:1] | 27.0 0.3404 |
+llvm_multi_loop_pair |[-9223372036854775808, 9223372036854775807:1] ; 0 |0.0 | 0.3407 |
+llvm_multi_xy_phi 13,9; 1,4 | 100.0 | 0.3508 |
+llvm_strict_cmp_chain | 4, 8, 15 | 100.0 | 0.3908 |
+llvm_strict_cmp_gt |[-9223372036854775808, 9223372036854775807:1] 0.0 0.4613 |
+llvm_style_bitmask 10, 2, 3 | 100.0 | 0.3505 |
+llvm_style_iv_loop | [-9223372036854775808, 9223372036854775807:1]; [-9223372036854775808, 9223372036854775807:1]... | 0.0 | 0.4309 |
+llvm_style_mul_affine 7, 11, 17 | 100.0 | 0.3411 |
+llvm_style_phi_mix 10, 1, 3 | 100.0 | 0.3406 |
+llvm_style_public_example | [-9223372036854775808, 9223372036854775807:1] ; 0, 5 | 50.0 0.3508 |
+range 10 0.0 0.3307 |
+```
 
 ---
 # Statement
