@@ -79,7 +79,7 @@ cd $WORKSPACE
 # using their branch "release/OpenHarmony-release-6.0.2"
 
 # Initialized the submodules?
-if [ ! -d "$WORKSPACE/cangjie_runtime" ]; then
+if [ ! -f "$WORKSPACE/cangjie_runtime/README.md" ]; then
     echo "cangjie_runtime submodule does not exist. Please run 'git submodule update --init --recursive'"
     exit
 fi
