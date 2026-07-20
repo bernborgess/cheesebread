@@ -12,18 +12,21 @@ bool SplitCriticalEdges::Run(Function& func) {
     
 
     for (Block* block : originalBlocks) {
-        auto successors = block->GetSuccessors();
-        for (Block* succ : successors) {
-            Block* dummy = SplitCriticalEdge(block, succ);
-            if (dummy != nullptr) {
-                changed = true;
+
+        size_t numSuccessors = block->GetSuccessors().size();
+         
+        for(size_t i = 0 ; i < numSuccessors; ++i){
+            Block* succ = block->GetSuccessors()[i];
+            Block* dummy = SplitCriticalEdge(block, succ, i);
+            if(dummy != nullptr) {
+               changed = true; 
             }
         }
     }
     return changed;
 }
 
-Block* SplitCriticalEdges::SplitCriticalEdge(Block* origin, Block* dest) {
+Block* SplitCriticalEdges::SplitCriticalEdge(Block* origin, Block* dest, size_t edge) {
     // 1. Verifica se é aresta crítica
     if (origin->GetSuccessors().size() <= 1 || dest->GetPredecessors().size() <= 1) {
         return nullptr; 
@@ -31,13 +34,15 @@ Block* SplitCriticalEdges::SplitCriticalEdge(Block* origin, Block* dest) {
 
     // 2. Cria o Dummy Block e adiciona o Goto para o destino
     Block* dummyBlock = builder.CreateBlock(origin->GetParentBlockGroup());
+
     auto termGoTo = builder.CreateTerminator<GoTo>(dest, dummyBlock);
     dummyBlock->AppendExpression(termGoTo);
 
     // 3. Pega o terminador atual do origin e troca o destino
-    auto expressions = origin->GetExpressions();
-    auto terminator = StaticCast<Terminator*>(expressions.back());
-    terminator->ReplaceSuccessor(*dest, *dummyBlock);
+    auto terminator = origin->GetTerminator();
+    CJC_NULLPTR_CHECK(terminator);
+
+    terminator->ReplaceSuccessor(edge, *dummyBlock);
 
     
     return dummyBlock;

@@ -15,7 +15,7 @@ public:
 
 private:
    CHIRBuilder& builder;
-   Block* SplitCriticalEdge(Block* origin, Block* dest);
+   Block* SplitCriticalEdge(Block* origin, Block* dest, size_t edge);
 
 };
 
