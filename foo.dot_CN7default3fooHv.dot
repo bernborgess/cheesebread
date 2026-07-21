@@ -1,0 +1,20 @@
+digraph _CN7default3fooHv{
+graph [fontname="Courier, monospace"];
+node [fontname="Courier, monospace"];
+edge [fontname="Courier, monospace"];
+0 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #0</td></tr><tr><td align='left'>%0: Unit&amp; = [ret] %0: Unit&amp; = Allocate(Unit)</td></tr><tr><td align='left'>%1: Int64&amp; = %1[i]: Int64&amp; = Allocate(Int64) // loc: "foo.cj"-2-2, scope: 0</td></tr><tr><td align='left'>%2: Unit = %2: Unit = Debug(%1, i) // loc: "foo.cj"-2-2, scope: 0, warning loc: "foo.cj"-2-6, scope: 0</td></tr><tr><td align='left'>%3: Int64 = %3: Int64 = Constant(0i) // loc: "foo.cj"-2-10, scope: 0</td></tr><tr><td align='left'>%4: Unit = %4: Unit = Store(%3, %1) // loc: "foo.cj"-2-2, scope: 0</td></tr><tr><td align='left'>GoTo(#2)</td></tr></table>>];
+0 -> 2;
+2 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #2</td></tr><tr><td align='left'>%5: Int64 = %5: Int64 = Load(%1) // loc: "foo.cj"-3-9, scope: 0-0</td></tr><tr><td align='left'>%6: Int64 = %6: Int64 = Constant(10i) // loc: "foo.cj"-3-13, scope: 0-0</td></tr><tr><td align='left'>%7: Bool = %7: Bool = LT(%5, %6) // loc: "foo.cj"-3-9, scope: 0-0, warning loc: "foo.cj"-3-11, scope: 0-0, Overflow: THROWING</td></tr><tr><td align='left'>Branch(%7, #4, #3) // loc: "foo.cj"-3-2, scope: 0-0, sourceExpr: WHILE_EXPR</td></tr></table>>];
+2 -> 4;
+2 -> 3;
+3 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #3</td></tr><tr><td align='left'>%12: Int64 = %12: Int64 = Load(%1) // loc: "foo.cj"-6-6, scope: 0</td></tr><tr><td align='left'>%13: Int64 = %13: Int64 = Constant(10i) // loc: "foo.cj"-6-11, scope: 0</td></tr><tr><td align='left'>%14: Bool = %14: Bool = NotEqual(%12, %13) // loc: "foo.cj"-6-6, scope: 0, warning loc: "foo.cj"-6-8, scope: 0, Overflow: THROWING</td></tr><tr><td align='left'>Branch(%14, #6, #8) // loc: "foo.cj"-6-2, scope: 0, sourceExpr: IF_EXPR</td></tr></table>>];
+3 -> 6;
+3 -> 8;
+4 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #4</td></tr><tr><td align='left'>%8: Int64 = %8: Int64 = Load(%1) // loc: "foo.cj"-4-3, scope: 0-0-0</td></tr><tr><td align='left'>%9: Int64 = %9: Int64 = Constant(1i) // loc: "foo.cj"-4-3, scope: 0-0-0</td></tr><tr><td align='left'>%10: Int64 = %10: Int64 = Add(%8, %9) // loc: "foo.cj"-4-3, scope: 0-0-0, Overflow: THROWING</td></tr><tr><td align='left'>%11: Unit = %11: Unit = Store(%10, %1) // loc: "foo.cj"-4-3, scope: 0-0-0</td></tr><tr><td align='left'>GoTo(#2) // loc: "foo.cj"-3-9, scope: 0-0, skip: dce warning</td></tr></table>>];
+4 -> 2;
+5 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #5</td></tr><tr><td align='left'>%17: Unit = %17: Unit = Constant(unit)</td></tr><tr><td align='left'>%18: Unit = %18: Unit = Store(%17, %0)</td></tr><tr><td align='left'>Exit() // loc: "foo.cj"-9-1, scope: 0, skip: dce warning</td></tr></table>>];
+6 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #6</td></tr><tr><td align='left'>%15: Struct-_CNat6StringE = %15: Struct-_CNat6StringE = Constant("dead") // loc: "foo.cj"-7-11, scope: 0</td></tr><tr><td align='left'>%16: Unit = %16: Unit = Apply(@_CNat7printlnHRNat6StringE, %15) // loc: "foo.cj"-7-3, scope: 0</td></tr><tr><td align='left'>GoTo(#5) // skip: dce warning</td></tr></table>>];
+6 -> 5;
+8 [shape=none, label=<<table border='0' cellborder='1' cellspacing='0'><tr><td bgcolor='gray' align='center' colspan='1'>Block #8</td></tr><tr><td align='left'>GoTo(#5)</td></tr></table>>];
+8 -> 5;
+}
