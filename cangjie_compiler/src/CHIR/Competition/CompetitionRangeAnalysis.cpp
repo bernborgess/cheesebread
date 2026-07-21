@@ -5,7 +5,6 @@
 
 #include <fstream>
 #include <sstream>
-#include <vector>
 
 namespace Competition {
 
@@ -83,6 +82,26 @@ Block* getBlockByLineNumber(vector<Function*>& funcs, unsigned int lineNumber)
     return nullptr;
 }
 
+void RangeAnalysis::GatherUsefulBasicBlocks(
+        unordered_set<unsigned int>& interestingLineNumbers,
+        vector<Function*>& userDefinedFunctions)
+{
+    for (auto func : userDefinedFunctions) {
+        // For each function, iterate on blocks
+        for (auto block : func->GetBody()->GetBlocks()) {
+            // For each block, iterate on expressions
+            for (auto expr : block->GetExpressions()) {
+                auto line = expr->GetDebugLocation().GetBeginPos().line;
+                // If expression has interestingLine
+                if (interestingLineNumbers.count(line)) {
+                    // Store in map[interestingLine].push_back(block);
+                    blocksByLineNumber[line].push_back(block);
+                }
+            }
+        }
+    }
+}
+
 void RangeAnalysis::RunOnPackage(Package* package)
 {
     // Filter out the builtin cangjie code
@@ -91,38 +110,33 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
     cerr << "@@@@ COMPETITION ANALYSIS @@@@" << endl;
 
+    // Reads input file for value range queries
+    auto queries = readCompetitionQueries();
+    if (queries.size() < 1) {
+        return;
+    }
+
+    // Keeps track of Basic Blocks where query[i].lineNumber occurs
+    unordered_set<unsigned int> interestingLineNumbers;
+    for (auto [fileName, lineNumber, variableName] : queries) {
+        interestingLineNumbers.insert(lineNumber);
+    }
+
     // The package contains functions:
     vector<Function*> userDefinedFunctions;
 
-    // TODO: We want to filter ONLY the defined by this package
     cerr << "Funcs = [ ";
     for (auto func : package->GetGlobalFuncsWithBody()) {
         if (func->GetPackageName() != "std.core") {
+            // TODO: Filter user-defined functions only (still reporting $mainInvoke, etc.)
             cerr << func->GetSrcCodeIdentifier() << " ";
             userDefinedFunctions.push_back(func);
         }
     }
     std::cerr << "]" << std::endl;
 
-    auto queries = readCompetitionQueries();
-
-    for (auto [fileName, lineNumber, variableName] : queries) {
-        std::cerr << "Find the range of variable " << variableName << " at line " << lineNumber << " of file "
-                  << fileName << std::endl;
-
-        // Call function that finds the Block* that contains this lineNumber
-        // ! PROBLEM: Blocks do not keep the start and end lineNumber consistent :(
-        auto block = getBlockByLineNumber(userDefinedFunctions, lineNumber);
-
-        if (block == nullptr) {
-            std::cerr << "Can't find block for lineNumber " << lineNumber << std::endl;
-        } else {
-            // TODO: Use the block to query the analysis
-            std::cerr << "TODO: Query block for " << lineNumber << std::endl;
-        }
-    }
-
     // Create some dominator tree for each function?
+    // TODO: Interprocedural
     for (auto func : userDefinedFunctions) {
         // Our debug
         if (func->GetSrcCodeIdentifier() == "foo") {
@@ -133,6 +147,17 @@ void RangeAnalysis::RunOnPackage(Package* package)
             domTree.PrintDominatorTree("domTree.dot");
         }
         // TODO: Go on with SSA Builder
+    }
+
+    // Use the solver results to output the analsys
+    for (auto [fileName, lineNumber, variableName] : queries) {
+        std::cerr << "Find the range of variable " << variableName << " at line " << lineNumber << " of file "
+                  << fileName << std::endl;
+
+        for(auto block:blocksByLineNumber[lineNumber]) {
+            // TODO: Gather abstract value from this block, about the variableName
+            block->GetIdentifier();
+        }
     }
 
     std::cerr << "@@@@ COMPETITION ANALYSIS END @@@@" << std::endl;
