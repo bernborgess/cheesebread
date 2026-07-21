@@ -162,9 +162,9 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const PhiConstraint c) {
         os << c.def << ": φ(";
-        for (int i = 0; i < c.operands.size(); i++) {
+        for (int i = 0; (size_t) i < c.operands.size(); i++) {
             if (i > 0) os << ", ";
-            os << c.operands[i];
+            os << c.operands[(size_t) i];
         }
         os << ")";
         return os;
@@ -328,8 +328,8 @@ inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<Constrai
         os << *pc;
     } else if (auto ac = std::dynamic_pointer_cast<AddConstraint>(c)) {
         os << *ac;
-    } else if (auto ic = std::dynamic_pointer_cast<IntersectionConstraint>(c)) {
-        os << *ic;
+    } else if (auto ik = std::dynamic_pointer_cast<IntersectionConstraint>(c)) {
+        os << *ik;
     } else if (auto mc = std::dynamic_pointer_cast<MultiplyConstraint>(c)) {
         os << *mc;
     } else if (auto lc = std::dynamic_pointer_cast<LinearConstraint>(c)) {

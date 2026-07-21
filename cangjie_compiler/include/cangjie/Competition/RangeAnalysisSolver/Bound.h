@@ -101,6 +101,7 @@ public:
       case Bound::Type::MinusInfinity: os << "-inf"; break;
       case Bound::Type::PlusInfinity:  os << "+inf"; break;
       case Bound::Type::Constant:      os << bound.value; break;
+      default: break;
     }
     return os;
   }
