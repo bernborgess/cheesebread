@@ -529,10 +529,6 @@ void ToCHIR::RunRangePropagation()
     }
     Utils::ProfileRecorder::Start("CHIR Opt", "Range Propagation");
 
-    // Run the Competition Analysis
-    Competition::RangeAnalysis cra;
-    cra.RunOnPackage(chirPkg);
-
     AnalysisWrapper<RangeAnalysis, RangeDomain> vra(builder);
     vra.RunOnPackage(chirPkg, opts.chirDebugOptimizer, opts.GetJobs(), diag);
     size_t threadNum = opts.GetJobs();
@@ -655,6 +651,10 @@ void ToCHIR::RunOptimizationPass()
     RunArrayLambdaOpt();
     RunRedundantFutureOpt();
     RunGetRefToArrayElemOpt();
+
+    // Run the Competition Analysis
+    Competition::RangeAnalysis cra;
+    cra.RunOnPackage(chirPkg);
 }
 
 bool ToCHIR::RunConstantEvaluation()

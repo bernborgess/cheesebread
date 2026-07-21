@@ -1,6 +1,7 @@
 #include "cangjie/Competition/CompetitionRangeAnalysis.h"
 
 #include "cangjie/CHIR/Utils/CHIRPrinter.h"
+#include "cangjie/Competition/DominatorTree.h"
 
 #include <fstream>
 #include <sstream>
@@ -69,12 +70,10 @@ Block* getBlockByLineNumber(vector<Function*>& funcs, unsigned int lineNumber)
             for (auto& block : func->GetBody()->GetBlocks()) {
                 auto blockLoc = block->GetDebugLocation();
 
-                cerr << "Block " << block->GetIdentifier()
-                     << " has loc [" << blockLoc.GetBeginPos().line
-                     << ", " << blockLoc.GetEndPos().line << "]" << endl;
+                cerr << "Block " << block->GetIdentifier() << " has loc [" << blockLoc.GetBeginPos().line << ", "
+                     << blockLoc.GetEndPos().line << "]" << endl;
 
-                if (blockLoc.GetBeginPos().line <= lineNumber
-                    && lineNumber <= blockLoc.GetEndPos().line) {
+                if (blockLoc.GetBeginPos().line <= lineNumber && lineNumber <= blockLoc.GetEndPos().line) {
                     return block;
                     // Iterate on expressions to find the exact line?
                 }
@@ -101,14 +100,6 @@ void RangeAnalysis::RunOnPackage(Package* package)
         if (func->GetPackageName() != "std.core") {
             cerr << func->GetSrcCodeIdentifier() << " ";
             userDefinedFunctions.push_back(func);
-            // Our debug
-            if (func->GetSrcCodeIdentifier() == "foo") {
-                CHIRPrinter::PrintCFG(*func, "foo.dot");
-            }
-
-            // TODO: Create a dominator tree for func
-            /*
-             */
         }
     }
     std::cerr << "]" << std::endl;
@@ -129,6 +120,19 @@ void RangeAnalysis::RunOnPackage(Package* package)
             // TODO: Use the block to query the analysis
             std::cerr << "TODO: Query block for " << lineNumber << std::endl;
         }
+    }
+
+    // Create some dominator tree for each function?
+    for (auto func : userDefinedFunctions) {
+        // Our debug
+        if (func->GetSrcCodeIdentifier() == "foo") {
+            CHIRPrinter::PrintCFG(*func, "foo.dot");
+            Block* entry = func->GetEntryBlock();
+            DominatorTree domTree(entry);
+            domTree.Compute();
+            domTree.PrintDominatorTree("domTree.dot");
+        }
+        // TODO: Go on with SSA Builder
     }
 
     std::cerr << "@@@@ COMPETITION ANALYSIS END @@@@" << std::endl;
