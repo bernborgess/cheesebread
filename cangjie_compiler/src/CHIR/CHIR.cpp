@@ -31,6 +31,7 @@
 #include "cangjie/CHIR/Optimization/RedundantFutureRemoval.h"
 #include "cangjie/CHIR/Optimization/RedundantGetOrThrowElimination.h"
 #include "cangjie/CHIR/Optimization/RedundantLoadElimination.h"
+#include "cangjie/CHIR/Optimization/SplitCriticalEdges.h"
 #include "cangjie/CHIR/Optimization/UnitUnify.h"
 #include "cangjie/CHIR/Optimization/UselessAllocateElimination.h"
 #include "cangjie/CHIR/Serializer/CHIRDeserializer.h"
@@ -651,10 +652,17 @@ void ToCHIR::RunOptimizationPass()
     RunArrayLambdaOpt();
     RunRedundantFutureOpt();
     RunGetRefToArrayElemOpt();
+    SplitCriticalEdges splitPass(builder);
 
+    for (auto func : chirPkg->GetGlobalFuncsWithBody()) {
+        splitPass.Run(*func);
+    }
+    
     // Run the Competition Analysis
     Competition::RangeAnalysis cra;
     cra.RunOnPackage(chirPkg);
+
+    MergeBlocks::RunOnPackage(*chirPkg, builder, opts);
 }
 
 bool ToCHIR::RunConstantEvaluation()
