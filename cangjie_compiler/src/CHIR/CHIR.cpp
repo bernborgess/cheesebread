@@ -6,6 +6,9 @@
 
 #include "cangjie/CHIR/CHIR.h"
 
+// Competition
+#include "cangjie/Competition/CompetitionRangeAnalysis.h"
+
 #include "cangjie/Basic/DiagnosticEngine.h"
 #include "cangjie/CHIR/Analysis/CallGraphAnalysis.h"
 #include "cangjie/CHIR/Analysis/ConstAnalysisWrapper.h"
@@ -526,9 +529,9 @@ void ToCHIR::RunRangePropagation()
         return;
     }
     Utils::ProfileRecorder::Start("CHIR Opt", "Range Propagation");
+
     AnalysisWrapper<RangeAnalysis, RangeDomain> vra(builder);
-    // Always enable this debug
-    vra.RunOnPackage(chirPkg, /*opts.chirDebugOptimizer*/ true, opts.GetJobs(), diag);
+    vra.RunOnPackage(chirPkg, opts.chirDebugOptimizer, opts.GetJobs(), diag);
     size_t threadNum = opts.GetJobs();
     DeadCodeElimination dce(builder, diag, *chirPkg);
     if (threadNum == 1) {
@@ -649,13 +652,16 @@ void ToCHIR::RunOptimizationPass()
     RunArrayLambdaOpt();
     RunRedundantFutureOpt();
     RunGetRefToArrayElemOpt();
-    SplitCriticalEdges splitPass(builder); 
+    SplitCriticalEdges splitPass(builder);
 
-    //
-
-    for(auto func : chirPkg->GetGlobalFuncsWithBody()){
-        splitPass.Run(*func); 
+    for (auto func : chirPkg->GetGlobalFuncsWithBody()) {
+        splitPass.Run(*func);
     }
+    
+    // Run the Competition Analysis
+    Competition::RangeAnalysis cra;
+    cra.RunOnPackage(chirPkg);
+
     MergeBlocks::RunOnPackage(*chirPkg, builder, opts);
 }
 
