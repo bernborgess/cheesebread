@@ -7,7 +7,7 @@ using namespace Cangjie::CHIR;
 bool SplitCriticalEdges::Run(Function& func) {
     bool changed = false;
     
-    // Copia a lista original de blocos porque vamos criar novos
+    // Copies the original block list, for we are creating new ones
     auto originalBlocks = func.GetBody()->GetBlocks();
     
 
@@ -27,18 +27,18 @@ bool SplitCriticalEdges::Run(Function& func) {
 }
 
 Block* SplitCriticalEdges::SplitCriticalEdge(Block* origin, Block* dest, size_t edge) {
-    // 1. Verifica se é aresta crítica
+    // 1. Verifies if the edge is critical
     if (origin->GetSuccessors().size() <= 1 || dest->GetPredecessors().size() <= 1) {
         return nullptr; 
     }
 
-    // 2. Cria o Dummy Block e adiciona o Goto para o destino
+    // 2. Creates Dummy Block and adds the Goto to the destination
     Block* dummyBlock = builder.CreateBlock(origin->GetParentBlockGroup());
 
     auto termGoTo = builder.CreateTerminator<GoTo>(dest, dummyBlock);
     dummyBlock->AppendExpression(termGoTo);
 
-    // 3. Pega o terminador atual do origin e troca o destino
+    // 3. Gets the current terminator from origin and changes its destination 
     auto terminator = origin->GetTerminator();
     CJC_NULLPTR_CHECK(terminator);
 
