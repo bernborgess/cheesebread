@@ -8,6 +8,7 @@
 
 // Competition
 #include "cangjie/Competition/CompetitionRangeAnalysis.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
 
 #include "cangjie/Basic/DiagnosticEngine.h"
 #include "cangjie/CHIR/Analysis/CallGraphAnalysis.h"
@@ -653,6 +654,7 @@ void ToCHIR::RunOptimizationPass()
     RunRedundantFutureOpt();
     RunGetRefToArrayElemOpt();
     SplitCriticalEdges splitPass(builder);
+    InitializationConstraint cons("x0", 0);
 
     for (auto func : chirPkg->GetGlobalFuncsWithBody()) {
         splitPass.Run(*func);
