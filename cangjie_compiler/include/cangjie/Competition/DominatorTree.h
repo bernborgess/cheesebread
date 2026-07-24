@@ -4,6 +4,7 @@
 #include "cangjie/CHIR/CHIR.h"
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
 
 #include <unordered_map>
 #include <vector>
@@ -34,6 +35,9 @@ public:
     /// Prints the current dominator tree to a .dot file.
     void PrintDominatorTree(const std::string& path);
 
+    /// Pass along the tree creating constraints on the branches
+    void GenerateBranchConstraints();
+
 private:
     struct Node {
         Block* block = nullptr;
@@ -48,7 +52,17 @@ private:
         std::size_t label = 0;
 
         std::vector<std::size_t> bucket;
+
+        // Also keep the constraints here
+        std::vector<Constraint*> nodeConstraints;
+
+        void pushConstraint(Constraint* constraint) {
+            nodeConstraints.push_back(constraint);
+        }
+
     };
+
+    Node* reverseMapBlockToNode(Block* block);
 
 private:
     void DFS(Block* block);

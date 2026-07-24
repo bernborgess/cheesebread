@@ -52,7 +52,7 @@ public:
      * false if the domain remained unchanged (indicating a fixed point).
      */
     bool narrow(AbstractState& A) {
-      using Type  = Bound::Type;
+      // Not using Type  = Bound::Type;
 
       AnalyzedValue oldY = A[def];   // I[Y]
 

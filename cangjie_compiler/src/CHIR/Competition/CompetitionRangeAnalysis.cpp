@@ -213,6 +213,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
             DominatorTree domTree(entry);
             domTree.Compute();
             domTree.PrintDominatorTree("domTree.dot");
+            domTree.GenerateBranchConstraints();
         }
         // TODO: Go on with SSA Builder
     }

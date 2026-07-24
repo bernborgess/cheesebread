@@ -299,4 +299,93 @@ void DominatorTree::PrintDominatorTree(const std::string& path)
         std::cerr << std::endl << std::endl;
 }
 
+// TODO: Create such method
+DominatorTree::Node* DominatorTree::reverseMapBlockToNode(Block* block)
+{
+    return nullptr;
+}
+
+void DominatorTree::GenerateBranchConstraints()
+{
+    // ? Iterate on the tree, creating Sigmas and constraints
+    for (auto& node : nodes_) {
+        if (node.block == nullptr)
+            continue;
+
+        Block* block = node.block;
+
+        // Only treat blocks that end in a branch
+        if (block->GetTerminator()->GetExprKind() != ExprKind::BRANCH)
+            continue;
+
+        auto branch = (Branch*)block->GetTerminator();
+        auto cond = branch->GetCondition();
+
+
+        // TODO: All supported pattern matches here
+        // * Match a pattern
+        // Ex: LT(Load(x), Constant(c))
+        std::string x = ""; // TODO: Value* x or LocalVar* x
+        int64_t c = INT_MAX;
+        if (cond->IsLocalVar()) {
+            LocalVar* condLV = (LocalVar*)cond;
+            Expression* condExpr = condLV->GetExpr();
+            if (condExpr->GetExprMajorKind() == ExprMajorKind::BINARY_EXPR) {
+                BinaryExpression* condBinExpr = (BinaryExpression*)condExpr;
+                if (condBinExpr->GetExprKind() == ExprKind::LT) {
+                    Value* lhs = condBinExpr->GetLHSOperand();
+                    if (lhs->IsLocalVar()) {
+                        LocalVar* lhsLV = (LocalVar*)lhs;
+                        Expression* lhsExpr = lhsLV->GetExpr();
+                        if (lhsExpr->IsLoad()) {
+                            Load* lhsLoad = (Load*)lhsExpr;
+                            Value*lhsLocation  =  lhsLoad->GetLocation();
+                            if(lhsLocation->IsLocalVar()) {
+                                LocalVar* lhsLocationLV = (LocalVar*)lhsLocation;
+                            // ! Found the load variable
+                                x = lhsLocationLV->GetSrcCodeIdentifier();
+                            }
+                        }
+                    }
+
+                    Value* rhs = condBinExpr->GetRHSOperand();
+                    if (rhs->IsLocalVar()) {
+                        LocalVar* rhsLV = (LocalVar*)rhs;
+                        Expression* rhsExpr = rhsLV->GetExpr();
+                        if (rhsExpr->IsConstant()) {
+                            Constant* rhsConstant = (Constant*)rhsExpr;
+                            // ! Found the constant literal
+                            // TODO: Validate ConstLiteralKind is Int
+                            c = rhsConstant->GetSignedIntLitVal();
+                        }
+                    }
+                }
+            }
+        }
+        if (x != "" && c != INT_MAX) {
+            // * Generate constraint on true block
+            IntersectionConstraint::IntersectionBound lowTrue = Bound::minusInfinity();
+            IntersectionConstraint::IntersectionBound upTrue = Bound::constant(c - 1);
+            IntersectionConstraint* constraintTrue = new IntersectionConstraint(x, x, lowTrue, upTrue);
+
+            // TODO:
+            if (c == 2301) {
+                reverseMapBlockToNode(branch->GetTrueBlock())->pushConstraint(constraintTrue);
+            }
+
+            // * Generate constraint on false block
+            IntersectionConstraint::IntersectionBound lowFalse = Bound::constant(c);
+            IntersectionConstraint::IntersectionBound upFalse = Bound::plusInfinity();
+            IntersectionConstraint* constraintFalse = new IntersectionConstraint(x, x, lowFalse, upFalse);
+
+            // TODO:
+            if (c == 2301) {
+                reverseMapBlockToNode(branch->GetFalseBlock())->pushConstraint(constraintFalse);
+            }
+        }
+    }
+}
+
+
+
 } // namespace Competition
