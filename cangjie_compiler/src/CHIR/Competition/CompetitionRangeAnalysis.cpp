@@ -102,6 +102,74 @@ void RangeAnalysis::GatherUsefulBasicBlocks(
     }
 }
 
+// Will recur on the structure and gather all X in Load(X) into the vector
+// TODO: Actually, we will define the patterns that matter
+void ObtainUsedVars(Value*value, vector<LocalVar*>&vars) {
+    // Dead end if not a LocalVar
+    if (!value->IsLocalVar())
+        return;
+    
+    auto localVar = (LocalVar*)value;
+
+    auto expr = localVar->GetExpr();
+
+    switch (expr->GetExprMajorKind()) {
+        case ExprMajorKind::UNARY_EXPR: {
+            auto unaryExpr = (UnaryExpression*)expr;
+            ObtainUsedVars(unaryExpr->GetOperand(), vars);
+            return;
+        }
+        case ExprMajorKind::BINARY_EXPR: {
+            auto binaryExpr  = (BinaryExpression*)expr;
+            ObtainUsedVars(binaryExpr->GetLHSOperand(), vars);
+            ObtainUsedVars(binaryExpr->GetRHSOperand(), vars);
+            return;
+        }
+        case ExprMajorKind::MEMORY_EXPR: {
+            if(expr->IsLoad()) {
+                auto load = (Load*)expr;
+                auto variable = load->GetLocation();
+                assert(variable->IsLocalVar());
+                vars.push_back((LocalVar*)variable);
+            }
+            return;
+        }
+        case ExprMajorKind::OTHERS: {
+            // Constant, Tuple, Field, Apply, Invoke, Typecast
+            if (expr->GetExprKind() == ExprKind::TUPLE) {
+                auto tuple = (Tuple*)expr;
+                for (auto val : tuple->GetElementValues()) {
+                    ObtainUsedVars(val, vars);
+                }
+            }
+            break;
+        }
+        default: {
+            // TERMINATOR, STRUCTURED_CTRL_FLOW_EXPR
+            break;
+        }
+    }
+}
+
+void FindBranchesAndTheVariablesTheyUse(vector<Function*>& funcs)
+{
+    for (auto func : funcs) {
+        for (auto block : func->GetBody()->GetBlocks()) {
+            // For each block
+            if (block->GetTerminator()->GetExprKind() != ExprKind::BRANCH)
+                continue;
+
+            // that terminates on a Branch
+            auto branch = (Branch*)block->GetTerminator();
+            auto cond = branch->GetCondition();
+
+            vector<LocalVar*> vars;
+            ObtainUsedVars(cond,vars);
+
+        }
+    }
+}
+
 void RangeAnalysis::RunOnPackage(Package* package)
 {
     // Filter out the builtin cangjie code
