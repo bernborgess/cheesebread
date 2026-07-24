@@ -62,6 +62,7 @@ private:
 
     };
 
+    std::unordered_map<Block*,Node*> blockToNodeMap;
     Node* reverseMapBlockToNode(Block* block);
 
 private:

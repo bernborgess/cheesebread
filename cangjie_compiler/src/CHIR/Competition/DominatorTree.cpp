@@ -102,6 +102,9 @@ void DominatorTree::DFS(Block* block)
 
     Node& node = nodes_[n];
 
+    // Populate the reverse map
+    blockToNodeMap[block] = &node;
+
     node.block = block;
     node.dfs = n;
     node.semi = n;
@@ -299,10 +302,14 @@ void DominatorTree::PrintDominatorTree(const std::string& path)
         std::cerr << std::endl << std::endl;
 }
 
-// TODO: Create such method
 DominatorTree::Node* DominatorTree::reverseMapBlockToNode(Block* block)
 {
-    return nullptr;
+    if (block == nullptr)
+        return nullptr;
+
+    assert(blockToNodeMap.count(block));
+
+    return blockToNodeMap[block];
 }
 
 void DominatorTree::GenerateBranchConstraints()
@@ -339,10 +346,10 @@ void DominatorTree::GenerateBranchConstraints()
                         Expression* lhsExpr = lhsLV->GetExpr();
                         if (lhsExpr->IsLoad()) {
                             Load* lhsLoad = (Load*)lhsExpr;
-                            Value*lhsLocation  =  lhsLoad->GetLocation();
-                            if(lhsLocation->IsLocalVar()) {
+                            Value* lhsLocation = lhsLoad->GetLocation();
+                            if (lhsLocation->IsLocalVar()) {
                                 LocalVar* lhsLocationLV = (LocalVar*)lhsLocation;
-                            // ! Found the load variable
+                                // ! Found the load variable
                                 x = lhsLocationLV->GetSrcCodeIdentifier();
                             }
                         }
@@ -367,25 +374,15 @@ void DominatorTree::GenerateBranchConstraints()
             IntersectionConstraint::IntersectionBound lowTrue = Bound::minusInfinity();
             IntersectionConstraint::IntersectionBound upTrue = Bound::constant(c - 1);
             IntersectionConstraint* constraintTrue = new IntersectionConstraint(x, x, lowTrue, upTrue);
-
-            // TODO:
-            if (c == 2301) {
-                reverseMapBlockToNode(branch->GetTrueBlock())->pushConstraint(constraintTrue);
-            }
+            reverseMapBlockToNode(branch->GetTrueBlock())->pushConstraint(constraintTrue);
 
             // * Generate constraint on false block
             IntersectionConstraint::IntersectionBound lowFalse = Bound::constant(c);
             IntersectionConstraint::IntersectionBound upFalse = Bound::plusInfinity();
             IntersectionConstraint* constraintFalse = new IntersectionConstraint(x, x, lowFalse, upFalse);
-
-            // TODO:
-            if (c == 2301) {
-                reverseMapBlockToNode(branch->GetFalseBlock())->pushConstraint(constraintFalse);
-            }
+            reverseMapBlockToNode(branch->GetFalseBlock())->pushConstraint(constraintFalse);
         }
     }
 }
-
-
 
 } // namespace Competition
