@@ -136,6 +136,85 @@ MatchedConstraints Matching::MatchLessThanConstraints(Value* cond) {
     return {ifTrue, ifFalse};
 }
 
+MatchedConstraints Matching::MatchGreaterThanConstraints(Value* cond) {
+    auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::GT);
+
+    if (!matchLHS.has_value() || !matchRHS.has_value()) return {{}, {}};
+
+    std::vector<IntersectionConstraint*> ifTrue, ifFalse;
+
+    auto minusInf = Bound::minusInfinity();
+    auto plusInf = Bound::plusInfinity();
+
+    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
+        auto x = std::get<LocalVar*>(matchLHS.value())->GetSrcCodeIdentifier();
+
+        auto ft = [](std::string x, int offset = 0) {
+            return IntersectionConstraint::Future{x, offset};
+        };
+
+        // if (x > y)
+        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
+            auto y =
+                std::get<LocalVar*>(matchRHS.value())->GetSrcCodeIdentifier();
+
+            // THEN: x = x ∩ [ft(y) + 1, +inf]
+            auto trueConstraintX =
+                new IntersectionConstraint(x, x, ft(y, -1), plusInf);
+            ifTrue.push_back(trueConstraintX);
+
+            // THEN: y = y ∩ [-inf, ft(x) - 1]
+            auto trueConstraintY =
+                new IntersectionConstraint(y, y, minusInf, ft(x, -1));
+            ifTrue.push_back(trueConstraintY);
+
+            // ELSE: x = x ∩ [-inf, ft(y)]
+            auto falseConstraintX =
+                new IntersectionConstraint(x, x, minusInf, ft(y));
+            ifFalse.push_back(falseConstraintX);
+
+            // ELSE: y = y ∩ [ft(x), +inf]
+            auto falseConstraintY =
+                new IntersectionConstraint(y, y, ft(x), plusInf);
+            ifFalse.push_back(falseConstraintY);
+
+        } else {  // if (x > c)
+            auto c =
+                std::get<Constant*>(matchRHS.value())->GetSignedIntLitVal();
+
+            // THEN: x = x ∩ [c + 1, +inf]
+            auto trueConstraint = new IntersectionConstraint(
+                x, x, Bound::constant(c + 1), plusInf);
+            ifTrue.push_back(trueConstraint);
+
+            // ELSE: x = x ∩ [-inf, c]
+            auto falseConstraint =
+                new IntersectionConstraint(x, x, minusInf, Bound::constant(c));
+            ifFalse.push_back(falseConstraint);
+        }
+    } else {
+        auto c = std::get<Constant*>(matchLHS.value())->GetSignedIntLitVal();
+
+        // if (c > x)
+        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
+            auto x =
+                std::get<LocalVar*>(matchRHS.value())->GetSrcCodeIdentifier();
+
+            // THEN: x = x ∩ [-inf, c - 1]
+            auto trueConstraint = new IntersectionConstraint(
+                x, x, minusInf, Bound::constant(c - 1));
+            ifTrue.push_back(trueConstraint);
+
+            // ELSE: x = x ∩ [c, +inf]
+            auto falseConstraint =
+                new IntersectionConstraint(x, x, Bound::constant(c), plusInf);
+            ifFalse.push_back(falseConstraint);
+        }
+    }
+
+    return {ifTrue, ifFalse};
+}
+
 MatchedConstraints Matching::MatchEqualConstraints(Value* cond) {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::EQUAL);
 
@@ -239,7 +318,6 @@ MatchedConstraints Matching::MatchNotEqualConstraints(Value* cond) {
             auto elseConstraint = new IntersectionConstraint(
                 x, x, Bound::constant(c), Bound::constant(c));
             ifTrue.push_back(elseConstraint);
-
         }
     }
 

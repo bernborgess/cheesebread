@@ -24,9 +24,13 @@ struct MatchedConstraints {
 // if (x < y)
 MatchedConstraints MatchLessThanConstraints(Value* cond);
 
-// TODO: if (x > c)
-// TODO: if (c > x)
-// TODO: if (x > y)
+// x , y : Variables
+// c : Constant
+// 
+// if (x > c)
+// if (c > x)
+// if (x > y)
+MatchedConstraints MatchGreaterThanConstraints(Value* cond);
 
 // x , y : Variables
 // c : Constant

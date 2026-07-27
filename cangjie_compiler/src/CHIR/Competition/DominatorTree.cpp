@@ -335,6 +335,7 @@ void DominatorTree::GenerateBranchConstraints()
             // * Match a pattern
             // Ex: LT(Load(x), Constant(c))
             Matching::MatchLessThanConstraints(cond),
+            Matching::MatchGreaterThanConstraints(cond),
             Matching::MatchEqualConstraints(cond),
             Matching::MatchNotEqualConstraints(cond),
         };
