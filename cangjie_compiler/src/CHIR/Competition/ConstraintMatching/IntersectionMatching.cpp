@@ -190,4 +190,59 @@ MatchedConstraints Matching::MatchEqualConstraints(Value* cond) {
     return {ifTrue, ifFalse};
 }
 
+MatchedConstraints Matching::MatchNotEqualConstraints(Value* cond) {
+    auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::NOTEQUAL);
+
+    if (!matchLHS.has_value() || !matchRHS.has_value()) return {{}, {}};
+
+    std::vector<IntersectionConstraint*> ifTrue, ifFalse;
+
+    auto minusInf = Bound::minusInfinity();
+    auto plusInf = Bound::plusInfinity();
+
+    // Inequality is commutative
+    if (std::holds_alternative<Constant*>(matchLHS.value())) {
+        std::swap(matchLHS, matchRHS);
+    }
+
+    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
+        auto x = std::get<LocalVar*>(matchLHS.value())->GetSrcCodeIdentifier();
+
+        auto ft = [](std::string x, int offset = 0) {
+            return IntersectionConstraint::Future{x, offset};
+        };
+
+        // if (x != y)
+        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
+            auto y =
+                std::get<LocalVar*>(matchRHS.value())->GetSrcCodeIdentifier();
+
+            // THEN: can't build disjoint range.
+
+            // ELSE: x = x ∩ [ft(y), ft(y)]
+            auto falseConstraintX =
+                new IntersectionConstraint(x, x, ft(y, 0), ft(y, 0));
+            ifTrue.push_back(falseConstraintX);
+
+            // THEN: y = y ∩ [ft(x), ft(x)]
+            auto falseConstraintY =
+                new IntersectionConstraint(y, y, ft(x, 0), ft(x, 0));
+            ifTrue.push_back(falseConstraintY);
+
+        } else {  // if (x != c)
+            auto c =
+                std::get<Constant*>(matchRHS.value())->GetSignedIntLitVal();
+
+            // THEN: can't build disjoint range.
+
+            // ELSE: x = x ∩ [c, c]
+            auto elseConstraint = new IntersectionConstraint(
+                x, x, Bound::constant(c), Bound::constant(c));
+            ifTrue.push_back(elseConstraint);
+
+        }
+    }
+
+    return {ifTrue, ifFalse};
+}
 }  // namespace Matching

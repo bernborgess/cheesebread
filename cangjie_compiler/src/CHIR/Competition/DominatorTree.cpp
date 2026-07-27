@@ -336,6 +336,7 @@ void DominatorTree::GenerateBranchConstraints()
             // Ex: LT(Load(x), Constant(c))
             Matching::MatchLessThanConstraints(cond),
             Matching::MatchEqualConstraints(cond),
+            Matching::MatchNotEqualConstraints(cond),
         };
 
         for (auto& [ifTrue, ifFalse] : constraints) {

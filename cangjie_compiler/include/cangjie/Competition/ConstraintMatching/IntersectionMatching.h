@@ -36,9 +36,13 @@ MatchedConstraints MatchLessThanConstraints(Value* cond);
 // if (x == y)
 MatchedConstraints MatchEqualConstraints(Value* cond);
 
-// TODO: if (x != c)
-// TODO: if (c != x)
-// TODO: if (x != y)
+// x , y : Variables
+// c : Constant
+// 
+// if (x != c)
+// if (c != x)
+// if (x != y)
+MatchedConstraints MatchNotEqualConstraints(Value* cond);
 
 // TODO: if (x <= c)
 // TODO: if (c <= x)
