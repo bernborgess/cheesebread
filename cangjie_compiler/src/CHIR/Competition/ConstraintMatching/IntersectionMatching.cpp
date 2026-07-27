@@ -7,9 +7,7 @@
 // Branch
 
 // LT(Load(x), Constant(c))
-std::pair<std::optional<IntersectionConstraint*>,
-          std::optional<IntersectionConstraint*>>
-Matching::MatchLtVarConst(Value* cond) {
+Matching::MatchedConstraints Matching::MatchLtVarConst(Value* cond) {
     std::optional<std::string> x = std::nullopt;
     std::optional<int64_t> c = std::nullopt;
 
@@ -49,6 +47,8 @@ Matching::MatchLtVarConst(Value* cond) {
         }
     }
 
+    std::vector<IntersectionConstraint*> ifTrue, ifFalse;
+
     if (x.has_value() && c.has_value()) {
         // * Generate constraint on true block
         IntersectionConstraint::IntersectionBound lowTrue =
@@ -57,6 +57,7 @@ Matching::MatchLtVarConst(Value* cond) {
             Bound::constant(c.value() - 1);
         IntersectionConstraint* constraintTrue =
             new IntersectionConstraint(x.value(), x.value(), lowTrue, upTrue);
+        ifTrue.push_back(constraintTrue);
 
         // * Generate constraint on false block
         IntersectionConstraint::IntersectionBound lowFalse =
@@ -66,8 +67,8 @@ Matching::MatchLtVarConst(Value* cond) {
         IntersectionConstraint* constraintFalse =
             new IntersectionConstraint(x.value(), x.value(), lowFalse, upFalse);
 
-        return {constraintTrue, constraintFalse};
+        ifFalse.push_back(constraintFalse);
     }
 
-    return {std::nullopt,std::nullopt};
+    return {ifTrue, ifFalse};
 }

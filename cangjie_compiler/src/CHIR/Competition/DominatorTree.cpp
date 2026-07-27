@@ -330,8 +330,8 @@ void DominatorTree::GenerateBranchConstraints()
         auto cond = branch->GetCondition();
 
         // TODO: All supported pattern matches here
-        std::vector<std::pair<std::optional<IntersectionConstraint*>,
-                              std::optional<IntersectionConstraint*> > >
+
+        std::vector<Matching::MatchedConstraints>
             constraints = {// * Match a pattern
                            // Ex: LT(Load(x), Constant(c))
                            Matching::MatchLtVarConst(cond)};
@@ -339,13 +339,12 @@ void DominatorTree::GenerateBranchConstraints()
         auto trueNode = reverseMapBlockToNode(branch->GetTrueBlock());
         auto falseNode = reverseMapBlockToNode(branch->GetFalseBlock());
 
-        for (auto& [trueConstraint, falseConstraint] : constraints) {
-            if (trueConstraint.has_value()) {
-                trueNode->pushConstraint(trueConstraint.value());
-            }
-            if (falseConstraint.has_value()) {
-                falseNode->pushConstraint(falseConstraint.value());
-            }
+        for (auto& [ifTrue, ifFalse] : constraints) {
+            for (auto& constraint : ifTrue)
+                trueNode->pushConstraint(constraint);
+
+            for (auto& constraint : ifFalse)
+                falseNode->pushConstraint(constraint);
         }
     }
 }

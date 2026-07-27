@@ -11,9 +11,40 @@ namespace Matching {
 
 using namespace Cangjie::CHIR;
 
-std::pair<std::optional<IntersectionConstraint*>,
-          std::optional<IntersectionConstraint*>>
-MatchLtVarConst(Value* value);
+struct MatchedConstraints {
+    std::vector<IntersectionConstraint*> ifTrue;
+    std::vector<IntersectionConstraint*> ifFalse;
+};
+
+// x , y : Variables
+// c : Constant
+
+// if (x < c)
+MatchedConstraints MatchLtVarConst(Value* value);
+
+// TODO: if (c < x)
+// TODO: if (x < y)
+
+// TODO: if (x > c)
+// TODO: if (c > x)
+// TODO: if (x > y)
+
+// TODO: if (x == c)
+// TODO: if (c == x)
+// TODO: if (x == y)
+
+// TODO: if (x != c)
+// TODO: if (c != x)
+// TODO: if (x != y)
+
+// TODO: if (x <= c)
+// TODO: if (c <= x)
+// TODO: if (x <= y)
+
+// TODO: if (x >= c)
+// TODO: if (c >= x)
+// TODO: if (x >= y)
+
 
 }  // namespace Matching
 
