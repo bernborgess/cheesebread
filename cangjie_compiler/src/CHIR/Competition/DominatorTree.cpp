@@ -323,21 +323,20 @@ void DominatorTree::GenerateBranchConstraints()
         Block* block = node.block;
 
         // Only treat blocks that end in a branch
-        if (block->GetTerminator()->GetExprKind() != ExprKind::BRANCH)
-            continue;
+        if (block->GetTerminator()->GetExprKind() != ExprKind::BRANCH) continue;
 
         auto branch = (Branch*)block->GetTerminator();
         auto cond = branch->GetCondition();
-
-        // TODO: All supported pattern matches here
-
-        std::vector<Matching::MatchedConstraints>
-            constraints = {// * Match a pattern
-                           // Ex: LT(Load(x), Constant(c))
-                           Matching::MatchLessThanConstraints(cond)};
-
         auto trueNode = reverseMapBlockToNode(branch->GetTrueBlock());
         auto falseNode = reverseMapBlockToNode(branch->GetFalseBlock());
+
+        // TODO: All supported pattern matches here
+        std::vector<Matching::MatchedConstraints> constraints = {
+            // * Match a pattern
+            // Ex: LT(Load(x), Constant(c))
+            Matching::MatchLessThanConstraints(cond),
+            Matching::MatchEqualConstraints(cond),
+        };
 
         for (auto& [ifTrue, ifFalse] : constraints) {
             for (auto& constraint : ifTrue)

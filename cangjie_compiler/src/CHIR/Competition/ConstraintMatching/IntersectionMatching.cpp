@@ -1,12 +1,13 @@
 #include "cangjie/Competition/ConstraintMatching/IntersectionMatching.h"
 
+#include <variant>
+
 #include "cangjie/CHIR/CHIR.h"
 #include "cangjie/CHIR/IR/Package.h"
 
-#include <variant>
-
 // Match a pattern to create intersection constraints for True and False of a
 // Branch
+namespace Matching {
 
 using namespace Cangjie::CHIR;
 
@@ -25,7 +26,7 @@ std::optional<std::variant<LocalVar*, Constant*>> GetLoadOrConstant(
                 // ? Found the load variable
                 return locationLocalVar;
             }
-        } else if(expr->IsConstant()) {
+        } else if (expr->IsConstant()) {
             Constant* constant = (Constant*)expr;
 
             // ? Found the constant literal
@@ -37,22 +38,27 @@ std::optional<std::variant<LocalVar*, Constant*>> GetLoadOrConstant(
     return {};
 }
 
-// LT(Load(x), Constant(c))
-Matching::MatchedConstraints Matching::MatchLessThanConstraints(Value* cond) {
-    std::optional<std::variant<LocalVar*, Constant*>> matchLHS = std::nullopt,
-                                                      matchRHS = std::nullopt;
-
+// Matches the binary operator and returns its left and right arguments
+std::pair<std::optional<std::variant<LocalVar*, Constant*>>,
+          std::optional<std::variant<LocalVar*, Constant*>>>
+MatchBinExpr(Value* cond, ExprKind exprKind) {
     if (cond->IsLocalVar()) {
         LocalVar* condLV = (LocalVar*)cond;
         Expression* condExpr = condLV->GetExpr();
         if (condExpr->GetExprMajorKind() == ExprMajorKind::BINARY_EXPR) {
             BinaryExpression* condBinExpr = (BinaryExpression*)condExpr;
-            if (condBinExpr->GetExprKind() == ExprKind::LT) {
-                matchLHS = GetLoadOrConstant(condBinExpr->GetLHSOperand());
-                matchRHS = GetLoadOrConstant(condBinExpr->GetRHSOperand());
+            if (condBinExpr->GetExprKind() == exprKind) {
+                return {GetLoadOrConstant(condBinExpr->GetLHSOperand()),
+                        GetLoadOrConstant(condBinExpr->GetRHSOperand())};
             }
         }
     }
+    return {{}, {}};
+}
+
+// LT(Load(x), Constant(c))
+MatchedConstraints Matching::MatchLessThanConstraints(Value* cond) {
+    auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::LT);
 
     if (!matchLHS.has_value() || !matchRHS.has_value()) return {{}, {}};
 
@@ -109,7 +115,7 @@ Matching::MatchedConstraints Matching::MatchLessThanConstraints(Value* cond) {
         }
     } else {
         auto c = std::get<Constant*>(matchLHS.value())->GetSignedIntLitVal();
-        
+
         // if (c < x)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto x =
@@ -129,3 +135,59 @@ Matching::MatchedConstraints Matching::MatchLessThanConstraints(Value* cond) {
 
     return {ifTrue, ifFalse};
 }
+
+MatchedConstraints Matching::MatchEqualConstraints(Value* cond) {
+    auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::EQUAL);
+
+    if (!matchLHS.has_value() || !matchRHS.has_value()) return {{}, {}};
+
+    std::vector<IntersectionConstraint*> ifTrue, ifFalse;
+
+    auto minusInf = Bound::minusInfinity();
+    auto plusInf = Bound::plusInfinity();
+
+    // Equality is commutative
+    if (std::holds_alternative<Constant*>(matchLHS.value())) {
+        std::swap(matchLHS, matchRHS);
+    }
+
+    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
+        auto x = std::get<LocalVar*>(matchLHS.value())->GetSrcCodeIdentifier();
+
+        auto ft = [](std::string x, int offset = 0) {
+            return IntersectionConstraint::Future{x, offset};
+        };
+
+        // if (x == y)
+        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
+            auto y =
+                std::get<LocalVar*>(matchRHS.value())->GetSrcCodeIdentifier();
+
+            // THEN: x = x ∩ [ft(y), ft(y)]
+            auto trueConstraintX =
+                new IntersectionConstraint(x, x, ft(y, 0), ft(y, 0));
+            ifTrue.push_back(trueConstraintX);
+
+            // THEN: y = y ∩ [ft(x), ft(x)]
+            auto trueConstraintY =
+                new IntersectionConstraint(y, y, ft(x, 0), ft(x, 0));
+            ifTrue.push_back(trueConstraintY);
+
+            // ELSE: can't build disjoint range.
+        } else {  // if (x == c)
+            auto c =
+                std::get<Constant*>(matchRHS.value())->GetSignedIntLitVal();
+
+            // THEN: x = x ∩ [c, c]
+            auto trueConstraint = new IntersectionConstraint(
+                x, x, Bound::constant(c), Bound::constant(c));
+            ifTrue.push_back(trueConstraint);
+
+            // ELSE: can't build disjoint range.
+        }
+    }
+
+    return {ifTrue, ifFalse};
+}
+
+}  // namespace Matching
