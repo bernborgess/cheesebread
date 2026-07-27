@@ -338,6 +338,7 @@ void DominatorTree::GenerateBranchConstraints()
             Matching::MatchGreaterThanConstraints(cond),
             Matching::MatchEqualConstraints(cond),
             Matching::MatchNotEqualConstraints(cond),
+            Matching::MatchLessEqualConstraints(cond),
         };
 
         for (auto& [ifTrue, ifFalse] : constraints) {
