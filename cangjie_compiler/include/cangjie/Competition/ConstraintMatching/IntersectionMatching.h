@@ -18,12 +18,11 @@ struct MatchedConstraints {
 
 // x , y : Variables
 // c : Constant
-
+// 
 // if (x < c)
-MatchedConstraints MatchLtVarConst(Value* value);
-
-// TODO: if (c < x)
-// TODO: if (x < y)
+// if (c < x)
+// if (x < y)
+MatchedConstraints MatchLessThanConstraints(Value* value);
 
 // TODO: if (x > c)
 // TODO: if (c > x)

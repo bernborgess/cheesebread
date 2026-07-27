@@ -334,7 +334,7 @@ void DominatorTree::GenerateBranchConstraints()
         std::vector<Matching::MatchedConstraints>
             constraints = {// * Match a pattern
                            // Ex: LT(Load(x), Constant(c))
-                           Matching::MatchLtVarConst(cond)};
+                           Matching::MatchLessThanConstraints(cond)};
 
         auto trueNode = reverseMapBlockToNode(branch->GetTrueBlock());
         auto falseNode = reverseMapBlockToNode(branch->GetFalseBlock());
