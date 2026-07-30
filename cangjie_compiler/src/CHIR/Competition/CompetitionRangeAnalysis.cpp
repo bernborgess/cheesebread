@@ -219,7 +219,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
     // 1. Initialize a clean abstract state table
     AbstractState state;
-    // TODO: After SSA;    Solver solver(state);
+    // TODO: After SSA;   
+    Solver solver(state);
 
     std::fstream outputFile;
     outputFile.open("output.txt", std::ios::out);
@@ -241,8 +242,13 @@ void RangeAnalysis::RunOnPackage(Package* package)
         }
 
         // ? For now just using the default range => no info
-        auto range = state[variableName];
-        outputFile << range << std::endl;
+        if (std::holds_alternative<BV>(state[variableName])) {
+            auto boolVal = std::get<BV>(state[variableName]);
+            outputFile << boolVal << std::endl;
+        } else {
+            auto intVal = std::get<IV>(state[variableName]);
+            outputFile << intVal << std::endl;
+        }
     }
 
     outputFile.close();
