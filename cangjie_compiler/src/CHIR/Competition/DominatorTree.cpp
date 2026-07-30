@@ -1,5 +1,6 @@
 #include "cangjie/Competition/DominatorTree.h"
 
+#include "cangjie/Competition/ConstraintMatching/IntersectionMatching.h"
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -101,6 +102,9 @@ void DominatorTree::DFS(Block* block)
     nodes_.push_back(Node{});
 
     Node& node = nodes_[n];
+
+    // Populate the reverse map
+    blockToNodeMap[block] = &node;
 
     node.block = block;
     node.dfs = n;
@@ -297,6 +301,55 @@ void DominatorTree::PrintDominatorTree(const std::string& path)
     fout.close();
     if (DEBUG_DEFS_AND_USES)
         std::cerr << std::endl << std::endl;
+}
+
+DominatorTree::Node* DominatorTree::reverseMapBlockToNode(Block* block)
+{
+    if (block == nullptr)
+        return nullptr;
+
+    assert(blockToNodeMap.count(block));
+
+    return blockToNodeMap[block];
+}
+
+void DominatorTree::GenerateBranchConstraints()
+{
+    // ? Iterate on the tree, creating Sigmas and constraints
+    for (auto& node : nodes_) {
+        if (node.block == nullptr)
+            continue;
+
+        Block* block = node.block;
+
+        // Only treat blocks that end in a branch
+        if (block->GetTerminator()->GetExprKind() != ExprKind::BRANCH) continue;
+
+        auto branch = (Branch*)block->GetTerminator();
+        auto cond = branch->GetCondition();
+        auto trueNode = reverseMapBlockToNode(branch->GetTrueBlock());
+        auto falseNode = reverseMapBlockToNode(branch->GetFalseBlock());
+
+        // TODO: All supported pattern matches here
+        std::vector<Matching::MatchedConstraints> constraints = {
+            // * Match a pattern
+            // Ex: LT(Load(x), Constant(c))
+            Matching::MatchLessThanConstraints(cond),
+            Matching::MatchGreaterThanConstraints(cond),
+            Matching::MatchEqualConstraints(cond),
+            Matching::MatchNotEqualConstraints(cond),
+            Matching::MatchLessEqualConstraints(cond),
+            Matching::MatchGreaterEqualConstraints(cond),
+        };
+
+        for (auto& [ifTrue, ifFalse] : constraints) {
+            for (auto& constraint : ifTrue)
+                trueNode->pushConstraint(constraint);
+
+            for (auto& constraint : ifFalse)
+                falseNode->pushConstraint(constraint);
+        }
+    }
 }
 
 } // namespace Competition
