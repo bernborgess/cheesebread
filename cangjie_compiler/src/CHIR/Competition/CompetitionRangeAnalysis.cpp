@@ -2,6 +2,8 @@
 
 #include "cangjie/CHIR/Utils/CHIRPrinter.h"
 #include "cangjie/Competition/DominatorTree.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
+
 
 #include <fstream>
 #include <sstream>
@@ -23,7 +25,7 @@ vector<Query> readCompetitionQueries()
     ifstream inputFile;
     inputFile.open("input.txt", ifstream::in);
     if (!inputFile.is_open()) {
-        cerr << "No file 'input.txt'!" << endl;
+        //  No file 'input.txt'
         return {};
     }
 
@@ -173,16 +175,13 @@ void FindBranchesAndTheVariablesTheyUse(vector<Function*>& funcs)
 void RangeAnalysis::RunOnPackage(Package* package)
 {
     // Filter out the builtin cangjie code
-    if (package->GetName() == "std.core")
-        return;
-
-    cerr << "@@@@ COMPETITION ANALYSIS @@@@" << endl;
+    if (package->GetName() == "std.core") return;
 
     // Reads input file for value range queries
     auto queries = readCompetitionQueries();
-    if (queries.size() < 1) {
-        return;
-    }
+    if (queries.size() < 1) return;
+
+    cerr << "@@@@ COMPETITION ANALYSIS @@@@" << endl;
 
     // Keeps track of Basic Blocks where query[i].lineNumber occurs
     unordered_set<unsigned int> interestingLineNumbers;
@@ -218,17 +217,35 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // TODO: Go on with SSA Builder
     }
 
-    // Use the solver results to output the analsys
-    for (auto [fileName, lineNumber, variableName] : queries) {
-        std::cerr << "Find the range of variable " << variableName << " at line " << lineNumber << " of file "
-                  << fileName << std::endl;
+    // 1. Initialize a clean abstract state table
+    AbstractState state;
+    // TODO: After SSA;    Solver solver(state);
 
-        for(auto block:blocksByLineNumber[lineNumber]) {
-            // TODO: Gather abstract value from this block, about the variableName
-            block->GetIdentifier();
-        }
+    std::fstream outputFile;
+    outputFile.open("output.txt", std::ios::out);
+    if(!outputFile.is_open()) {
+        std::cerr << "Failed to open output.txt file!"<< std::endl;
+        return;
     }
 
+    // Use the solver results to output the analsys
+    for (auto [fileName, lineNumber, variableName] : queries) {
+        std::cerr << "Find the range of variable " << variableName
+                  << " at line " << lineNumber << " of file " << fileName
+                  << std::endl;
+
+        for (auto block : blocksByLineNumber[lineNumber]) {
+            // TODO: Gather abstract value from this block, about the
+            // variableName
+            block->GetIdentifier();
+        }
+
+        // ? For now just using the default range => no info
+        auto range = state[variableName];
+        outputFile << range << std::endl;
+    }
+
+    outputFile.close();
     std::cerr << "@@@@ COMPETITION ANALYSIS END @@@@" << std::endl;
     return;
 }
