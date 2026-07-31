@@ -210,6 +210,47 @@ static std::string getUncommented(std::string s)
     return s;
 }
 
+std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNodes()
+{
+    for (auto &node : nodes_) {
+        // Check that block is valid
+        if (node.block == nullptr)
+            continue;
+
+        Block* block = node.block;
+
+        for (auto expr : block->GetExpressions()) {
+
+            if (expr->IsAllocate()) {
+                LocalVar* res = expr->GetResult();
+                idToAlias[res->GetIdentifier()] = Alias(res->GetSrcCodeIdentifier());
+                // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
+            }
+
+            // if (expr->IsLoad()) {
+            //     auto id = expr->GetResult()->GetIdentifier();
+            //     auto opId = expr->GetOperand(0)->GetIdentifier();
+            //     if (idToAlias[id].def == "") idToAlias[id] = idToAlias[opId];
+            // }
+
+            if (expr->IsStore()) {
+                auto id = expr->GetOperand(0)->GetIdentifier();
+                auto opId = expr->GetOperand(1)->GetIdentifier();
+                if (idToAlias[opId].def == "") continue;
+                if (idToAlias[id].def == "")
+                    idToAlias[id] = idToAlias[opId];
+                alphaNodes[idToAlias[opId].def].emplace_back(block);
+            }
+        }
+    }
+
+    for (auto [id, alias] : idToAlias) {
+        if (alias.def != "")
+            std::cout << id << ": " << alias << "\n";
+    }
+    return alphaNodes;
+}
+
 void DominatorTree::PrintDominatorTree(const std::string& path)
 {
     std::fstream fout;
@@ -244,6 +285,7 @@ void DominatorTree::PrintDominatorTree(const std::string& path)
         if (DEBUG_DEFS_AND_USES)
             std::cerr << "Block " << block->GetIdentifier() << " :" << std::endl;
 
+        
         // Show the CHIR code inside this block!
         for (auto expr : block->GetExpressions()) {
             std::string info = "";

@@ -26,7 +26,7 @@ public:
     // Computes the iterated dominance frontier (IDF) for a set of blocks.
     // N_alpha is the set of blocks that define a specific variable.
     // Returns the set of blocks where phi-functions must be inserted.
-    std::vector<Block*> PlacePhiNodes(const std::vector<Block*>& n_alpha);
+    std::vector<Block*> PlacePhiNodes(const std::vector<Block*>& n_alpha, Block* entryBlock);
 
     // Call this once before placing phis to precompute levels using the DomTree
     void ComputeLevels(Block* entryBlock);

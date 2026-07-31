@@ -34,14 +34,21 @@ namespace Competition {
 // Computes the iterated dominance frontier (IDF) for a set of blocks.
 // N_alpha is the set of blocks that define a specific variable.
 // Returns the set of blocks where phi-functions must be inserted.
-std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha)
+std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha, Block* entryBlock)
 {
+    std::cout << "Placing Phi Nodes for Nα = [";
+    for (Block* block : n_alpha) {
+        if (block != *n_alpha.begin()) std::cout << ", ";
+        std::cout << block->GetIdentifier();
+    }
+    std::cout << "]";
     std::vector<Block*> idf;
     if (n_alpha.empty())
         return idf;
 
     // 1. Initialize state
     ResetState();
+    ComputeLevels(entryBlock);
 
     // 2. Setup PiggyBank
     // The PiggyBank is an array of lists of nodes, indexed by level.
@@ -110,6 +117,8 @@ std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha
 
     // Pull highest level nodes and evaluate
     while ((currentRoot = GetNode()) != nullptr) {
+        std::cout << "Visiting " << currentRoot << "\n";
+        std::cout << "Node level: " << currentRoot->level << "\n";
         currentRoot->visited = true;
         Visit(Visit, currentRoot);
     }

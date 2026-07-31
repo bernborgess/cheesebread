@@ -216,21 +216,31 @@ void RangeAnalysis::RunOnPackage(Package* package)
             domTree.PrintDominatorTree("domTree.dot");
         }
 
-        std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
-
-        for (auto block : func->GetBody()->GetBlocks()) {
-            for (auto expr : block->GetExpressions()) {
-                if (LocalVar* res = expr->GetResult()) {
-                    alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
-                }
-            }
-        }
+        std::unordered_map<std::string, std::vector<Block*>>
+            alphaNodes = domTree.GetAlphaNodes();
         
         // TODO: Go on with SSA Builder
         std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
         for (auto [def, blocks] : alphaNodes) {
+            if (blocks.empty()) continue;
+            std::cout << "Blocks with definitions of " << def << ": [";
+            for (Block *block : blocks) {
+                if (block != *blocks.begin()) std::cout << ", ";
+                std::cout << block->GetIdentifier();
+            }
+            std::cout << "]\n";
             SSABuilder builder(domTree);
-            variablePhiNodes[def] = builder.PlacePhiNodes(blocks);
+            variablePhiNodes[def] = builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
+        }
+
+        for (auto [def, phiBlocks] : variablePhiNodes) {
+            if (phiBlocks.empty()) continue;
+            std::cout << "Phi blocks of " << def << ": [";
+            for (Block *block : phiBlocks) {
+                if (block != *phiBlocks.begin()) std::cout << ", ";
+                std::cout << block->GetIdentifier();
+            }
+            std::cout << "]\n";
         }
     }
 

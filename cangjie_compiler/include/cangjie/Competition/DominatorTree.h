@@ -5,6 +5,7 @@
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
+#include "cangjie/Competition/Phi.h"
 
 #include <unordered_map>
 #include <vector>
@@ -35,11 +36,19 @@ public:
     /// Prints the current dominator tree to a .dot file.
     void PrintDominatorTree(const std::string& path);
 
+    /// Get aliases for identifiers
+    std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();
+
     /// Pass along the tree creating constraints on the branches
     void GenerateBranchConstraints();
 
+
+
 private:
     struct Node {
+        // We want 
+        std::vector<Node*> phiFunctions;
+
         Block* block = nullptr;
 
         std::size_t dfs = 0;
@@ -62,6 +71,8 @@ private:
 
     };
 
+    std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
+    std::unordered_map<std::string, Alias> idToAlias;
     std::unordered_map<Block*,Node*> blockToNodeMap;
     Node* reverseMapBlockToNode(Block* block);
 
