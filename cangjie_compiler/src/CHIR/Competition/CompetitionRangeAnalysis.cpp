@@ -2,6 +2,7 @@
 
 #include "cangjie/CHIR/Utils/CHIRPrinter.h"
 #include "cangjie/Competition/DominatorTree.h"
+#include "cangjie/Competition/SSABuilder.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
 
 
@@ -206,15 +207,31 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // TODO: Interprocedural
     for (auto func : userDefinedFunctions) {
         // Our debug
+        Block* entry = func->GetEntryBlock();
+        DominatorTree domTree(entry);
+        domTree.Compute();
+        domTree.GenerateBranchConstraints();
         if (func->GetSrcCodeIdentifier() == "foo") {
             CHIRPrinter::PrintCFG(*func, "foo.dot");
-            Block* entry = func->GetEntryBlock();
-            DominatorTree domTree(entry);
-            domTree.Compute();
             domTree.PrintDominatorTree("domTree.dot");
-            domTree.GenerateBranchConstraints();
         }
+
+        std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
+
+        for (auto block : func->GetBody()->GetBlocks()) {
+            for (auto expr : block->GetExpressions()) {
+                if (LocalVar* res = expr->GetResult()) {
+                    alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
+                }
+            }
+        }
+        
         // TODO: Go on with SSA Builder
+        std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
+        for (auto [def, blocks] : alphaNodes) {
+            SSABuilder builder(domTree);
+            variablePhiNodes[def] = builder.PlacePhiNodes(blocks);
+        }
     }
 
     // 1. Initialize a clean abstract state table
