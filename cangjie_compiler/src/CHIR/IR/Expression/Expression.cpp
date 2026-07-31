@@ -76,6 +76,11 @@ Expression::Expression(
     }
 }
 
+bool Expression::IsAllocate() const
+{
+    return kind == ExprKind::ALLOCATE;
+}
+
 bool Expression::IsConstantNull() const
 {
     if (kind == ExprKind::CONSTANT) {
@@ -149,6 +154,11 @@ bool Expression::IsUnaryExpr() const
 bool Expression::IsLoad() const
 {
     return kind == ExprKind::LOAD;
+}
+
+bool Expression::IsStore() const
+{
+    return kind == ExprKind::STORE;
 }
 
 bool Expression::IsTypeCast() const
