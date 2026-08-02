@@ -2,6 +2,7 @@
 
 #include "cangjie/CHIR/Utils/CHIRPrinter.h"
 #include "cangjie/Competition/DominatorTree.h"
+#include "cangjie/Competition/Phi.h"
 #include "cangjie/Competition/SSABuilder.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
 
@@ -233,6 +234,16 @@ void RangeAnalysis::RunOnPackage(Package* package)
             variablePhiNodes[def] = builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
         }
 
+        // We want to rename everything
+
+        std::cout << "Constructing phi functions\n";
+        for (auto [def, phiBlocks] : variablePhiNodes) {
+            for (Block *block : phiBlocks) {
+                Phi phiFunction = Phi(Alias(def), alphaNodes[def].size());
+                domTree.AddPhiFunction(block, phiFunction);
+            }
+        }
+
         for (auto [def, phiBlocks] : variablePhiNodes) {
             if (phiBlocks.empty()) continue;
             std::cout << "Phi blocks of " << def << ": [";
@@ -242,6 +253,10 @@ void RangeAnalysis::RunOnPackage(Package* package)
             }
             std::cout << "]\n";
         }
+
+        std::cout << "Applying renaming\n";
+
+        domTree.Renaming();
     }
 
     // 1. Initialize a clean abstract state table

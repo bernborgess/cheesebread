@@ -7,41 +7,11 @@
 
 namespace Competition {
 
-
-// Pass
-// For each block:
-//  If block have definition:
-//   add block to N_α
-// PlacePhiNodes(N_α)
-// std::vector<Block*> phiNodes -> blocks that are phiBlocks
-
-// x = ...
-// if (condition) {
-//   x = x + 1;
-// } else {
-//   x = x - 1;
-// }
-// print(x);
-
-// Renaming
-// Block -> phiBlock
-// x = x + 10
-// y = y - 10
-// x1 = phi(x0, x2, ...)
-// 
-// y1 = phi(y0, y2, ...)
-
 // Computes the iterated dominance frontier (IDF) for a set of blocks.
 // N_alpha is the set of blocks that define a specific variable.
 // Returns the set of blocks where phi-functions must be inserted.
 std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha, Block* entryBlock)
 {
-    std::cout << "Placing Phi Nodes for Nα = [";
-    for (Block* block : n_alpha) {
-        if (block != *n_alpha.begin()) std::cout << ", ";
-        std::cout << block->GetIdentifier();
-    }
-    std::cout << "]";
     std::vector<Block*> idf;
     if (n_alpha.empty())
         return idf;
@@ -117,8 +87,6 @@ std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha
 
     // Pull highest level nodes and evaluate
     while ((currentRoot = GetNode()) != nullptr) {
-        std::cout << "Visiting " << currentRoot << "\n";
-        std::cout << "Node level: " << currentRoot->level << "\n";
         currentRoot->visited = true;
         Visit(Visit, currentRoot);
     }

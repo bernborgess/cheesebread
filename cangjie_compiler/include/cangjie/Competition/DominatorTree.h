@@ -42,12 +42,11 @@ public:
     /// Pass along the tree creating constraints on the branches
     void GenerateBranchConstraints();
 
-
+    void Renaming();
 
 private:
     struct Node {
-        // We want 
-        std::vector<Node*> phiFunctions;
+        std::vector<Phi> phiFunctions;
 
         Block* block = nullptr;
 
@@ -71,10 +70,16 @@ private:
 
     };
 
+    Node* ReverseMapBlockToNode(Block* block);
+
+public:
+    void AddPhiFunction(Block* block, Phi phiFunction);
+
+private:
+    std::vector<std::string> variables;
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
     std::unordered_map<std::string, Alias> idToAlias;
     std::unordered_map<Block*,Node*> blockToNodeMap;
-    Node* reverseMapBlockToNode(Block* block);
 
 private:
     void DFS(Block* block);
@@ -95,7 +100,7 @@ private:
     std::vector<Block*> vertex_;
 
     // Indexed by DFS number.
-    std::vector<Node> nodes_;
+    std::vector<Node*> nodes_;
 
     // Immediate dominators.
     std::unordered_map<Block*, Block*> idom_;
