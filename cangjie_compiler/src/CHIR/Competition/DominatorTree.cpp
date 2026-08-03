@@ -643,6 +643,32 @@ void DominatorTree::GenerateSSAConstraints()
                     constraintGraph.addConstraint(constraint);
                     boolIdentifiers.emplace(def.def);
                 }
+            } else if (expr->IsUnaryExpr()) {
+                auto def = idToAlias[expr->GetResult()->GetIdentifier()];
+                auto op = idToAlias[expr->GetOperand(0)->GetIdentifier()];
+                if (intIdentifiers.count(op.def)) {
+                    if (expr->GetExprKind() == ExprKind::NEG) {
+                        auto constraint = std::make_shared<NegConstraint>(
+                            def.to_string(), op.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITNOT) {
+                        auto constraint = std::make_shared<BitwiseNotConstraint>(
+                            def.to_string(), op.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    }
+                } else if (boolIdentifiers.count(op.def)) {
+                    if (expr->GetExprKind() == ExprKind::NOT) {
+                        auto constraint = std::make_shared<LogicalNotConstraint>(
+                            def.to_string(), op.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    }
+                }
             } else if (expr->IsBinaryExpr()) {
                 auto def = idToAlias[expr->GetResult()->GetIdentifier()];
                 auto lhs = idToAlias[expr->GetOperand(0)->GetIdentifier()];
@@ -666,8 +692,80 @@ void DominatorTree::GenerateSSAConstraints()
                         );
                         constraintGraph.addConstraint(constraint);
                         intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::DIV) {
+                        auto constraint = std::make_shared<DivConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::MOD) {
+                        auto constraint = std::make_shared<ModConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::LSHIFT) {
+                        auto constraint = std::make_shared<ShiftLeftConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::RSHIFT) {
+                        auto constraint = std::make_shared<ShiftRightConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITAND) {
+                        auto constraint = std::make_shared<BitwiseAndConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITXOR) {
+                        auto constraint = std::make_shared<BitwiseXorConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITOR) {
+                        auto constraint = std::make_shared<BitwiseOrConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
                     } else if (expr->GetExprKind() == ExprKind::EQUAL) {
                         auto constraint = std::make_shared<EqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::NOTEQUAL) {
+                        auto constraint = std::make_shared<NotEqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::LT) {
+                        auto constraint = std::make_shared<LessThanConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::GT) {
+                        auto constraint = std::make_shared<GreaterThanConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::LE) {
+                        auto constraint = std::make_shared<LessEqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::GE) {
+                        auto constraint = std::make_shared<GreaterEqualConstraint>(
                             def.to_string(), lhs.to_string(), rhs.to_string()
                         );
                         constraintGraph.addConstraint(constraint);
@@ -676,6 +774,12 @@ void DominatorTree::GenerateSSAConstraints()
                 } else if (boolIdentifiers.count(lhs.def) && boolIdentifiers.count(rhs.def)) {
                     if (expr->GetExprKind() == ExprKind::AND) {
                         auto constraint = std::make_shared<LogicalAndConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        constraintGraph.addConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::OR) {
+                        auto constraint = std::make_shared<LogicalOrConstraint>(
                             def.to_string(), lhs.to_string(), rhs.to_string()
                         );
                         constraintGraph.addConstraint(constraint);
