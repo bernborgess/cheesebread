@@ -87,60 +87,88 @@ if [ ! -f "$WORKSPACE/cangjie_runtime/README.md" ]; then
 fi
 
 # Execute build
-if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ] || $FRESH; then
-cd $WORKSPACE/cangjie_compiler;
-python3 build.py clean; # TODO: Bypass this for faster recompilation.
-python3 build.py build -t debug \
-  -v ${CANGJIE_VERSION} \
-  --no-tests \
-  --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
-  --build-cjdb;
-python3 build.py install;
+if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
+  cd $WORKSPACE/cangjie_compiler;
+  # python3 build.py clean;
+  rm -rf output
+  python3 build.py build -t debug \
+    -v ${CANGJIE_VERSION} \
+    --no-tests \
+    --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
+    --build-cjdb;
+  python3 build.py install;
+elif $FRESH; then
+  cd $WORKSPACE/cangjie_compiler
+  # We only need to exclude the output dir
+  rm -rf output
+  # Regenerate cmake files if needed
+  cmake -B build/build .
+  # Compile changes
+  cmake --build build/build
+  # Run install script to create output dir
+  python3 build.py install
 fi
 
 source $WORKSPACE/cangjie_compiler/output/envsetup.sh
 cjc -v
 
 # Build cangjie runtime
-if [ ! -d "$WORKSPACE/cangjie_runtime/runtime/output/common" ] || $FRESH; then
-cd $WORKSPACE/cangjie_runtime/runtime;
-python3 build.py clean;
-python3 build.py build -t debug -v ${CANGJIE_VERSION};
-python3 build.py install;
-cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
+if [ ! -d "$WORKSPACE/cangjie_runtime/runtime/output/common" ]; then
+  cd $WORKSPACE/cangjie_runtime/runtime;
+  python3 build.py clean;
+  python3 build.py build -t debug -v ${CANGJIE_VERSION};
+  python3 build.py install;
+  cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
+elif $FRESH; then
+  cd $WORKSPACE/cangjie_runtime/runtime;
+  python3 build.py install;
+  cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
 fi
 
 # Build cangjie stdlib
-if [ ! -d "$WORKSPACE/cangjie_runtime/stdlib/output" ] || $FRESH; then
-cd $WORKSPACE/cangjie_runtime/stdlib;
-python3 build.py clean;
-python3 build.py build -t debug \
-  --target-lib=$WORKSPACE/cangjie_runtime/runtime/output \
-  --target-lib=$OPENSSL_PATH;
-python3 build.py install;
-cp -R output/* ../../cangjie_compiler/output/;
+if [ ! -d "$WORKSPACE/cangjie_runtime/stdlib/output" ]; then
+  cd $WORKSPACE/cangjie_runtime/stdlib;
+  python3 build.py clean;
+  python3 build.py build -t debug \
+    --target-lib=$WORKSPACE/cangjie_runtime/runtime/output \
+    --target-lib=$OPENSSL_PATH;
+  python3 build.py install;
+  cp -R output/* ../../cangjie_compiler/output/;
+elif $FRESH; then
+  cd $WORKSPACE/cangjie_runtime/stdlib;
+  python3 build.py install;
+  cp -R output/* ../../cangjie_compiler/output/;
 fi
 
 # Build STDX Extension Library
-if [ ! -d "$WORKSPACE/cangjie_stdx/target/linux_${ARCH}_cjnative/static/stdx" ] || $FRESH; then
-cd $WORKSPACE/cangjie_stdx;
-python3 build.py clean;
-python3 build.py build -t release \
-  --include=${WORKSPACE}/cangjie_compiler/include \
-  --target-lib=$OPENSSL_PATH;
-python3 build.py install;
+if [ ! -d "$WORKSPACE/cangjie_stdx/target/linux_${ARCH}_cjnative/static/stdx" ]; then
+  cd $WORKSPACE/cangjie_stdx;
+  # python3 build.py clean;
+  python3 build.py build -t release \
+    --include=${WORKSPACE}/cangjie_compiler/include \
+    --target-lib=$OPENSSL_PATH;
+  python3 build.py install;
+elif $FRESH; then
+  cd $WORKSPACE/cangjie_stdx;
+  python3 build.py install;
 fi
 export CANGJIE_STDX_PATH=$WORKSPACE/cangjie_stdx/target/linux_${ARCH}_cjnative/static/stdx;
 
 # cjpm
-if [ ! -f "${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm" ] || $FRESH; then
-cd ${WORKSPACE}/cangjie_tools/cjpm/build;
-python3 build.py clean;
-python3 build.py build -t debug --set-rpath \$ORIGIN/../../runtime/lib/linux_${ARCH}_cjnative;
-python3 build.py install;
-mkdir -p ${WORKSPACE}/cangjie_compiler/output/tools/config;
-cp ${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm   ${WORKSPACE}/cangjie_compiler/output/tools/bin;
-mv ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
+if [ ! -f "${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm" ]; then
+  cd ${WORKSPACE}/cangjie_tools/cjpm/build;
+  python3 build.py clean;
+  python3 build.py build -t debug --set-rpath \$ORIGIN/../../runtime/lib/linux_${ARCH}_cjnative;
+  python3 build.py install;
+  mkdir -p ${WORKSPACE}/cangjie_compiler/output/tools/config;
+  cp ${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm   ${WORKSPACE}/cangjie_compiler/output/tools/bin;
+  cp ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
+elif $FRESH; then
+  cd ${WORKSPACE}/cangjie_tools/cjpm/build;
+  python3 build.py install;
+  mkdir -p ${WORKSPACE}/cangjie_compiler/output/tools/config;
+  cp ${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm   ${WORKSPACE}/cangjie_compiler/output/tools/bin;
+  cp ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
 fi
 
 echo "All projects built successfully!"

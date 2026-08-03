@@ -4,7 +4,8 @@
 #include "cangjie/CHIR/CHIR.h"
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
-#include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Graph.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
 #include "cangjie/Competition/Phi.h"
 
 #include <unordered_map>
@@ -43,6 +44,8 @@ public:
     void GenerateBranchConstraints();
 
     void Renaming();
+
+    void GenerateSSAConstraints();
 
 private:
     struct Node {
@@ -107,6 +110,12 @@ private:
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
+
+    // Value Range Analysis Constraint Graph
+    ConstraintGraph constraintGraph;
+
+    // Value Range Analysis Abstract State
+    AbstractState state;
 };
 } // namespace Competition
 

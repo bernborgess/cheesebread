@@ -439,6 +439,7 @@ InitializationBoolConstraint::InitializationBoolConstraint(std::string var, bool
     : Constraint(std::move(var)), constant(c) {}
 
 bool InitializationBoolConstraint::eval(AbstractState& A) {
+    A.try_emplace(def, BV());
     BV old_val = std::get<BV>(A[def]);
 
     std::vector<bool> vals = {constant};

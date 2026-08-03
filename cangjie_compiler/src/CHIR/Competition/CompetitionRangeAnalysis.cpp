@@ -210,33 +210,35 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // Our debug
         Block* entry = func->GetEntryBlock();
         DominatorTree domTree(entry);
+        // std::cout << "Computing dominator tree\n";
         domTree.Compute();
-        domTree.GenerateBranchConstraints();
+        // domTree.GenerateBranchConstraints();
         if (func->GetSrcCodeIdentifier() == "foo") {
             CHIRPrinter::PrintCFG(*func, "foo.dot");
-            domTree.PrintDominatorTree("domTree.dot");
+            domTree.PrintDominatorTree("domTree.dot");  
         }
 
+        // std::cout << "Computing alpha nodes\n";
         std::unordered_map<std::string, std::vector<Block*>>
             alphaNodes = domTree.GetAlphaNodes();
         
-        // TODO: Go on with SSA Builder
+        // std::cout << "Computing phi nodes\n";
         std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
         for (auto [def, blocks] : alphaNodes) {
             if (blocks.empty()) continue;
-            std::cout << "Blocks with definitions of " << def << ": [";
-            for (Block *block : blocks) {
-                if (block != *blocks.begin()) std::cout << ", ";
-                std::cout << block->GetIdentifier();
-            }
-            std::cout << "]\n";
+            // std::cout << "Blocks with definitions of " << def << ": [";
+            // for (Block *block : blocks) {
+            //     if (block != *blocks.begin()) std::cout << ", ";
+            //     std::cout << block->GetIdentifier();
+            // }
+            // std::cout << "]\n";
             SSABuilder builder(domTree);
             variablePhiNodes[def] = builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
         }
 
         // We want to rename everything
 
-        std::cout << "Constructing phi functions\n";
+        // std::cout << "Constructing phi functions\n";
         for (auto [def, phiBlocks] : variablePhiNodes) {
             for (Block *block : phiBlocks) {
                 Phi phiFunction = Phi(Alias(def), alphaNodes[def].size());
@@ -244,19 +246,23 @@ void RangeAnalysis::RunOnPackage(Package* package)
             }
         }
 
-        for (auto [def, phiBlocks] : variablePhiNodes) {
-            if (phiBlocks.empty()) continue;
-            std::cout << "Phi blocks of " << def << ": [";
-            for (Block *block : phiBlocks) {
-                if (block != *phiBlocks.begin()) std::cout << ", ";
-                std::cout << block->GetIdentifier();
-            }
-            std::cout << "]\n";
+        // for (auto [def, phiBlocks] : variablePhiNodes) {
+        //     if (phiBlocks.empty()) continue;
+        //     std::cout << "Phi blocks of " << def << ": [";
+        //     for (Block *block : phiBlocks) {
+        //         if (block != *phiBlocks.begin()) std::cout << ", ";
+        //         std::cout << block->GetIdentifier();
+        //     }
+        //     std::cout << "]\n";
+        // }
+
+        // std::cout << "Applying renaming\n";
+
+        if (func->GetSrcCodeIdentifier() == "foo") {
+            domTree.Renaming();
+
+            domTree.GenerateSSAConstraints();
         }
-
-        std::cout << "Applying renaming\n";
-
-        domTree.Renaming();
     }
 
     // 1. Initialize a clean abstract state table

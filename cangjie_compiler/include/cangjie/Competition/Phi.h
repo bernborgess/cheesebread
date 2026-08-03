@@ -69,8 +69,24 @@ public:
         return var.def;
     }
 
+    int getVarCounter() {
+        return var.counter;
+    }
+
     std::string getAliasDefByIdx(size_t idx) {
         return aliases[idx].def;
+    }
+
+    std::string getVarString() {
+        return var.to_string();
+    }
+
+    std::vector<std::string> getAliasesStrings() {
+        std::vector<std::string> aliasesStrings;
+        for (Alias a : aliases) {
+            aliasesStrings.push_back(a.to_string());
+        }
+        return aliasesStrings;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Phi& a) {
