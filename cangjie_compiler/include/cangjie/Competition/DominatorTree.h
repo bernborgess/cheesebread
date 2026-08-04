@@ -35,7 +35,7 @@ public:
     const std::vector<Block*>& GetChildren(Block* block) const;
 
     /// Prints the current dominator tree to a .dot file.
-    void PrintDominatorTree(const std::string& path);
+    void PrintDominatorTree(const std::string& path, bool alias = false);
 
     /// Get aliases for identifiers
     std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();

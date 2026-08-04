@@ -433,7 +433,7 @@ void DominatorTree::Renaming()
     search(search, blockToNodeMap[entry_]);
 }
 
-void DominatorTree::PrintDominatorTree(const std::string& path)
+void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
 {
     std::fstream fout;
     std::cerr << "DEBUG PRINT DOM TREE!" << path << std::endl;
@@ -474,7 +474,9 @@ void DominatorTree::PrintDominatorTree(const std::string& path)
 
             // ? It's an atribution!
             if (LocalVar* res = expr->GetResult(); res != nullptr) {
-                info += res->GetIdentifier() + ": " + res->GetType()->ToString() + " = ";
+                auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
+                        : res->GetIdentifier();
+                info += ident + ": " + res->GetType()->ToString() + " = ";
                 if (DEBUG_DEFS_AND_USES)
                     std::cerr << "- DEF " << res->GetIdentifier() + ": " + res->GetType()->ToString() << std::endl;
             }

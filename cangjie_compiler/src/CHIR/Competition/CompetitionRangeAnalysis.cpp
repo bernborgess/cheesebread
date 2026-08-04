@@ -262,7 +262,16 @@ void RangeAnalysis::RunOnPackage(Package* package)
             domTree.Renaming();
 
             domTree.GenerateSSAConstraints();
+             
+            // Produce the graph after renaming alias.
+            domTree.PrintDominatorTree("domTreeSSA.dot", true);  
         }
+
+
+
+        // TODO: Add intersection constriants on branches
+        // * Careful to use the right SSA names in the constraint.
+        // domTree.GenerateBranchConstraints();
     }
 
     // 1. Initialize a clean abstract state table
