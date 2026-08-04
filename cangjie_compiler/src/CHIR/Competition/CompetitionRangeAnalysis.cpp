@@ -2,6 +2,10 @@
 
 #include "cangjie/CHIR/Utils/CHIRPrinter.h"
 #include "cangjie/Competition/DominatorTree.h"
+#include "cangjie/Competition/Phi.h"
+#include "cangjie/Competition/SSABuilder.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
+
 
 #include <fstream>
 #include <sstream>
@@ -23,7 +27,7 @@ vector<Query> readCompetitionQueries()
     ifstream inputFile;
     inputFile.open("input.txt", ifstream::in);
     if (!inputFile.is_open()) {
-        cerr << "No file 'input.txt'!" << endl;
+        //  No file 'input.txt'
         return {};
     }
 
@@ -173,16 +177,13 @@ void FindBranchesAndTheVariablesTheyUse(vector<Function*>& funcs)
 void RangeAnalysis::RunOnPackage(Package* package)
 {
     // Filter out the builtin cangjie code
-    if (package->GetName() == "std.core")
-        return;
-
-    cerr << "@@@@ COMPETITION ANALYSIS @@@@" << endl;
+    if (package->GetName() == "std.core") return;
 
     // Reads input file for value range queries
     auto queries = readCompetitionQueries();
-    if (queries.size() < 1) {
-        return;
-    }
+    if (queries.size() < 1) return;
+
+    cerr << "@@@@ COMPETITION ANALYSIS @@@@" << endl;
 
     // Keeps track of Basic Blocks where query[i].lineNumber occurs
     unordered_set<unsigned int> interestingLineNumbers;
@@ -207,28 +208,98 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // TODO: Interprocedural
     for (auto func : userDefinedFunctions) {
         // Our debug
+        Block* entry = func->GetEntryBlock();
+        DominatorTree domTree(entry);
+        // std::cout << "Computing dominator tree\n";
+        domTree.Compute();
+        // domTree.GenerateBranchConstraints();
         if (func->GetSrcCodeIdentifier() == "foo") {
             CHIRPrinter::PrintCFG(*func, "foo.dot");
-            Block* entry = func->GetEntryBlock();
-            DominatorTree domTree(entry);
-            domTree.Compute();
-            domTree.PrintDominatorTree("domTree.dot");
-            domTree.GenerateBranchConstraints();
+            domTree.PrintDominatorTree("domTree.dot");  
         }
-        // TODO: Go on with SSA Builder
+
+        // std::cout << "Computing alpha nodes\n";
+        std::unordered_map<std::string, std::vector<Block*>>
+            alphaNodes = domTree.GetAlphaNodes();
+        
+        // std::cout << "Computing phi nodes\n";
+        std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
+        for (auto [def, blocks] : alphaNodes) {
+            if (blocks.empty()) continue;
+            // std::cout << "Blocks with definitions of " << def << ": [";
+            // for (Block *block : blocks) {
+            //     if (block != *blocks.begin()) std::cout << ", ";
+            //     std::cout << block->GetIdentifier();
+            // }
+            // std::cout << "]\n";
+            SSABuilder builder(domTree);
+            variablePhiNodes[def] = builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
+        }
+
+        // We want to rename everything
+
+        // std::cout << "Constructing phi functions\n";
+        for (auto [def, phiBlocks] : variablePhiNodes) {
+            for (Block *block : phiBlocks) {
+                Phi phiFunction = Phi(Alias(def), alphaNodes[def].size());
+                domTree.AddPhiFunction(block, phiFunction);
+            }
+        }
+
+        // for (auto [def, phiBlocks] : variablePhiNodes) {
+        //     if (phiBlocks.empty()) continue;
+        //     std::cout << "Phi blocks of " << def << ": [";
+        //     for (Block *block : phiBlocks) {
+        //         if (block != *phiBlocks.begin()) std::cout << ", ";
+        //         std::cout << block->GetIdentifier();
+        //     }
+        //     std::cout << "]\n";
+        // }
+
+        // std::cout << "Applying renaming\n";
+
+        if (func->GetSrcCodeIdentifier() == "foo") {
+            domTree.Renaming();
+
+            domTree.GenerateSSAConstraints();
+        }
+    }
+
+    // 1. Initialize a clean abstract state table
+    AbstractState state;
+    // TODO: After SSA;   
+    Solver solver(state);
+
+    std::fstream outputFile;
+    outputFile.open("output.txt", std::ios::out);
+    if(!outputFile.is_open()) {
+        std::cerr << "Failed to open output.txt file!"<< std::endl;
+        return;
     }
 
     // Use the solver results to output the analsys
     for (auto [fileName, lineNumber, variableName] : queries) {
-        std::cerr << "Find the range of variable " << variableName << " at line " << lineNumber << " of file "
-                  << fileName << std::endl;
+        std::cerr << "Find the range of variable " << variableName
+                  << " at line " << lineNumber << " of file " << fileName
+                  << std::endl;
 
-        for(auto block:blocksByLineNumber[lineNumber]) {
-            // TODO: Gather abstract value from this block, about the variableName
+        for (auto block : blocksByLineNumber[lineNumber]) {
+            // TODO: Gather abstract value from this block, about the
+            // variableName
             block->GetIdentifier();
+        }
+
+        // ? For now just using the default range => no info
+        if (std::holds_alternative<BV>(state[variableName])) {
+            auto boolVal = std::get<BV>(state[variableName]);
+            outputFile << boolVal << std::endl;
+        } else {
+            auto intVal = std::get<IV>(state[variableName]);
+            outputFile << intVal << std::endl;
         }
     }
 
+    outputFile.close();
     std::cerr << "@@@@ COMPETITION ANALYSIS END @@@@" << std::endl;
     return;
 }

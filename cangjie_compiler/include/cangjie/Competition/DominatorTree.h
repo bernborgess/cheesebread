@@ -4,7 +4,9 @@
 #include "cangjie/CHIR/CHIR.h"
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
-#include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Graph.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
+#include "cangjie/Competition/Phi.h"
 
 #include <unordered_map>
 #include <vector>
@@ -35,11 +37,20 @@ public:
     /// Prints the current dominator tree to a .dot file.
     void PrintDominatorTree(const std::string& path);
 
+    /// Get aliases for identifiers
+    std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();
+
     /// Pass along the tree creating constraints on the branches
     void GenerateBranchConstraints();
 
+    void Renaming();
+
+    void GenerateSSAConstraints();
+
 private:
     struct Node {
+        std::vector<Phi> phiFunctions;
+
         Block* block = nullptr;
 
         std::size_t dfs = 0;
@@ -62,8 +73,16 @@ private:
 
     };
 
+    Node* ReverseMapBlockToNode(Block* block);
+
+public:
+    void AddPhiFunction(Block* block, Phi phiFunction);
+
+private:
+    std::vector<std::string> variables;
+    std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
+    std::unordered_map<std::string, Alias> idToAlias;
     std::unordered_map<Block*,Node*> blockToNodeMap;
-    Node* reverseMapBlockToNode(Block* block);
 
 private:
     void DFS(Block* block);
@@ -84,13 +103,19 @@ private:
     std::vector<Block*> vertex_;
 
     // Indexed by DFS number.
-    std::vector<Node> nodes_;
+    std::vector<Node*> nodes_;
 
     // Immediate dominators.
     std::unordered_map<Block*, Block*> idom_;
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
+
+    // Value Range Analysis Constraint Graph
+    ConstraintGraph constraintGraph;
+
+    // Value Range Analysis Abstract State
+    AbstractState state;
 };
 } // namespace Competition
 

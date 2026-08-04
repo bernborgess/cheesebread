@@ -21,33 +21,61 @@ void Solver::resolveSCC() {
       std::cout << "\t" << constraint << "\n";
   }
 
-  std::cout << "Solver state:\n";
-  for (auto [var, val] : state) {
-    std::cout << "\t" << var << " = " << val << "\n"; 
-  }
-  std::cout << "\n";
+  // std::cout << "Solver state:\n";
+  // for (auto [var, val] : state) {
+  //   std::cout << "\t" << var << " = ";
+  //   if (std::holds_alternative<BV>(val)) {
+  //     std::cout << std::get<BV>(val);
+  //   } else {
+  //     std::cout << std::get<IV>(val);
+  //   }
+  //   std::cout << "\n"; 
+  // }
+  // std::cout << "\n";
 
   growthAnalysis();
-  std::cout << "\nState after growth analysis:\n";
-  for (auto const& [var, val] : state) {
-    std::cout << var << " = " << val << "\n";
-  }
+  // std::cout << "\nState after growth analysis:\n";
+  // for (auto const& [var, val] : state) {
+  //   std::cout << "\t" << var << " = ";
+  //   if (std::holds_alternative<BV>(val)) {
+  //     std::cout << std::get<BV>(val);
+  //   } else {
+  //     std::cout << std::get<IV>(val);
+  //   }
+  //   std::cout << "\n"; 
+  // }
 
   // Make counters useless after growth analysis
   for (auto const& [var, val] : state) {
-    state[var].resetCounter();
+    if (std::holds_alternative<BV>(val)) {
+      std::get<BV>(state[var]).resetCounter();
+    } else {
+      std::get<IV>(state[var]).resetCounter();
+    }
   }
 
   futureResolution();
-  std::cout << "\nState after future resolution\n";
-  for (auto const& [var, val] : state) {
-    std::cout << var << " = " << val << "\n";
-  }
+  // std::cout << "\nState after future resolution\n";
+  // for (auto const& [var, val] : state) {
+  //   std::cout << "\t" << var << " = ";
+  //   if (std::holds_alternative<BV>(val)) {
+  //     std::cout << std::get<BV>(val);
+  //   } else {
+  //     std::cout << std::get<IV>(val);
+  //   }
+  //   std::cout << "\n"; 
+  // }
   narrowingAnalysis();
-  std::cout << "\nState after narrowing analysis\n";
-  for (auto const& [var, val] : state) {
-    std::cout << var << " = " << val << "\n";
-  }
+  // std::cout << "\nState after narrowing analysis\n";
+  // for (auto const& [var, val] : state) {
+  //   std::cout << "\t" << var << " = ";
+  //   if (std::holds_alternative<BV>(val)) {
+  //     std::cout << std::get<BV>(val);
+  //   } else {
+  //     std::cout << std::get<IV>(val);
+  //   }
+  //   std::cout << "\n"; 
+  // }
   clear();
 }
 

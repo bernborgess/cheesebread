@@ -7,8 +7,9 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
-#include "AbstractValue.h"
-#include "Constraint.h"
+#include "cangjie/Competition/RangeAnalysisSolver/IntValue.h"
+#include "cangjie/Competition/RangeAnalysisSolver/BoolValue.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
 #include <memory>
 #include <vector>
 

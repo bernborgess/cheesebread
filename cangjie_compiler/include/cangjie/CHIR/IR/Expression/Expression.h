@@ -124,6 +124,7 @@ public:
     std::string GetExprKindName() const;
     ExprMajorKind GetExprMajorKind() const;
 
+    bool IsAllocate() const;
     bool IsApply() const;
     bool IsApplyWithException() const;
     bool IsBinaryExpr() const;
@@ -142,6 +143,7 @@ public:
     bool IsInvokeStaticBase() const;
     bool IsLambda() const;
     bool IsLoad() const;
+    bool IsStore() const;
     bool IsTerminator() const;
     bool IsTypeCast() const;
     bool IsUnaryExpr() const;
