@@ -19,7 +19,7 @@ using namespace Cangjie::CHIR;
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
 public:
-    explicit DominatorTree(Block* entry);
+    explicit DominatorTree(Block* entry, std::vector<Parameter*> &params);
 
     /// Computes the dominator tree.
     void Compute();
@@ -93,6 +93,8 @@ private:
 
 private:
     Block* entry_;
+
+    std::vector<Parameter*> params_;
 
     std::size_t dfsCount_ = 0;
 

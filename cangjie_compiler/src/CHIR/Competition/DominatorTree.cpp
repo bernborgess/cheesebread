@@ -7,7 +7,8 @@
 
 namespace Competition {
 
-DominatorTree::DominatorTree(Block* entry) : entry_(entry)
+DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*> &params)
+    : entry_(entry), params_(params)
 {
 }
 
@@ -212,6 +213,16 @@ static std::string getUncommented(std::string s)
 
 std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNodes()
 {
+    for (auto param : params_) {
+        std::string id = param->GetIdentifier();
+        idToAlias[id] = Alias(param->GetSrcCodeIdentifier());
+        if (idToAlias[id].def == "") {
+            idToAlias[id] = Alias(id);
+        }
+        idToAlias[id].setCounter(0);
+        variables.emplace_back(idToAlias[id].def);
+    }
+
     for (auto node : nodes_) {
         // Check that block is valid
         if (node->block == nullptr)
@@ -430,6 +441,13 @@ void DominatorTree::Renaming()
         }
     };
 
+    for (auto param : params_) {
+        std::string id = param->GetSrcCodeIdentifier();
+        if (id == "") id = param->GetIdentifier(); 
+        variableStack[id].emplace(0);
+        variableCounter[id] = 1;
+    }
+
     search(search, blockToNodeMap[entry_]);
 }
 
@@ -602,6 +620,18 @@ void DominatorTree::GenerateSSAConstraints()
 
     constraintGraph.addConstraint(cst_0);
     constraintGraph.addConstraint(cst_true);
+
+    for (auto param : params_) {
+        if (param->GetType()->IsInteger()) {
+            Alias paramAlias = idToAlias[param->GetIdentifier()];
+            // Maybe we need to initialize this variable as [-inf, + inf]
+            intIdentifiers.emplace(paramAlias.def);
+        } else if (param->GetType()->IsBoolean()) {
+            Alias paramAlias = idToAlias[param->GetIdentifier()];
+            // Maybe we need to initialize this variable as [false, true]
+            boolIdentifiers.emplace(paramAlias.def);
+        }
+    }
 
     for (auto& node : nodes_) {
         if (node->block == nullptr)

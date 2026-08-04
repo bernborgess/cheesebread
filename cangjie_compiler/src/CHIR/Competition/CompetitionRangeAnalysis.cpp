@@ -209,7 +209,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
     for (auto func : userDefinedFunctions) {
         // Our debug
         Block* entry = func->GetEntryBlock();
-        DominatorTree domTree(entry);
+        std::vector<Parameter*> params = func->GetParams();
+        DominatorTree domTree(entry, params);
         // std::cout << "Computing dominator tree\n";
         domTree.Compute();
         // domTree.GenerateBranchConstraints();
