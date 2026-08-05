@@ -15,6 +15,18 @@ namespace Competition {
 using namespace Cangjie::CHIR;
 using namespace std;
 
+Alias getAliasFromString(std::string ssaName) {
+    auto _pos = ssaName.find_last_of('_');
+    return Alias(ssaName.substr(0, _pos), std::stoi(ssaName.substr(_pos+1)));
+}
+
+std::string removeIntersectionPrefix(std::string def) {
+    while (def.size() >= 2 && (def.substr(0,2) == "\%t" || def.substr(0,2) == "\%f")) {
+        def = def.substr(3);
+    }
+    return def;
+}
+
 struct Query {
     string fileName;
     unsigned int lineNumber;
@@ -63,27 +75,25 @@ vector<Query> readCompetitionQueries()
     return queries;
 }
 
-Block* getBlockByLineNumber(vector<Function*>& funcs, unsigned int lineNumber)
+std::vector<Block*> &getBlocksByLineNumber(Function* func, unsigned int lineNumber)
 {
-    // 1. Iterate on our functions to find which one contains the lineNumber
-    for (auto& func : funcs) {
-        auto loc = func->GetDebugLocation();
-        if (loc.GetBeginPos().line <= lineNumber && lineNumber <= loc.GetEndPos().line) {
-            // 2. Iterate on Blocks to find w.o.c.t. lineNumber
-            for (auto& block : func->GetBody()->GetBlocks()) {
-                auto blockLoc = block->GetDebugLocation();
+    auto loc = func->GetDebugLocation();
+    std::vector<Block*> blocks;
+    if (loc.GetBeginPos().line <= lineNumber && lineNumber <= loc.GetEndPos().line) {
+        // 2. Iterate on Blocks to find w.o.c.t. lineNumber
+        for (auto& block : func->GetBody()->GetBlocks()) {
+            auto blockLoc = block->GetDebugLocation();
 
-                cerr << "Block " << block->GetIdentifier() << " has loc [" << blockLoc.GetBeginPos().line << ", "
-                     << blockLoc.GetEndPos().line << "]" << endl;
+            cerr << "Block " << block->GetIdentifier() << " has loc [" << blockLoc.GetBeginPos().line << ", "
+                    << blockLoc.GetEndPos().line << "]" << endl;
 
-                if (blockLoc.GetBeginPos().line <= lineNumber && lineNumber <= blockLoc.GetEndPos().line) {
-                    return block;
-                    // Iterate on expressions to find the exact line?
-                }
+            if (blockLoc.GetBeginPos().line <= lineNumber && lineNumber <= blockLoc.GetEndPos().line) {
+                blocks.emplace_back(block);
+                // Iterate on expressions to find the exact line?
             }
         }
     }
-    return nullptr;
+    return blocks;
 }
 
 void RangeAnalysis::GatherUsefulBasicBlocks(
@@ -204,6 +214,13 @@ void RangeAnalysis::RunOnPackage(Package* package)
     }
     std::cerr << "]" << std::endl;
 
+    std::fstream outputFile;
+    outputFile.open("output.txt", std::ios::out);
+    if(!outputFile.is_open()) {
+        std::cerr << "Failed to open output.txt file!"<< std::endl;
+        return;
+    }
+
     // Create some dominator tree for each function?
     // TODO: Interprocedural
     for (auto func : userDefinedFunctions) {
@@ -242,7 +259,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // std::cout << "Constructing phi functions\n";
         for (auto [def, phiBlocks] : variablePhiNodes) {
             for (Block *block : phiBlocks) {
-                Phi phiFunction = Phi(Alias(def), alphaNodes[def].size());
+                Phi phiFunction = Phi(Alias(def), block->GetPredecessors().size());
                 domTree.AddPhiFunction(block, phiFunction);
             }
         }
@@ -260,53 +277,95 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // std::cout << "Applying renaming\n";
 
         if (func->GetSrcCodeIdentifier() == "foo") {
+            
             domTree.Renaming();
-
-            domTree.GenerateSSAConstraints();
-             
             // Produce the graph after renaming alias.
             domTree.PrintDominatorTree("domTreeSSA.dot", true);  
+            // TODO: Add intersection constriants on branches
+            // * Careful to use the right SSA names in the constraint.
+            domTree.GenerateBranchConstraints();
+            
+            domTree.GenerateSSAConstraints();
+
+            domTree.CallSolver();
+            
+            
+            
+            
+            auto funcFileName = func->GetDebugLocation().GetFileName();
+            auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
+            auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
+            // Use the solver results to output the analsys
+            for (auto [fileName, lineNumber, variableName] : queries) {
+
+                if (funcFileName != fileName) continue;
+                if (funcStartLine > lineNumber || funcEndLine < lineNumber) continue;
+
+                std::cerr << "Find the range of variable " << variableName
+                        << " at line " << lineNumber << " of file " << fileName
+                        << std::endl;
+                    
+                std::queue<Block*> blocks;
+                std::cout << "Searching for definition of " << variableName << " on function " << func->GetSrcCodeIdentifier() << "\n";
+                std::cout << "Number of blocks on line " << lineNumber << ": " << blocksByLineNumber[lineNumber].size() << "\n"; 
+                for (auto block : blocksByLineNumber[lineNumber]) {
+                    blocks.emplace(block);
+                }
+
+                Alias variableAlias = Alias("\%empty");
+                while (!blocks.empty()) {
+                    Block* block = blocks.front();
+                    blocks.pop();
+                    std::cout << "Searching for definition of " << variableName << " on block " << block->GetIdentifier() << "\n";
+                    
+                    for (auto phiFunction : domTree.GetBlockPhiFunctions(block)) {
+                        if (phiFunction.getVarDef() == variableName) {
+                            variableAlias = phiFunction.getVar();
+                        }
+                    }
+                    
+                    for (auto constraint : domTree.GetBlockConstraints(block)) {
+                        if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+                            Alias intersectionAlias = getAliasFromString(interc->def);
+                            if (removeIntersectionPrefix(intersectionAlias.def) == variableName) {
+                                variableAlias = intersectionAlias;
+                            }
+                        }
+                    }
+                    
+                    for (auto expr : block->GetExpressions()) {
+                        auto exprLine = expr->GetDebugLocation().GetBeginPos().line;
+                        if (exprLine > lineNumber) break;
+                        Alias exprAlias = domTree.idToAlias[expr->GetResult()->GetIdentifier()];
+                        if (exprAlias.def == variableName) {
+                            variableAlias = exprAlias;
+                        }
+                    }
+                    
+                    if (variableAlias.def == "\%empty") {
+                        Block* idom = domTree.GetImmediateDominator(block);
+                        if (idom == nullptr || block == idom) continue;
+                        blocks.emplace(idom);
+                    } else {
+                        while (!blocks.empty()) {
+                            blocks.pop();
+                        }
+                    }
+                }
+            
+            AnalyzedValue variableValue = domTree.GetVariableState(variableAlias);
+            
+            // ? For now just using the default range => no info
+            if (std::holds_alternative<BV>(variableValue)) {
+                auto boolVal = std::get<BV>(variableValue);
+                outputFile << boolVal << std::endl;
+            } else {
+                auto intVal = std::get<IV>(variableValue);
+                outputFile << intVal << std::endl;
+            }
         }
-
-
-
-        // TODO: Add intersection constriants on branches
-        // * Careful to use the right SSA names in the constraint.
-        domTree.GenerateBranchConstraints();
     }
-
-    // 1. Initialize a clean abstract state table
-    AbstractState state;
-    // TODO: After SSA;   
-    Solver solver(state);
-
-    std::fstream outputFile;
-    outputFile.open("output.txt", std::ios::out);
-    if(!outputFile.is_open()) {
-        std::cerr << "Failed to open output.txt file!"<< std::endl;
-        return;
-    }
-
-    // Use the solver results to output the analsys
-    for (auto [fileName, lineNumber, variableName] : queries) {
-        std::cerr << "Find the range of variable " << variableName
-                  << " at line " << lineNumber << " of file " << fileName
-                  << std::endl;
-
-        for (auto block : blocksByLineNumber[lineNumber]) {
-            // TODO: Gather abstract value from this block, about the
-            // variableName
-            block->GetIdentifier();
-        }
-
-        // ? For now just using the default range => no info
-        if (std::holds_alternative<BV>(state[variableName])) {
-            auto boolVal = std::get<BV>(state[variableName]);
-            outputFile << boolVal << std::endl;
-        } else {
-            auto intVal = std::get<IV>(state[variableName]);
-            outputFile << intVal << std::endl;
-        }
+        
     }
 
     outputFile.close();

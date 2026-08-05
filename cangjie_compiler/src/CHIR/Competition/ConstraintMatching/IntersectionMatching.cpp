@@ -80,15 +80,15 @@ MatchedConstraints Matching::MatchLessThanConstraints(
         auto x_alias = idToAlias.at(std::get<LocalVar*>(matchLHS.value())->GetIdentifier());
         auto x = x_alias.to_string();
         // Create new alias for the branching
-        auto x_then = x + "_t";
-        auto x_else = x + "_f";
+        auto x_then = "\%t_" + x;
+        auto x_else = "\%f_" + x;
 
         // if (x < y)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto y_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto y = y_alias.to_string();
-            auto y_then = y + "_t";
-            auto y_else = y + "_f";
+            auto y_then = "\%t_" + y;
+            auto y_else = "\%f_" + y;
 
             // THEN: x_t = x ∩ [-inf, ft(y) - 1]
             auto trueConstraintX = new IntersectionConstraint(x_then, x, minusInf, ft(y, -1));
@@ -124,8 +124,8 @@ MatchedConstraints Matching::MatchLessThanConstraints(
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto x_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto x = x_alias.to_string();
-            auto x_then = x + "_t";
-            auto x_else = x + "_f";
+            auto x_then = "\%t_" + x;
+            auto x_else = "\%f_" + x;
 
             // THEN: x_t = x ∩ [c + 1, +inf]
             auto trueConstraint = new IntersectionConstraint(x_then, x, Bound::constant(c + 1), plusInf);
@@ -155,15 +155,15 @@ MatchedConstraints Matching::MatchGreaterThanConstraints(
     if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
         auto x_alias = idToAlias.at(std::get<LocalVar*>(matchLHS.value())->GetIdentifier());
         auto x = x_alias.to_string();
-        auto x_then = x + "_t";
-        auto x_else = x + "_f";
+        auto x_then = "\%t_" + x;
+        auto x_else = "\%f_" + x;
 
         // if (x > y)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto y_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto y = y_alias.to_string();
-            auto y_then = y + "_t";
-            auto y_else = y + "_f";
+            auto y_then = "\%t_" + y;
+            auto y_else = "\%f_" + y;
 
             // THEN: x_t = x ∩ [ft(y) + 1, +inf]
             auto trueConstraintX = new IntersectionConstraint(x_then, x, ft(y, -1), plusInf);
@@ -199,8 +199,8 @@ MatchedConstraints Matching::MatchGreaterThanConstraints(
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto x_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto x = x_alias.to_string();
-            auto x_then = x + "_t";
-            auto x_else = x + "_f";
+            auto x_then = "\%t_" + x;
+            auto x_else = "\%f_" + x;
 
             // THEN: x_t = x ∩ [-inf, c - 1]
             auto trueConstraint = new IntersectionConstraint(x_then, x, minusInf, Bound::constant(c - 1));
@@ -235,13 +235,13 @@ MatchedConstraints Matching::MatchEqualConstraints(
     if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
         auto x_alias = idToAlias.at(std::get<LocalVar*>(matchLHS.value())->GetIdentifier());
         auto x = x_alias.to_string();
-        auto x_then = x + "_t";
+        auto x_then = "\%t_" + x;
 
         // if (x == y)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto y_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto y = y_alias.to_string();
-            auto y_then = y + "_t";
+            auto y_then = "\%t_" + y;
 
             // THEN: x_t = x ∩ [ft(y), ft(y)]
             auto trueConstraintX = new IntersectionConstraint(x_then, x, ft(y, 0), ft(y, 0));
@@ -286,13 +286,13 @@ MatchedConstraints Matching::MatchNotEqualConstraints(
     if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
         auto x_alias = idToAlias.at(std::get<LocalVar*>(matchLHS.value())->GetIdentifier());
         auto x = x_alias.to_string();
-        auto x_else = x + "_f";
+        auto x_else = "\%f_" + x;
 
         // if (x != y)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto y_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto y = y_alias.to_string();
-            auto y_else = y + "_f";
+            auto y_else = "\%f_" + y;
 
             // THEN: can't build disjoint range.
 
@@ -333,15 +333,15 @@ MatchedConstraints Matching::MatchLessEqualConstraints(
     if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
         auto x_alias = idToAlias.at(std::get<LocalVar*>(matchLHS.value())->GetIdentifier());
         auto x = x_alias.to_string();
-        auto x_then = x + "_t";
-        auto x_else = x + "_f";
+        auto x_then = "\%t_" + x;
+        auto x_else = "\%f_" + x;
 
         // if (x <= y)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto y_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto y = y_alias.to_string();
-            auto y_then = y + "_t";
-            auto y_else = y + "_f";
+            auto y_then = "\%t_" + y;
+            auto y_else = "\%f_" + y;
 
             // THEN: x_t = x ∩ [-inf, ft(y)]
             auto trueConstraintX = new IntersectionConstraint(x_then, x, minusInf, ft(y));
@@ -376,8 +376,8 @@ MatchedConstraints Matching::MatchLessEqualConstraints(
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto x_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto x = x_alias.to_string();
-            auto x_then = x + "_t";
-            auto x_else = x + "_f";
+            auto x_then = "\%t_" + x;
+            auto x_else = "\%f_" + x;
 
             // THEN: x_t = x ∩ [c, +inf]
             auto trueConstraint = new IntersectionConstraint(x_then, x, Bound::constant(c), plusInf);
@@ -407,15 +407,15 @@ MatchedConstraints Matching::MatchGreaterEqualConstraints(
     if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
         auto x_alias = idToAlias.at(std::get<LocalVar*>(matchLHS.value())->GetIdentifier());
         auto x = x_alias.to_string();
-        auto x_then = x + "_t";
-        auto x_else = x + "_f";
+        auto x_then = "\%t_" + x;
+        auto x_else = "\%f_" + x;
 
         // if (x >= y)
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto y_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto y = y_alias.to_string();
-            auto y_then = y + "_t";
-            auto y_else = y + "_f";
+            auto y_then = "\%t_" + y;
+            auto y_else = "\%f_" + y;
 
             // THEN: x_t = x ∩ [ft(y), +inf]
             auto trueConstraintX = new IntersectionConstraint(x_then, x, ft(y), plusInf);
@@ -451,8 +451,8 @@ MatchedConstraints Matching::MatchGreaterEqualConstraints(
         if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
             auto x_alias = idToAlias.at(std::get<LocalVar*>(matchRHS.value())->GetIdentifier());
             auto x = x_alias.to_string();
-            auto x_then = x + "_t";
-            auto x_else = x + "_f";
+            auto x_then = "\%t_" + x;
+            auto x_else = "\%f_" + x;
 
             // THEN: x_t = x ∩ [-inf, c]
             auto trueConstraint = new IntersectionConstraint(x_then, x, minusInf, Bound::constant(c));

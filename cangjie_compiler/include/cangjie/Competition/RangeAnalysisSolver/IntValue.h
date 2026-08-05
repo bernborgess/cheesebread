@@ -7,6 +7,7 @@ class IntValue : public AbstractValue<int, N> {
 public:
     void join(const IntValue<N> &other);
     void addConstant(const std::vector<int> &vals) override;
+    void setAsTop();
 
     /**
      * @brief Overload for printing the entire AbstractValue state.
@@ -239,4 +240,11 @@ void IntValue<N>::join(const IntValue<N> &other) {
       this->stride = std::gcd(this->stride, other.getStride());
     }
   }
+}
+
+template <unsigned N>
+void IntValue<N>::setAsTop() {
+  this->changeKind();
+  this->lower = Bound::minusInfinity();
+  this->upper = Bound::plusInfinity();
 }

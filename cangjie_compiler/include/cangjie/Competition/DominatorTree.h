@@ -65,9 +65,9 @@ private:
         std::vector<std::size_t> bucket;
 
         // Also keep the constraints here
-        std::vector<Constraint*> nodeConstraints;
+        std::vector<std::shared_ptr<Constraint>> nodeConstraints;
 
-        void pushConstraint(Constraint* constraint) {
+        void pushConstraint(std::shared_ptr<Constraint> constraint) {
             nodeConstraints.push_back(constraint);
         }
 
@@ -79,12 +79,16 @@ private:
     void FindAndReplace(std::string find_str, std::string replace_str, Block* block);
 
 public:
+    std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);
+    std::vector<Phi> &GetBlockPhiFunctions(Block *block);
     void AddPhiFunction(Block* block, Phi phiFunction);
+    AnalyzedValue GetVariableState(Alias var);
+    void CallSolver();
+    std::unordered_map<std::string, Alias> idToAlias;
 
 private:
     std::vector<std::string> variables;
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
-    std::unordered_map<std::string, Alias> idToAlias;
     std::unordered_map<Block*,Node*> blockToNodeMap;
 
 private:
@@ -115,9 +119,6 @@ private:
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
-
-    // Value Range Analysis Constraint Graph
-    ConstraintGraph constraintGraph;
 
     // Value Range Analysis Abstract State
     AbstractState state;

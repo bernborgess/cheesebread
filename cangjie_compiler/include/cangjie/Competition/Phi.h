@@ -56,13 +56,20 @@ public:
         aliases = std::vector<Alias>(arity, var);
     }
 
-    void addAlias(Alias other);
+    void addAlias(Alias other) {
+        aliases.emplace_back(other);
+    }
+
     void setAliasCounterByIdx(size_t idx, int counter) {
         aliases[idx].setCounter(counter);
     }
 
     void setVarCounter(int counter) {
         var.setCounter(counter);
+    }
+
+    Alias getVar() {
+        return var;
     }
 
     std::string getVarDef() {

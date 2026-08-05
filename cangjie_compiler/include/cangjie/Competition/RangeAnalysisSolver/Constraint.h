@@ -147,6 +147,22 @@ public:
     }
 };
 
+class InitializationIntegerTop : public Constraint {
+public:
+    InitializationIntegerTop(std::string var);
+    bool eval(AbstractState& A) override;
+
+    std::vector<UseEdge> get_uses() const override {
+        std::vector<UseEdge> ret = {};
+        return ret;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const InitializationIntegerTop& c) {
+        os << c.def << ": [-inf, +inf]";
+        return os;
+    }
+};
+
 /**
  * @class PhiConstraint
  * @brief Models SSA control-flow merges: v0 = phi(v1, v2, ..., vk)
@@ -572,6 +588,26 @@ public:
 
     friend std::ostream& operator<<(std::ostream& os, const InitializationBoolConstraint& c) {
         os << c.def << ": " << c.constant;
+        return os;
+    }
+};
+
+/**
+ * @class InitializationConstraint
+ * @brief Models literal assignments: v = c
+ */
+class InitializationBoolTop : public Constraint {
+public:
+    InitializationBoolTop(std::string var);
+    bool eval(AbstractState& A) override;
+
+    std::vector<UseEdge> get_uses() const override {
+        std::vector<UseEdge> ret = {};
+        return ret;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const InitializationBoolTop& c) {
+        os << c.def << ": [false, true]";
         return os;
     }
 };

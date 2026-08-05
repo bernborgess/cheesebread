@@ -66,6 +66,17 @@ bool InitializationConstraint::eval(AbstractState& A) {
     return old_val != std::get<IV>(A[def]); // Leverages your custom equality operator!
 }
 
+// --- InitializationConstraint (v = c) ---
+InitializationIntegerTop::InitializationIntegerTop(std::string var)
+    : Constraint(std::move(var)) {}
+
+bool InitializationIntegerTop::eval(AbstractState& A) {
+    IV old_val = std::get<IV>(A[def]);
+
+    std::get<IV>(A[def]).setAsTop();
+    return old_val != std::get<IV>(A[def]); // Leverages your custom equality operator!
+}
+
 // --- PhiConstraint (v0 = phi(v1, v2, ...)) ---
 PhiConstraint::PhiConstraint(std::string var, std::vector<std::string> ops)
     : Constraint(std::move(var)), operands(std::move(ops)) {}
@@ -880,6 +891,19 @@ bool InitializationBoolConstraint::eval(AbstractState& A) {
 
     std::vector<bool> vals = {constant};
     std::get<BV>(A[def]).addConstant(vals);
+    return old_val != std::get<BV>(A[def]); // Leverages your custom equality operator!
+}
+
+// --- InitializationConstraint (v = c) ---
+InitializationBoolTop::InitializationBoolTop(std::string var)
+    : Constraint(std::move(var)) {}
+
+bool InitializationBoolTop::eval(AbstractState& A) {
+    // Emplace a BoolValue if def is undefined in the Abstract State
+    A.try_emplace(def, BV());
+    BV old_val = std::get<BV>(A[def]);
+    std::get<BV>(A[def]).setAsTop();
+
     return old_val != std::get<BV>(A[def]); // Leverages your custom equality operator!
 }
 

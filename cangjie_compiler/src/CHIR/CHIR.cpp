@@ -639,6 +639,18 @@ void ToCHIR::OptimizeFuncReturnType()
 void ToCHIR::RunOptimizationPass()
 {
     Utils::ProfileRecorder recorder("CHIR", "CHIR Opt");
+    SplitCriticalEdges splitPass(builder);
+    InitializationConstraint cons("x0", 0);
+
+    for (auto func : chirPkg->GetGlobalFuncsWithBody()) {
+        splitPass.Run(*func);
+    }
+    
+    // Run the Competition Analysis
+    Competition::RangeAnalysis cra;
+    cra.RunOnPackage(chirPkg);
+    MergeBlocks::RunOnPackage(*chirPkg, builder, opts);
+    
     OptimizeFuncReturnType();
     RunArrayListConstStartOpt();
     RunUnitUnify();
@@ -653,18 +665,7 @@ void ToCHIR::RunOptimizationPass()
     RunArrayLambdaOpt();
     RunRedundantFutureOpt();
     RunGetRefToArrayElemOpt();
-    SplitCriticalEdges splitPass(builder);
-    InitializationConstraint cons("x0", 0);
 
-    for (auto func : chirPkg->GetGlobalFuncsWithBody()) {
-        splitPass.Run(*func);
-    }
-    
-    // Run the Competition Analysis
-    Competition::RangeAnalysis cra;
-    cra.RunOnPackage(chirPkg);
-
-    MergeBlocks::RunOnPackage(*chirPkg, builder, opts);
 }
 
 bool ToCHIR::RunConstantEvaluation()
