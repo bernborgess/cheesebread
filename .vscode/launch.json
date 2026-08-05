@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Bash-Debug (simplest configuration)",
+            "program": "setup.sh"
+	},
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Official Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/cangjie_compiler/example/official/code.cj",
+                "-O2", "-j1"
+            ],
+            "cwd": "${workspaceFolder}/cangjie_compiler/example/official",
+            "preLaunchTask": "source envsetup"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "While 10 Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/cangjie_compiler/example/while10/code.cj",
+                "-O2",
+                "-j1"
+            ],
+            "cwd": "${workspaceFolder}/cangjie_compiler/example/while10",
+            "preLaunchTask": "source envsetup"
+        }
+    ]
+}

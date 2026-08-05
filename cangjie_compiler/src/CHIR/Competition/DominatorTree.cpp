@@ -1,0 +1,955 @@
+#include "cangjie/Competition/DominatorTree.h"
+
+#include "cangjie/Competition/ConstraintMatching/IntersectionMatching.h"
+#include <algorithm>
+#include <cassert>
+#include <fstream>
+
+namespace Competition {
+
+DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*> &params)
+    : entry_(entry), params_(params)
+{
+}
+
+void DominatorTree::Compute()
+{
+    dfsCount_ = 0;
+
+    dfsNumber_.clear();
+    vertex_.clear();
+    nodes_.clear();
+    idom_.clear();
+    children_.clear();
+
+    // Reserve index 0.
+    vertex_.push_back(nullptr);
+    nodes_.push_back(new Node);
+
+    DFS(entry_);
+
+    //
+    // Compute semidominators.
+    //
+    for (std::size_t i = dfsCount_; i >= 2; --i) {
+        Node* w = nodes_[i];
+
+        for (Block* pred : w->block->GetPredecessors()) {
+            auto it = dfsNumber_.find(pred);
+            if (it == dfsNumber_.end())
+                continue;
+
+            std::size_t v = it->second;
+            std::size_t u = Eval(v);
+
+            w->semi = std::min(w->semi, nodes_[u]->semi);
+        }
+
+        nodes_[w->semi]->bucket.push_back(i);
+
+        Link(w->parent, i);
+
+        auto& bucket = nodes_[w->parent]->bucket;
+
+        for (std::size_t v : bucket) {
+            std::size_t u = Eval(v);
+
+            if (nodes_[u]->semi < nodes_[v]->semi)
+                nodes_[v]->idom = u;
+            else
+                nodes_[v]->idom = w->parent;
+        }
+
+        bucket.clear();
+    }
+
+    //
+    // Explicitly compute immediate dominators.
+    //
+    for (std::size_t i = 2; i <= dfsCount_; ++i) {
+        if (nodes_[i]->idom != nodes_[i]->semi)
+            nodes_[i]->idom = nodes_[nodes_[i]->idom]->idom;
+    }
+
+    nodes_[1]->idom = 1;
+
+    //
+    // Convert back to Block*.
+    //
+    for (std::size_t i = 1; i <= dfsCount_; ++i) {
+        idom_[nodes_[i]->block] = nodes_[nodes_[i]->idom]->block;
+    }
+
+    //
+    // Build dominator tree.
+    //
+    for (std::size_t i = 2; i <= dfsCount_; ++i) {
+        Block* child = nodes_[i]->block;
+        Block* parent = nodes_[nodes_[i]->idom]->block;
+
+        children_[parent].push_back(child);
+    }
+}
+
+void DominatorTree::DFS(Block* block)
+{
+    ++dfsCount_;
+
+    std::size_t n = dfsCount_;
+
+    dfsNumber_[block] = n;
+
+    vertex_.push_back(block);
+    nodes_.push_back(new Node);
+
+    Node* node = nodes_[n];
+
+    // Populate the reverse map
+    blockToNodeMap[block] = node;
+
+    node->block = block;
+    node->dfs = n;
+    node->semi = n;
+    node->label = n;
+
+    for (Block* succ : block->GetSuccessors()) {
+        if (dfsNumber_.count(succ))
+            continue;
+
+        DFS(succ);
+
+        nodes_[dfsNumber_[succ]]->parent = n;
+    }
+}
+
+void DominatorTree::Link(std::size_t parent, std::size_t child)
+{
+    nodes_[child]->ancestor = parent;
+}
+
+void DominatorTree::Compress(std::size_t v)
+{
+    if (nodes_[nodes_[v]->ancestor]->ancestor == 0)
+        return;
+
+    Compress(nodes_[v]->ancestor);
+
+    if (nodes_[nodes_[nodes_[v]->ancestor]->label]->semi < nodes_[nodes_[v]->label]->semi) {
+        nodes_[v]->label = nodes_[nodes_[v]->ancestor]->label;
+    }
+
+    nodes_[v]->ancestor = nodes_[nodes_[v]->ancestor]->ancestor;
+}
+
+std::size_t DominatorTree::Eval(std::size_t v)
+{
+    if (nodes_[v]->ancestor == 0)
+        return nodes_[v]->label;
+
+    Compress(v);
+
+    return nodes_[v]->label;
+}
+
+Block* DominatorTree::GetImmediateDominator(Block* block) const
+{
+    auto it = idom_.find(block);
+
+    if (it == idom_.end())
+        return nullptr;
+
+    return it->second;
+}
+
+const std::vector<Block*>& DominatorTree::GetChildren(Block* block) const
+{
+    static const std::vector<Block*> empty;
+
+    auto it = children_.find(block);
+
+    if (it == children_.end())
+        return empty;
+
+    return it->second;
+}
+
+bool DominatorTree::Dominates(Block* a, Block* b) const
+{
+    while (true) {
+        if (a == b)
+            return true;
+
+        auto it = idom_.find(b);
+
+        if (it == idom_.end())
+            return false;
+
+        if (it->second == b)
+            return false;
+
+        b = it->second;
+    }
+}
+
+// Same utility from CHIRPrinter
+static void ReplaceAll(std::string& str, const std::string& o, const std::string& n)
+{
+    std::string::size_type pos = 0;
+    while ((pos = str.find(o, pos)) != std::string::npos) {
+        str.replace(pos, o.length(), n);
+        pos += n.length();
+    }
+}
+
+/// @brief Removes all content of the string after the //
+static std::string getUncommented(std::string s)
+{
+    size_t pos = s.find("//");
+    if (pos != std::string::npos) {
+        return s.substr(0, pos);
+    }
+    return s;
+}
+
+std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNodes()
+{
+    for (auto param : params_) {
+        std::string id = param->GetIdentifier();
+        idToAlias[id] = Alias(param->GetSrcCodeIdentifier());
+        if (idToAlias[id].def == "") {
+            idToAlias[id] = Alias(id);
+        }
+        idToAlias[id].setCounter(0);
+        variables.emplace_back(idToAlias[id].def);
+    }
+
+    for (auto node : nodes_) {
+        // Check that block is valid
+        if (node->block == nullptr)
+            continue;
+
+        Block* block = node->block;
+
+        for (auto expr : block->GetExpressions()) {
+
+            if (expr->IsAllocate()) {
+                LocalVar* res = expr->GetResult();
+                std::string id = res->GetIdentifier();
+                idToAlias[id] = Alias(res->GetSrcCodeIdentifier());
+                if (idToAlias[id].def == "") {
+                    idToAlias[id] = Alias(id);
+                }
+                variables.emplace_back(idToAlias[id].def);
+                // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
+            }
+
+            // if (expr->IsLoad()) {
+            //     auto id = expr->GetResult()->GetIdentifier();
+            //     auto opId = expr->GetOperand(0)->GetIdentifier();
+            //     if (idToAlias[id].def == "") idToAlias[id] = idToAlias[opId];
+            // }
+
+            if (expr->IsStore()) {
+                auto id = expr->GetOperand(0)->GetIdentifier();
+                auto opId = expr->GetOperand(1)->GetIdentifier();
+                if (idToAlias[opId].def == "") continue;
+                if (idToAlias[id].def == "")
+                    idToAlias[id] = idToAlias[opId];
+                alphaNodes[idToAlias[opId].def].emplace_back(block);
+            }
+        }
+    }
+
+    // for (auto [id, alias] : idToAlias) {
+    //     if (alias.def != "")
+    //         std::cout << id << ": " << alias << "\n";
+    // }
+    return alphaNodes;
+}
+
+void DominatorTree::Renaming()
+{
+    for (auto node : nodes_) {
+        // Check that block is valid
+        if (node->block == nullptr)
+            continue;
+
+            
+        Block* block = node->block;
+
+        // std::cout << "Node " << block->GetIdentifier() << " have " << node->phiFunctions.size() << " phi functions\n";
+
+        for (auto expr : block->GetExpressions()) {
+            if (expr->GetResult() == nullptr) continue;
+            std::string identifier = expr->GetResult()->GetIdentifier();
+            if (idToAlias.count(identifier) == 0) {
+                idToAlias[identifier] = Alias(identifier);
+                variables.emplace_back(identifier);
+            }
+            // std::cout << "Variable " << identifier << " received alias " << idToAlias[identifier] << "\n";
+        }
+    }
+
+    std::map<std::string, int> variableCounter;
+    std::map<std::string, std::stack<int>> variableStack;
+
+    for (std::string var : variables) {
+        variableCounter[var] = 0;
+        variableStack[var] = std::stack<int>();
+    }
+
+    auto search = [this, &variableCounter, &variableStack](auto&& self, Node *node) -> void {
+        Block *block = node->block;
+        if (block == nullptr) return;
+
+        // std::cout << "Searching " << block->GetIdentifier() << "\n";
+
+        // std::cout << "Computing expressions\n";
+        for (size_t i = 0; i < node->phiFunctions.size(); i++) {
+            // std::cout << "Original: " << node->phiFunctions[i] << "\n";
+            std::string varName = node->phiFunctions[i].getVarDef();
+            int counter = variableCounter[varName];
+            node->phiFunctions[i].setVarCounter(counter);
+            variableStack[varName].emplace(counter);
+            ++variableCounter[varName];
+            // std::cout << "Modified: " << node->phiFunctions[i] << "\n";
+        }
+
+        
+        for (auto expr : block->GetExpressions()) {
+            if (expr->GetResult() == nullptr) continue;
+            // std::cout << "Original: ";
+            // expr->Dump();
+            
+            if (expr->IsConstant()) {
+                ;
+            } else if (expr->IsApply()) {
+                ;
+            } else if (expr->IsLoad() ) {
+                std::string id = expr->GetResult()->GetIdentifier();
+                std::string op = expr->GetOperand(0)->GetIdentifier();
+                if (idToAlias[id].def == idToAlias[op].def) {
+                    // This is a phi function load
+                    for (Phi phiFunction : node->phiFunctions) {
+                        if (idToAlias[id].def == phiFunction.getVarDef()) {
+                            idToAlias[id].setCounter(phiFunction.getVarCounter());
+                        }
+                    }
+                    continue;
+                } else {
+                    idToAlias[op].setCounter(variableStack[idToAlias[op].def].top());
+                }
+            }
+            else if (expr->IsAllocate() ||
+                     expr->IsDebug() ||
+                     expr->IsStore()) {
+                continue;
+            }
+            else {
+                for (auto op : expr->GetOperands()) {
+                    std::string id = op->GetIdentifier();
+                    idToAlias[id].setCounter(variableStack[idToAlias[id].def].top());
+                }
+            }
+
+            auto var = expr->GetResult();
+            std::string varId = var->GetIdentifier();
+            std::string varName = idToAlias[varId].def;
+            int counter = variableCounter[varName];
+            idToAlias[varId].setCounter(counter);
+            variableStack[varName].emplace(counter);
+            ++variableCounter[varName];
+
+            // if (expr->IsAllocate()) continue;
+            // std::cout << "Modified: ";
+            // if (expr->IsStore()) {
+            //     std::cout << idToAlias[expr->GetOperand(1)->GetIdentifier()]
+            //         << " = " << idToAlias[expr->GetOperand(0)->GetIdentifier()];
+            // } else {
+            //     std::cout << idToAlias[varId] << " = ";
+            //     if (expr->IsConstant()) {
+            //         std::cout << expr->GetOperand(0)->ToString(0) << "\n";
+            //     } else {
+            //         for (auto op : expr->GetOperands()) {
+            //             if (op != expr->GetOperands().front()) std::cout << " op ";
+            //             std::cout << idToAlias[op->GetIdentifier()];
+            //         }
+            //     }
+            // }
+            // std::cout << "\n";
+        }
+
+        // std::cout << "Computing phi functions of successors\n";
+        for (Block *y : block->GetSuccessors()) {
+            if (y == nullptr) continue;
+            Node *successor = ReverseMapBlockToNode(y);
+
+            int j = 0;
+            for (Block *aux : y->GetPredecessors()) {
+                if (aux == nullptr) continue;
+                // std::cout << "Predecessor " << j << ": " << aux->GetIdentifier() << "\n";
+                if (aux == block) break;
+                ++j;
+            }
+            // std::cout << "WhichPred(" << y->GetIdentifier()
+            //           << ", " << block->GetIdentifier() << ") = " << j << "\n";
+            // std::cout << "Processing successor: " << successor->block->GetIdentifier() << "\n";
+            // std::cout << "\t with " << successor->phiFunctions.size() << " phi functions\n";
+            for (size_t i = 0; i < successor->phiFunctions.size(); i++) {
+                // std::cout << "\t" << successor->phiFunctions[i] << "\n";
+                std::string varName = successor->phiFunctions[i].getAliasDefByIdx(j);
+                if (variableStack[varName].empty()) {
+                    continue;
+                    // variableStack[varName].emplace(variableCounter[varName]);
+                    // variableCounter[varName]++;
+                }
+                successor->phiFunctions[i].setAliasCounterByIdx(j, variableStack[varName].top());
+            }
+        }
+
+        // std::cout << "Visiting children\n";
+        for (Block *y : GetChildren(block)) {
+            if (y == nullptr) continue;
+            // std::cout << "Call search(" << y->GetIdentifier() << ")\n";
+            // search(blockToNodeMap[y]);
+            self(self, blockToNodeMap[y]);
+        }
+
+        // std::cout << "Popping variable stacks\n";
+        for (size_t i = 0; i < node->phiFunctions.size(); i++) {
+            std::string varName = node->phiFunctions[i].getVarDef();
+            variableStack[varName].pop();
+        }
+
+        for (auto expr : block->GetExpressions()) {
+            if (expr->GetResult() == nullptr) continue;
+
+            if (expr->IsAllocate() ||
+                expr->IsDebug() ||
+                expr->IsStore()) continue;
+
+            if (expr->IsLoad()) {
+                std::string id = expr->GetResult()->GetIdentifier();
+                std::string op = expr->GetOperand(0)->GetIdentifier();
+                if (idToAlias[id].def == idToAlias[op].def) continue;
+            }
+            // if (expr->IsAllocate() ||
+            //     expr->IsDebug() ||
+            //     expr->IsStore() ||
+            //     expr->IsLoad()) {
+            //     continue;
+            // }
+
+            auto var = expr->GetResult();
+            variableStack[idToAlias[var->GetIdentifier()].def].pop();
+        }
+    };
+
+    for (auto param : params_) {
+        std::string id = param->GetSrcCodeIdentifier();
+        if (id == "") id = param->GetIdentifier(); 
+        variableStack[id].emplace(0);
+        variableCounter[id] = 1;
+    }
+
+    search(search, blockToNodeMap[entry_]);
+}
+
+void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
+{
+    std::fstream fout;
+    std::cerr << "DEBUG PRINT DOM TREE!" << path << std::endl;
+    fout.open(path, std::ios::out);
+    if (!fout.is_open()) {
+        std::cerr << "open file: " << path << " failed!" << std::endl;
+        return;
+    }
+    fout << "digraph " << "test " << "{" << std::endl;
+    fout << "graph [fontname=\"Courier, monospace\"];" << std::endl;
+    fout << "node [fontname=\"Courier, monospace\"];" << std::endl;
+    fout << "edge [fontname=\"Courier, monospace\"];" << std::endl;
+
+    // Show block definitions and uses in stderr
+    bool DEBUG_DEFS_AND_USES = false;
+
+    for (auto& node : nodes_) {
+        // Check that block is valid
+        if (node->block == nullptr)
+            continue;
+
+        Block* block = node->block;
+
+        // TODO: Obtain proper identifiers here.
+        fout << block->GetIdentifierWithoutPrefix();
+        fout << " [shape=none, ";
+        fout << "label=<<table border='0' cellborder='1' cellspacing='0'>";
+        fout << "<tr><td bgcolor='gray' align='center' colspan='1'>";
+        fout << "Block" << block->GetIdentifier() << "</td></tr>";
+
+        if (DEBUG_DEFS_AND_USES)
+            std::cerr << "Block " << block->GetIdentifier() << " :" << std::endl;
+
+        
+        // Show the CHIR code inside this block!
+        for (auto expr : block->GetExpressions()) {
+            std::string info = "";
+
+            // ? It's an atribution!
+            if (LocalVar* res = expr->GetResult(); res != nullptr) {
+                auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
+                        : res->GetIdentifier();
+                info += ident + ": " + res->GetType()->ToString() + " = ";
+                if (DEBUG_DEFS_AND_USES)
+                    std::cerr << "- DEF " << res->GetIdentifier() + ": " + res->GetType()->ToString() << std::endl;
+            }
+
+            if (DEBUG_DEFS_AND_USES)
+                // Goes through USES of the block
+                for (auto v : expr->GetOperands()) {
+                    if (v->IsLiteral())
+                        continue;
+                    // Filtering out blocks and functions
+                    if (v->IsBlock() || v->IsBlockGroup() || v->IsFunc() || v->IsFuncWithBody())
+                        continue;
+
+                    std::cerr << "- USE ";
+
+                    // v is either GLOBALVAR, PARAMETER or LOCALVAR
+                    if (v->IsGlobalVar())
+                        std::cerr << "[GLOBALVAR] ";
+                    if (v->IsParameter())
+                        std::cerr << "[PARAMETER] ";
+                    if (v->IsLocalVar())
+                        std::cerr << "[LOCALVAR] ";
+
+                    std::cerr << v->GetIdentifier() + ": " + v->GetType()->ToString() << std::endl;
+                }
+
+            // Remove the long comments after the instruction
+            info += getUncommented(expr->ToString(0));
+            ReplaceAll(info, "&", "&amp;");
+            ReplaceAll(info, "<", "&lt;");
+            ReplaceAll(info, ">", "&gt;");
+            fout << "<tr><td align='left'>" << info << "</td></tr>";
+        }
+        fout << "</table>>];" << std::endl;
+
+        if (DEBUG_DEFS_AND_USES)
+            std::cerr << std::endl;
+
+        // Immediate dominator!
+        Block* idom = nodes_[node->idom]->block;
+        // Prevent root from pointing to itself in the graph
+        if (block->GetIdentifierWithoutPrefix() != idom->GetIdentifierWithoutPrefix())
+            fout << idom->GetIdentifierWithoutPrefix() << " -> " << block->GetIdentifierWithoutPrefix() << ";"
+                 << std::endl;
+    }
+
+    fout << "}" << std::endl;
+    fout.close();
+    if (DEBUG_DEFS_AND_USES)
+        std::cerr << std::endl << std::endl;
+}
+
+DominatorTree::Node* DominatorTree::ReverseMapBlockToNode(Block* block)
+{
+    if (block == nullptr)
+        return nullptr;
+
+    assert(blockToNodeMap.count(block));
+
+    return blockToNodeMap[block];
+}
+
+std::vector<std::shared_ptr<Constraint>> &DominatorTree::GetBlockConstraints(Block *block) {
+    return ReverseMapBlockToNode(block)->nodeConstraints;
+}
+
+std::vector<Phi> &DominatorTree::GetBlockPhiFunctions(Block *block) {
+    return ReverseMapBlockToNode(block)->phiFunctions;
+}
+
+void DominatorTree::AddPhiFunction(Block* block, Phi phiFunction)
+{
+    if (block == nullptr)
+        return;
+
+    Node* node = ReverseMapBlockToNode(block);
+    node->phiFunctions.push_back(phiFunction);
+
+    // std::cout << "Added phi function " << phiFunction << " to block " << block->GetIdentifier() << "\n";
+}
+
+AnalyzedValue DominatorTree::GetVariableState(Alias var) {
+    return state[var.to_string()];
+}
+
+
+void DominatorTree::FindAndReplace(std::string find_str, std::string replace_str, Block* block)
+{
+    // Minor optimization
+    if (find_str == replace_str) return;
+
+    for (auto expr : block->GetExpressions()) {
+        if (LocalVar* res = expr->GetResult();
+            res != nullptr && idToAlias[res->GetIdentifier()].to_string() == find_str) {
+            idToAlias[res->GetIdentifier()] = Alias(replace_str, 0);
+        }
+        for (auto op : expr->GetOperands()) {
+            if (idToAlias[op->GetIdentifier()].to_string() == find_str) {
+                idToAlias[op->GetIdentifier()] = Alias(replace_str, 0);
+            }
+        }
+    }
+
+    for (auto child : children_[block]) {
+        FindAndReplace(find_str, replace_str, child);
+    }
+}
+
+/// Visit the dominator tree in Pre-Order to guarantee aliases are propagated ok
+void DominatorTree::VisitBlockBranch(Block* block)
+{
+    // Visit it, Only treat blocks that end in a branch
+    if (block->GetTerminator()->GetExprKind() == ExprKind::BRANCH) {
+
+        auto branch = dynamic_cast<Branch*>(block->GetTerminator());
+        auto cond = branch->GetCondition();
+        auto trueNode = ReverseMapBlockToNode(branch->GetTrueBlock());
+        auto falseNode = ReverseMapBlockToNode(branch->GetFalseBlock());
+
+        // Matching should consider the aliases
+        std::vector<Matching::MatchedConstraints> constraints = {
+            // * Match a pattern
+            // Ex: LT(Load(x), Constant(c))
+            Matching::MatchLessThanConstraints(cond, idToAlias),
+            Matching::MatchGreaterThanConstraints(cond, idToAlias),
+            Matching::MatchEqualConstraints(cond, idToAlias),
+            Matching::MatchNotEqualConstraints(cond, idToAlias),
+            Matching::MatchLessEqualConstraints(cond, idToAlias),
+            Matching::MatchGreaterEqualConstraints(cond, idToAlias),
+        };
+
+        for (auto& [ifTrue, ifFalse] : constraints) {
+            for (auto& constraint : ifTrue) {
+                auto ptrConstraint = std::make_shared<IntersectionConstraint>(*constraint);
+                trueNode->pushConstraint(ptrConstraint);
+                
+                // ? After a pattern is matched, we have to traverse the dom tree
+                // downwards replacing occurences of the older alias for the new one.
+                FindAndReplace(constraint->operand, constraint->def, branch->GetTrueBlock());
+            }
+
+            for (auto& constraint : ifFalse) {
+                auto ptrConstraint = std::make_shared<IntersectionConstraint>(*constraint);
+                falseNode->pushConstraint(ptrConstraint);
+                FindAndReplace(constraint->operand, constraint->def, branch->GetFalseBlock());
+            }
+        }
+    }
+
+    // Visit its children
+    for (Block* child : children_[block]) {
+        VisitBlockBranch(child);
+    }
+}
+
+void DominatorTree::GenerateSSAConstraints()
+{
+    // std::cout << "Generating SSA Constraints\n";
+    // Set of integer and boolean identifiers
+    std::set<std::string> intIdentifiers;
+    std::set<std::string> boolIdentifiers;
+
+    // std::cout << "\tGenerating SSA Constraints for parameters\n";
+
+    for (auto param : params_) {
+        if (param->GetType()->IsInteger()) {
+            Alias paramAlias = idToAlias[param->GetIdentifier()];
+            // Maybe we need to initialize this variable as [-inf, + inf]
+            intIdentifiers.emplace(paramAlias.def);
+        } else if (param->GetType()->IsBoolean()) {
+            Alias paramAlias = idToAlias[param->GetIdentifier()];
+            // Maybe we need to initialize this variable as [false, true]
+            auto constraint = std::make_shared<InitializationBoolTop>(paramAlias.to_string());
+            boolIdentifiers.emplace(paramAlias.def);
+        }
+    }
+
+    // std::cout << "\tGenerating SSA Constraints for nodes\n";
+
+    for (auto& node : nodes_) {
+        if (node->block == nullptr)
+            continue;
+
+        Block* block = node->block;
+        // std::cout << "\t\tBlock: " << block->GetIdentifier() << "\n";
+
+        for (auto phiFunction : node->phiFunctions) {
+            if (intIdentifiers.count(phiFunction.getVarDef()) ||
+                boolIdentifiers.count(phiFunction.getVarDef())) {
+                auto constraint = std::make_shared<PhiConstraint>(
+                    phiFunction.getVarString(),
+                    phiFunction.getAliasesStrings()
+                );
+                
+                node->pushConstraint(constraint);
+            }
+        }
+
+        for (auto expr : block->GetExpressions()) {
+            if (expr->IsAllocate() ||
+                expr->IsDebug() ||
+                expr->IsStore()) continue;
+
+            if (expr->IsApply()) {
+                auto app = dynamic_cast<Apply*>(expr);
+                if (app->GetResultType()->IsInteger()) {
+                    intIdentifiers.emplace(idToAlias[app->GetResult()->GetIdentifier()].def);
+                } else if (app->GetResultType()->IsBoolean()) {
+                    boolIdentifiers.emplace(idToAlias[app->GetResult()->GetIdentifier()].def);
+                }
+                
+            }
+
+            if (expr->IsConstant()) {
+                auto cst = dynamic_cast<Constant*>(expr);
+                if (cst->IsIntLit()) {
+                    Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
+                    int val = cst->GetSignedIntLitVal();
+                    auto constraint = std::make_shared<InitializationConstraint>(
+                        def.to_string(), val
+                    );
+                    
+                    node->pushConstraint(constraint);
+                    intIdentifiers.emplace(def.def);
+                } else if (cst->IsBoolLit()) {
+                    Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
+                    bool val = cst->GetBoolLitVal();
+                    auto constraint = std::make_shared<InitializationBoolConstraint>(
+                        def.to_string(), val
+                    );
+                    
+                    node->pushConstraint(constraint);
+                    boolIdentifiers.emplace(def.def);
+                }
+            } else if (expr->IsUnaryExpr()) {
+                auto def = idToAlias[expr->GetResult()->GetIdentifier()];
+                auto op = idToAlias[expr->GetOperand(0)->GetIdentifier()];
+                if (intIdentifiers.count(op.def)) {
+                    if (expr->GetExprKind() == ExprKind::NEG) {
+                        auto constraint = std::make_shared<NegConstraint>(
+                            def.to_string(), op.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITNOT) {
+                        auto constraint = std::make_shared<BitwiseNotConstraint>(
+                            def.to_string(), op.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    }
+                } else if (boolIdentifiers.count(op.def)) {
+                    if (expr->GetExprKind() == ExprKind::NOT) {
+                        auto constraint = std::make_shared<LogicalNotConstraint>(
+                            def.to_string(), op.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    }
+                }
+            } else if (expr->IsBinaryExpr()) {
+                auto def = idToAlias[expr->GetResult()->GetIdentifier()];
+                auto lhs = idToAlias[expr->GetOperand(0)->GetIdentifier()];
+                auto rhs = idToAlias[expr->GetOperand(1)->GetIdentifier()];
+                if (intIdentifiers.count(lhs.def) && intIdentifiers.count(rhs.def)) {
+                    if (expr->GetExprKind() == ExprKind::ADD) {
+                        auto constraint = std::make_shared<AddConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::SUB) {
+                        auto constraint = std::make_shared<SubConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::MUL) {
+                        auto constraint = std::make_shared<MultiplyConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::DIV) {
+                        auto constraint = std::make_shared<DivConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::MOD) {
+                        auto constraint = std::make_shared<ModConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::LSHIFT) {
+                        auto constraint = std::make_shared<ShiftLeftConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::RSHIFT) {
+                        auto constraint = std::make_shared<ShiftRightConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITAND) {
+                        auto constraint = std::make_shared<BitwiseAndConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITXOR) {
+                        auto constraint = std::make_shared<BitwiseXorConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::BITOR) {
+                        auto constraint = std::make_shared<BitwiseOrConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        intIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::EQUAL) {
+                        auto constraint = std::make_shared<EqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::NOTEQUAL) {
+                        auto constraint = std::make_shared<NotEqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::LT) {
+                        auto constraint = std::make_shared<LessThanConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::GT) {
+                        auto constraint = std::make_shared<GreaterThanConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::LE) {
+                        auto constraint = std::make_shared<LessEqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::GE) {
+                        auto constraint = std::make_shared<GreaterEqualConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    }
+                } else if (boolIdentifiers.count(lhs.def) && boolIdentifiers.count(rhs.def)) {
+                    if (expr->GetExprKind() == ExprKind::AND) {
+                        auto constraint = std::make_shared<LogicalAndConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    } else if (expr->GetExprKind() == ExprKind::OR) {
+                        auto constraint = std::make_shared<LogicalOrConstraint>(
+                            def.to_string(), lhs.to_string(), rhs.to_string()
+                        );
+                        node->pushConstraint(constraint);
+                        boolIdentifiers.emplace(def.def);
+                    }
+                }
+            } else if (expr->IsLoad()) {
+                Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
+                Alias op = idToAlias[expr->GetOperand(0)->GetIdentifier()];
+                if (intIdentifiers.count(op.def)) {
+                    auto constraint = std::make_shared<AddConstraint>(
+                        def.to_string(), op.to_string(), "\%const_0"
+                    );
+                    node->pushConstraint(constraint);
+                    intIdentifiers.emplace(def.def);
+                } else if (boolIdentifiers.count(op.def)) {
+                    auto constraint = std::make_shared<LogicalAndConstraint>(
+                        def.to_string(), op.to_string(), "\%const_true"
+                    );
+                    node->pushConstraint(constraint);
+                    boolIdentifiers.emplace(def.def);
+                }
+            }
+        }
+    }
+    
+}
+
+void DominatorTree::CallSolver()
+{
+    // Value Range Analysis Constraint Graph
+    ConstraintGraph constraintGraph;
+
+    // General constraints for 0 and true
+    auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
+    auto cst_true = std::make_shared<InitializationBoolConstraint>("\%const_true", true);
+
+    constraintGraph.addConstraint(cst_0);
+    constraintGraph.addConstraint(cst_true);
+
+    for (auto param : params_) {
+        if (param->GetType()->IsInteger()) {
+            Alias paramAlias = idToAlias[param->GetIdentifier()];
+            // Maybe we need to initialize this variable as [-inf, + inf]
+            auto constraint = std::make_shared<InitializationIntegerTop>(paramAlias.to_string());
+            constraintGraph.addConstraint(constraint);
+        } else if (param->GetType()->IsBoolean()) {
+            Alias paramAlias = idToAlias[param->GetIdentifier()];
+            // Maybe we need to initialize this variable as [false, true]
+            auto constraint = std::make_shared<InitializationBoolTop>(paramAlias.to_string());
+            constraintGraph.addConstraint(constraint);
+        }
+    }
+
+    for (auto node : nodes_) {
+        for (auto constraint : node->nodeConstraints) {
+            constraintGraph.addConstraint(constraint);
+        }
+    }
+
+    auto sccs = constraintGraph.getTopologicalSCCs();
+    Solver solver(state);
+    solver.solve(sccs);    
+}
+
+} // namespace Competition
