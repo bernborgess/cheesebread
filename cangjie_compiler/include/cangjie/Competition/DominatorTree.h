@@ -41,7 +41,7 @@ public:
     std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();
 
     /// Pass along the tree creating constraints on the branches
-    void GenerateBranchConstraints();
+    void GenerateBranchConstraints() { VisitBlockBranch(entry_); }
 
     void Renaming();
 
@@ -74,6 +74,9 @@ private:
     };
 
     Node* ReverseMapBlockToNode(Block* block);
+    void VisitBlockBranch(Block*block);
+    /// Visits the domtree from this block downwards replacing occurences
+    void FindAndReplace(std::string find_str, std::string replace_str, Block* block);
 
 public:
     void AddPhiFunction(Block* block, Phi phiFunction);

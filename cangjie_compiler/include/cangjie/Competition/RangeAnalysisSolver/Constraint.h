@@ -216,8 +216,10 @@ public:
     IntersectionConstraint resolveFutures(
       const AbstractState &state) const;
 
-private:
+    // Needed in renaming as well
     std::string operand;
+
+private:
     IntersectionBound lower_bound;
     IntersectionBound upper_bound;
 

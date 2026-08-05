@@ -272,7 +272,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
         // TODO: Add intersection constriants on branches
         // * Careful to use the right SSA names in the constraint.
-        // domTree.GenerateBranchConstraints();
+        domTree.GenerateBranchConstraints();
     }
 
     // 1. Initialize a clean abstract state table

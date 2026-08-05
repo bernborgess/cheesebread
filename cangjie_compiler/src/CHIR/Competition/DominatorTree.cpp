@@ -568,42 +568,70 @@ void DominatorTree::AddPhiFunction(Block* block, Phi phiFunction)
     // std::cout << "Added phi function " << phiFunction << " to block " << block->GetIdentifier() << "\n";
 }
 
-void DominatorTree::GenerateBranchConstraints()
+
+void DominatorTree::FindAndReplace(std::string find_str, std::string replace_str, Block* block)
 {
-    // ? Iterate on the tree, creating Sigmas and constraints
-    for (auto& node : nodes_) {
-        if (node->block == nullptr)
-            continue;
+    // Minor optimization
+    if (find_str == replace_str) return;
 
-        Block* block = node->block;
+    for (auto expr : block->GetExpressions()) {
+        if (LocalVar* res = expr->GetResult();
+            res != nullptr && idToAlias[res->GetIdentifier()].to_string() == find_str) {
+            idToAlias[res->GetIdentifier()] = Alias(replace_str, 0);
+        }
+        for (auto op : expr->GetOperands()) {
+            if (idToAlias[op->GetIdentifier()].to_string() == find_str) {
+                idToAlias[op->GetIdentifier()] = Alias(replace_str, 0);
+            }
+        }
+    }
 
-        // Only treat blocks that end in a branch
-        if (block->GetTerminator()->GetExprKind() != ExprKind::BRANCH) continue;
+    for (auto child : children_[block]) {
+        FindAndReplace(find_str, replace_str, child);
+    }
+}
 
-        auto branch = (Branch*)block->GetTerminator();
+/// Visit the dominator tree in Pre-Order to guarantee aliases are propagated ok
+void DominatorTree::VisitBlockBranch(Block* block)
+{
+    // Visit it, Only treat blocks that end in a branch
+    if (block->GetTerminator()->GetExprKind() == ExprKind::BRANCH) {
+
+        auto branch = dynamic_cast<Branch*>(block->GetTerminator());
         auto cond = branch->GetCondition();
         auto trueNode = ReverseMapBlockToNode(branch->GetTrueBlock());
         auto falseNode = ReverseMapBlockToNode(branch->GetFalseBlock());
 
-        // TODO: All supported pattern matches here
+        // Matching should consider the aliases
         std::vector<Matching::MatchedConstraints> constraints = {
             // * Match a pattern
             // Ex: LT(Load(x), Constant(c))
-            Matching::MatchLessThanConstraints(cond),
-            Matching::MatchGreaterThanConstraints(cond),
-            Matching::MatchEqualConstraints(cond),
-            Matching::MatchNotEqualConstraints(cond),
-            Matching::MatchLessEqualConstraints(cond),
-            Matching::MatchGreaterEqualConstraints(cond),
+            Matching::MatchLessThanConstraints(cond, idToAlias),
+            Matching::MatchGreaterThanConstraints(cond, idToAlias),
+            Matching::MatchEqualConstraints(cond, idToAlias),
+            Matching::MatchNotEqualConstraints(cond, idToAlias),
+            Matching::MatchLessEqualConstraints(cond, idToAlias),
+            Matching::MatchGreaterEqualConstraints(cond, idToAlias),
         };
 
         for (auto& [ifTrue, ifFalse] : constraints) {
-            for (auto& constraint : ifTrue)
+            for (auto& constraint : ifTrue) {
                 trueNode->pushConstraint(constraint);
+                // ? After a pattern is matched, we have to traverse the dom tree
+                // downwards replacing occurences of the older alias for the new one.
+                FindAndReplace(constraint->operand, constraint->def, branch->GetTrueBlock());
+            }
 
-            for (auto& constraint : ifFalse)
+            for (auto& constraint : ifFalse) {
                 falseNode->pushConstraint(constraint);
+                FindAndReplace(constraint->operand, constraint->def, branch->GetFalseBlock());
+            }
         }
+    }
+
+    // Visit its children
+    for (Block* child : children_[block]) {
+        VisitBlockBranch(child);
     }
 }
 
