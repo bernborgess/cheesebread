@@ -75,20 +75,30 @@ vector<Query> readCompetitionQueries()
     return queries;
 }
 
-std::vector<Block*> &getBlocksByLineNumber(Function* func, unsigned int lineNumber)
+std::vector<Block*> getBlocksByLineNumber(Function* func, unsigned int lineNumber)
 {
     auto loc = func->GetDebugLocation();
     std::vector<Block*> blocks;
     if (loc.GetBeginPos().line <= lineNumber && lineNumber <= loc.GetEndPos().line) {
         // 2. Iterate on Blocks to find w.o.c.t. lineNumber
-        for (auto& block : func->GetBody()->GetBlocks()) {
-            auto blockLoc = block->GetDebugLocation();
+        for (auto block : func->GetBody()->GetBlocks()) {
 
-            cerr << "Block " << block->GetIdentifier() << " has loc [" << blockLoc.GetBeginPos().line << ", "
-                    << blockLoc.GetEndPos().line << "]" << endl;
+            size_t start = std::numeric_limits<size_t>::max();
+            size_t end = 0;
+            for (auto expr : block->GetExpressions()) {
+                auto exprLoc = expr->GetDebugLocation().GetBeginPos();
+                if (exprLoc.IsZero()) continue;
+                size_t exprLine = exprLoc.line;
+                start = std::min(exprLine, start);
+                end = std::max(exprLine, end);
+            }
 
-            if (blockLoc.GetBeginPos().line <= lineNumber && lineNumber <= blockLoc.GetEndPos().line) {
-                blocks.emplace_back(block);
+            // cerr << "Block " << block->GetIdentifier() << " has loc [" << start << ", "
+            //         << end << "]" << endl;
+
+            if (start <= lineNumber && lineNumber <= end) {
+                blocks.push_back(block);
+                // std::cout << "Added block " << block << " with identifier " << block->GetIdentifier() << "\n";
                 // Iterate on expressions to find the exact line?
             }
         }
@@ -202,15 +212,27 @@ void RangeAnalysis::RunOnPackage(Package* package)
     }
 
     // The package contains functions:
-    vector<Function*> userDefinedFunctions;
+    std::set<Function*> requestedFunctions;
 
     cerr << "Funcs = [ ";
     for (auto func : package->GetGlobalFuncsWithBody()) {
-        if (func->GetPackageName() != "std.core") {
-            // TODO: Filter user-defined functions only (still reporting $mainInvoke, etc.)
-            cerr << func->GetSrcCodeIdentifier() << " ";
-            userDefinedFunctions.push_back(func);
+        auto funcFileName = func->GetDebugLocation().GetFileName();
+        auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
+        auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
+        for (auto [fileName, lineNumber, variableName] : queries) {
+            if (funcFileName == fileName) {
+                if (funcStartLine <= lineNumber && lineNumber <= funcEndLine) {
+                    cerr << func->GetSrcCodeIdentifier() << " ";
+                    requestedFunctions.insert(func);
+                }
+            }
         }
+
+        // if (func->GetPackageName() != "std.core") {
+        //     // TODO: Filter user-defined functions only (still reporting $mainInvoke, etc.)
+        //     cerr << func->GetSrcCodeIdentifier() << " ";
+        //     requestedFunctions.push_back(func);
+        // }
     }
     std::cerr << "]" << std::endl;
 
@@ -221,9 +243,11 @@ void RangeAnalysis::RunOnPackage(Package* package)
         return;
     }
 
+    
+
     // Create some dominator tree for each function?
     // TODO: Interprocedural
-    for (auto func : userDefinedFunctions) {
+    for (auto func : requestedFunctions) {
         // Our debug
         Block* entry = func->GetEntryBlock();
         std::vector<Parameter*> params = func->GetParams();
@@ -231,10 +255,10 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // std::cout << "Computing dominator tree\n";
         domTree.Compute();
         // domTree.GenerateBranchConstraints();
-        if (func->GetSrcCodeIdentifier() == "foo") {
-            CHIRPrinter::PrintCFG(*func, "foo.dot");
-            domTree.PrintDominatorTree("domTree.dot");  
-        }
+        // if (func->GetSrcCodeIdentifier() == "foo") {
+        //     CHIRPrinter::PrintCFG(*func, "foo.dot");
+        //     domTree.PrintDominatorTree("domTree.dot");  
+        // }
 
         // std::cout << "Computing alpha nodes\n";
         std::unordered_map<std::string, std::vector<Block*>>
@@ -276,82 +300,85 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
         // std::cout << "Applying renaming\n";
 
-        if (func->GetSrcCodeIdentifier() == "foo") {
+        // if (func->GetSrcCodeIdentifier() == "foo") {
             
-            domTree.Renaming();
-            // Produce the graph after renaming alias.
-            domTree.PrintDominatorTree("domTreeSSA.dot", true);  
-            // TODO: Add intersection constriants on branches
-            // * Careful to use the right SSA names in the constraint.
-            domTree.GenerateBranchConstraints();
-            
-            domTree.GenerateSSAConstraints();
+        domTree.Renaming();
+        // Produce the graph after renaming alias.
+        domTree.PrintDominatorTree("domTreeSSA.dot", true);  
+        // TODO: Add intersection constriants on branches
+        // * Careful to use the right SSA names in the constraint.
+        domTree.GenerateBranchConstraints();
+        
+        domTree.GenerateSSAConstraints();
 
-            domTree.CallSolver();
-            
-            
-            
-            
-            auto funcFileName = func->GetDebugLocation().GetFileName();
-            auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
-            auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
-            // Use the solver results to output the analsys
-            for (auto [fileName, lineNumber, variableName] : queries) {
+        domTree.CallSolver();
+        
+        
+        
+        
+        auto funcFileName = func->GetDebugLocation().GetFileName();
+        auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
+        auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
+        // Use the solver results to output the analsys
+        for (auto [fileName, lineNumber, variableName] : queries) {
 
-                if (funcFileName != fileName) continue;
-                if (funcStartLine > lineNumber || funcEndLine < lineNumber) continue;
+            if (funcFileName != fileName) continue;
+            if (funcStartLine > lineNumber || funcEndLine < lineNumber) continue;
 
-                std::cerr << "Find the range of variable " << variableName
-                        << " at line " << lineNumber << " of file " << fileName
-                        << std::endl;
-                    
-                std::queue<Block*> blocks;
-                std::cout << "Searching for definition of " << variableName << " on function " << func->GetSrcCodeIdentifier() << "\n";
-                std::cout << "Number of blocks on line " << lineNumber << ": " << blocksByLineNumber[lineNumber].size() << "\n"; 
-                for (auto block : blocksByLineNumber[lineNumber]) {
-                    blocks.emplace(block);
+            std::cerr << "Find the range of variable " << variableName
+                    << " at line " << lineNumber << " of file " << fileName
+                    << std::endl;
+                
+            std::queue<Block*> blocks;
+            for (auto block : getBlocksByLineNumber(func,lineNumber)) {
+                blocks.push(block);
+            }
+
+            Alias variableAlias = Alias("\%empty");
+            while (!blocks.empty()) {
+                Block* block = blocks.front();
+                blocks.pop();
+                // std::cout << "Searching for definition of " << variableName << " on block " << block->GetIdentifier() << "\n";
+                
+                // std::cout << "Searching phi functions\n";
+                for (auto phiFunction : domTree.GetBlockPhiFunctions(block)) {
+                    if (phiFunction.getVarDef() == variableName) {
+                        variableAlias = phiFunction.getVar();
+                    }
                 }
-
-                Alias variableAlias = Alias("\%empty");
-                while (!blocks.empty()) {
-                    Block* block = blocks.front();
-                    blocks.pop();
-                    std::cout << "Searching for definition of " << variableName << " on block " << block->GetIdentifier() << "\n";
-                    
-                    for (auto phiFunction : domTree.GetBlockPhiFunctions(block)) {
-                        if (phiFunction.getVarDef() == variableName) {
-                            variableAlias = phiFunction.getVar();
-                        }
-                    }
-                    
-                    for (auto constraint : domTree.GetBlockConstraints(block)) {
-                        if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
-                            Alias intersectionAlias = getAliasFromString(interc->def);
-                            if (removeIntersectionPrefix(intersectionAlias.def) == variableName) {
-                                variableAlias = intersectionAlias;
-                            }
-                        }
-                    }
-                    
-                    for (auto expr : block->GetExpressions()) {
-                        auto exprLine = expr->GetDebugLocation().GetBeginPos().line;
-                        if (exprLine > lineNumber) break;
-                        Alias exprAlias = domTree.idToAlias[expr->GetResult()->GetIdentifier()];
-                        if (exprAlias.def == variableName) {
-                            variableAlias = exprAlias;
-                        }
-                    }
-                    
-                    if (variableAlias.def == "\%empty") {
-                        Block* idom = domTree.GetImmediateDominator(block);
-                        if (idom == nullptr || block == idom) continue;
-                        blocks.emplace(idom);
-                    } else {
-                        while (!blocks.empty()) {
-                            blocks.pop();
+                
+                // std::cout << "Searching intersection constraints\n";
+                for (auto constraint : domTree.GetBlockConstraints(block)) {
+                    if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+                        Alias intersectionAlias = getAliasFromString(interc->def);
+                        if (removeIntersectionPrefix(intersectionAlias.def) == variableName) {
+                            variableAlias = intersectionAlias;
                         }
                     }
                 }
+                
+                // std::cout << "Searching expressions\n";
+                for (auto expr : block->GetExpressions()) {
+                    auto exprResult = expr->GetResult();
+                    if (exprResult == nullptr) continue;
+                    auto exprLine = expr->GetDebugLocation().GetBeginPos().line;
+                    if (exprLine > lineNumber) break;
+                    Alias exprAlias = domTree.idToAlias[expr->GetResult()->GetIdentifier()];
+                    if (exprAlias.def == variableName) {
+                        variableAlias = exprAlias;
+                    }
+                }
+                
+                if (variableAlias.def == "\%empty") {
+                    Block* idom = domTree.GetImmediateDominator(block);
+                    if (idom == nullptr || block == idom) continue;
+                    blocks.push(idom);
+                } else {
+                    while (!blocks.empty()) {
+                        blocks.pop();
+                    }
+                }
+            }
             
             AnalyzedValue variableValue = domTree.GetVariableState(variableAlias);
             
@@ -364,7 +391,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
                 outputFile << intVal << std::endl;
             }
         }
-    }
+    // }
         
     }
 

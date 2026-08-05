@@ -82,6 +82,33 @@ PhiConstraint::PhiConstraint(std::string var, std::vector<std::string> ops)
     : Constraint(std::move(var)), operands(std::move(ops)) {}
 
 bool PhiConstraint::eval(AbstractState& A) {
+    if (!A.count(def)) {
+      bool typeDefined = false;
+      bool isBoolValue = true;
+      bool sameValueType = true;
+      for (int i = 0; i < operands.size(); i++) {
+        std::string op = operands[i];
+        if (A.count(op)) {
+          if (std::holds_alternative<BV>(A[op])) {
+            if (!isBoolValue) sameValueType = false;
+            typeDefined = true;
+          } else {
+            if (typeDefined && isBoolValue) sameValueType = false;
+            typeDefined = true;
+            isBoolValue = false;
+          }
+        }
+      }
+      if (sameValueType) {
+        if (isBoolValue) {
+          A.try_emplace(def, BV());
+        } else {
+          A.try_emplace(def, IV());
+        }
+      } else {
+        return false;
+      }
+    }
     if (std::holds_alternative<BV>(A[def])) {
         BV old_val = std::get<BV>(A[def]);
         BV accumulated_join; // Starts at bottom element

@@ -304,22 +304,22 @@ void DominatorTree::Renaming()
 
         // std::cout << "Searching " << block->GetIdentifier() << "\n";
 
-        std::cout << "Computing expressions\n";
+        // std::cout << "Computing expressions\n";
         for (size_t i = 0; i < node->phiFunctions.size(); i++) {
-            std::cout << "Original: " << node->phiFunctions[i] << "\n";
+            // std::cout << "Original: " << node->phiFunctions[i] << "\n";
             std::string varName = node->phiFunctions[i].getVarDef();
             int counter = variableCounter[varName];
             node->phiFunctions[i].setVarCounter(counter);
             variableStack[varName].emplace(counter);
             ++variableCounter[varName];
-            std::cout << "Modified: " << node->phiFunctions[i] << "\n";
+            // std::cout << "Modified: " << node->phiFunctions[i] << "\n";
         }
 
         
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
-            std::cout << "Original: ";
-            expr->Dump();
+            // std::cout << "Original: ";
+            // expr->Dump();
             
             if (expr->IsConstant()) {
                 ;
@@ -360,23 +360,23 @@ void DominatorTree::Renaming()
             variableStack[varName].emplace(counter);
             ++variableCounter[varName];
 
-            if (expr->IsAllocate()) continue;
-            std::cout << "Modified: ";
-            if (expr->IsStore()) {
-                std::cout << idToAlias[expr->GetOperand(1)->GetIdentifier()]
-                    << " = " << idToAlias[expr->GetOperand(0)->GetIdentifier()];
-            } else {
-                std::cout << idToAlias[varId] << " = ";
-                if (expr->IsConstant()) {
-                    std::cout << expr->GetOperand(0)->ToString(0) << "\n";
-                } else {
-                    for (auto op : expr->GetOperands()) {
-                        if (op != expr->GetOperands().front()) std::cout << " op ";
-                        std::cout << idToAlias[op->GetIdentifier()];
-                    }
-                }
-            }
-            std::cout << "\n";
+            // if (expr->IsAllocate()) continue;
+            // std::cout << "Modified: ";
+            // if (expr->IsStore()) {
+            //     std::cout << idToAlias[expr->GetOperand(1)->GetIdentifier()]
+            //         << " = " << idToAlias[expr->GetOperand(0)->GetIdentifier()];
+            // } else {
+            //     std::cout << idToAlias[varId] << " = ";
+            //     if (expr->IsConstant()) {
+            //         std::cout << expr->GetOperand(0)->ToString(0) << "\n";
+            //     } else {
+            //         for (auto op : expr->GetOperands()) {
+            //             if (op != expr->GetOperands().front()) std::cout << " op ";
+            //             std::cout << idToAlias[op->GetIdentifier()];
+            //         }
+            //     }
+            // }
+            // std::cout << "\n";
         }
 
         // std::cout << "Computing phi functions of successors\n";
@@ -656,12 +656,12 @@ void DominatorTree::VisitBlockBranch(Block* block)
 
 void DominatorTree::GenerateSSAConstraints()
 {
-    std::cout << "Generating SSA Constraints\n";
+    // std::cout << "Generating SSA Constraints\n";
     // Set of integer and boolean identifiers
     std::set<std::string> intIdentifiers;
     std::set<std::string> boolIdentifiers;
 
-    std::cout << "\tGenerating SSA Constraints for parameters\n";
+    // std::cout << "\tGenerating SSA Constraints for parameters\n";
 
     for (auto param : params_) {
         if (param->GetType()->IsInteger()) {
@@ -676,14 +676,14 @@ void DominatorTree::GenerateSSAConstraints()
         }
     }
 
-    std::cout << "\tGenerating SSA Constraints for nodes\n";
+    // std::cout << "\tGenerating SSA Constraints for nodes\n";
 
     for (auto& node : nodes_) {
         if (node->block == nullptr)
             continue;
 
         Block* block = node->block;
-        std::cout << "\t\tBlock: " << block->GetIdentifier() << "\n";
+        // std::cout << "\t\tBlock: " << block->GetIdentifier() << "\n";
 
         for (auto phiFunction : node->phiFunctions) {
             if (intIdentifiers.count(phiFunction.getVarDef()) ||
