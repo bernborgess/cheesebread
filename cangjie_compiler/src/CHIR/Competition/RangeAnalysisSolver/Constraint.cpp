@@ -66,11 +66,49 @@ bool InitializationConstraint::eval(AbstractState& A) {
     return old_val != std::get<IV>(A[def]); // Leverages your custom equality operator!
 }
 
+// --- InitializationConstraint (v = c) ---
+InitializationIntegerTop::InitializationIntegerTop(std::string var)
+    : Constraint(std::move(var)) {}
+
+bool InitializationIntegerTop::eval(AbstractState& A) {
+    IV old_val = std::get<IV>(A[def]);
+
+    std::get<IV>(A[def]).setAsTop();
+    return old_val != std::get<IV>(A[def]); // Leverages your custom equality operator!
+}
+
 // --- PhiConstraint (v0 = phi(v1, v2, ...)) ---
 PhiConstraint::PhiConstraint(std::string var, std::vector<std::string> ops)
     : Constraint(std::move(var)), operands(std::move(ops)) {}
 
 bool PhiConstraint::eval(AbstractState& A) {
+    if (!A.count(def)) {
+      bool typeDefined = false;
+      bool isBoolValue = true;
+      bool sameValueType = true;
+      for (int i = 0; i < operands.size(); i++) {
+        std::string op = operands[i];
+        if (A.count(op)) {
+          if (std::holds_alternative<BV>(A[op])) {
+            if (!isBoolValue) sameValueType = false;
+            typeDefined = true;
+          } else {
+            if (typeDefined && isBoolValue) sameValueType = false;
+            typeDefined = true;
+            isBoolValue = false;
+          }
+        }
+      }
+      if (sameValueType) {
+        if (isBoolValue) {
+          A.try_emplace(def, BV());
+        } else {
+          A.try_emplace(def, IV());
+        }
+      } else {
+        return false;
+      }
+    }
     if (std::holds_alternative<BV>(A[def])) {
         BV old_val = std::get<BV>(A[def]);
         BV accumulated_join; // Starts at bottom element
@@ -880,6 +918,19 @@ bool InitializationBoolConstraint::eval(AbstractState& A) {
 
     std::vector<bool> vals = {constant};
     std::get<BV>(A[def]).addConstant(vals);
+    return old_val != std::get<BV>(A[def]); // Leverages your custom equality operator!
+}
+
+// --- InitializationConstraint (v = c) ---
+InitializationBoolTop::InitializationBoolTop(std::string var)
+    : Constraint(std::move(var)) {}
+
+bool InitializationBoolTop::eval(AbstractState& A) {
+    // Emplace a BoolValue if def is undefined in the Abstract State
+    A.try_emplace(def, BV());
+    BV old_val = std::get<BV>(A[def]);
+    std::get<BV>(A[def]).setAsTop();
+
     return old_val != std::get<BV>(A[def]); // Leverages your custom equality operator!
 }
 

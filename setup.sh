@@ -89,7 +89,8 @@ fi
 # Execute build
 if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
   cd $WORKSPACE/cangjie_compiler;
-  python3 build.py clean;
+  rm -rf output
+  # python3 build.py clean;
   python3 build.py build -t debug \
     -v ${CANGJIE_VERSION} \
     --no-tests \

@@ -19,7 +19,7 @@ using namespace Cangjie::CHIR;
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
 public:
-    explicit DominatorTree(Block* entry);
+    explicit DominatorTree(Block* entry, std::vector<Parameter*> &params);
 
     /// Computes the dominator tree.
     void Compute();
@@ -35,13 +35,13 @@ public:
     const std::vector<Block*>& GetChildren(Block* block) const;
 
     /// Prints the current dominator tree to a .dot file.
-    void PrintDominatorTree(const std::string& path);
+    void PrintDominatorTree(const std::string& path, bool alias = false);
 
     /// Get aliases for identifiers
     std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();
 
     /// Pass along the tree creating constraints on the branches
-    void GenerateBranchConstraints();
+    void GenerateBranchConstraints() { VisitBlockBranch(entry_); }
 
     void Renaming();
 
@@ -65,23 +65,30 @@ private:
         std::vector<std::size_t> bucket;
 
         // Also keep the constraints here
-        std::vector<Constraint*> nodeConstraints;
+        std::vector<std::shared_ptr<Constraint>> nodeConstraints;
 
-        void pushConstraint(Constraint* constraint) {
+        void pushConstraint(std::shared_ptr<Constraint> constraint) {
             nodeConstraints.push_back(constraint);
         }
 
     };
 
     Node* ReverseMapBlockToNode(Block* block);
+    void VisitBlockBranch(Block*block);
+    /// Visits the domtree from this block downwards replacing occurences
+    void FindAndReplace(std::string find_str, std::string replace_str, Block* block);
 
 public:
+    std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);
+    std::vector<Phi> &GetBlockPhiFunctions(Block *block);
     void AddPhiFunction(Block* block, Phi phiFunction);
+    AnalyzedValue GetVariableState(Alias var);
+    void CallSolver();
+    std::unordered_map<std::string, Alias> idToAlias;
 
 private:
     std::vector<std::string> variables;
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
-    std::unordered_map<std::string, Alias> idToAlias;
     std::unordered_map<Block*,Node*> blockToNodeMap;
 
 private:
@@ -93,6 +100,8 @@ private:
 
 private:
     Block* entry_;
+
+    std::vector<Parameter*> params_;
 
     std::size_t dfsCount_ = 0;
 
@@ -110,9 +119,6 @@ private:
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
-
-    // Value Range Analysis Constraint Graph
-    ConstraintGraph constraintGraph;
 
     // Value Range Analysis Abstract State
     AbstractState state;

@@ -22,3 +22,7 @@ void BoolValue::join(const BoolValue &other) {
 
   this->values = std::move(merged);
 }
+
+void BoolValue::setAsTop() {
+  this->values = {false, true};
+}
