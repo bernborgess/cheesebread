@@ -215,10 +215,10 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
 {
     for (auto param : params_) {
         std::string id = param->GetIdentifier();
-        idToAlias[id] = Alias(param->GetSrcCodeIdentifier());
-        if (idToAlias[id].def == "") {
-            idToAlias[id] = Alias(id);
-        }
+        std::string funcName = param->GetOwnerFunc()->GetSrcCodeIdentifier();
+        std::string aliasDef = param->GetSrcCodeIdentifier() == "" ? id
+                             : param->GetSrcCodeIdentifier();
+        idToAlias[id] = Alias(funcName + ":" + aliasDef);
         idToAlias[id].setCounter(0);
         variables.emplace_back(idToAlias[id].def);
     }
@@ -231,14 +231,16 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
         Block* block = node->block;
 
         for (auto expr : block->GetExpressions()) {
+            auto funcName = expr->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
 
             if (expr->IsAllocate()) {
                 LocalVar* res = expr->GetResult();
                 std::string id = res->GetIdentifier();
-                idToAlias[id] = Alias(res->GetSrcCodeIdentifier());
-                if (idToAlias[id].def == "") {
-                    idToAlias[id] = Alias(id);
-                }
+                std::string aliasDef = res->GetSrcCodeIdentifier() == "" ? id
+                                     : res->GetSrcCodeIdentifier();
+
+                idToAlias[id] = Alias(funcName + ":" + aliasDef);
+
                 variables.emplace_back(idToAlias[id].def);
                 // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
             }
@@ -252,6 +254,7 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
             if (expr->IsStore()) {
                 auto id = expr->GetOperand(0)->GetIdentifier();
                 auto opId = expr->GetOperand(1)->GetIdentifier();
+                // ? Why would this happen?
                 if (idToAlias[opId].def == "") continue;
                 if (idToAlias[id].def == "")
                     idToAlias[id] = idToAlias[opId];
@@ -281,10 +284,13 @@ void DominatorTree::Renaming()
 
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
-            std::string identifier = expr->GetResult()->GetIdentifier();
-            if (idToAlias.count(identifier) == 0) {
-                idToAlias[identifier] = Alias(identifier);
-                variables.emplace_back(identifier);
+
+            auto funcName = expr->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
+
+            std::string id = expr->GetResult()->GetIdentifier();
+            if (idToAlias.count(id) == 0) {
+                idToAlias[id] = Alias(funcName + ":" + id);
+                variables.emplace_back(id);
             }
             // std::cout << "Variable " << identifier << " received alias " << idToAlias[identifier] << "\n";
         }
@@ -585,6 +591,12 @@ AnalyzedValue DominatorTree::GetVariableState(Alias var) {
 }
 
 
+// TODO: This replace is needed (so far) inside the same function, to update the
+// expressions that refer to a variable that received a branch constraint,
+// therefore has a new "branched" status. 
+// * Keep funcName
+// * (will) Keep identifier
+// * Updates branched
 void DominatorTree::FindAndReplace(std::string find_str, std::string replace_str, Block* block)
 {
     // Minor optimization
@@ -593,11 +605,13 @@ void DominatorTree::FindAndReplace(std::string find_str, std::string replace_str
     for (auto expr : block->GetExpressions()) {
         if (LocalVar* res = expr->GetResult();
             res != nullptr && idToAlias[res->GetIdentifier()].to_string() == find_str) {
-            idToAlias[res->GetIdentifier()] = Alias(replace_str, 0);
+            idToAlias[res->GetIdentifier()].def = replace_str;
+            idToAlias[res->GetIdentifier()].setCounter(0);
         }
         for (auto op : expr->GetOperands()) {
             if (idToAlias[op->GetIdentifier()].to_string() == find_str) {
-                idToAlias[op->GetIdentifier()] = Alias(replace_str, 0);
+                idToAlias[op->GetIdentifier()].def = replace_str;
+                idToAlias[op->GetIdentifier()].setCounter(0);
             }
         }
     }

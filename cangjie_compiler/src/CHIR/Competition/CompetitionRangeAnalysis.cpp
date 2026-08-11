@@ -15,6 +15,7 @@ namespace Competition {
 using namespace Cangjie::CHIR;
 using namespace std;
 
+// TODO: Use the alias structure, only casting to_string when in use by the solver.
 Alias getAliasFromString(std::string ssaName) {
     auto _pos = ssaName.find_last_of('_');
     return Alias(ssaName.substr(0, _pos), std::stoi(ssaName.substr(_pos+1)));
@@ -221,18 +222,13 @@ void RangeAnalysis::RunOnPackage(Package* package)
         auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
         for (auto [fileName, lineNumber, variableName] : queries) {
             if (funcFileName == fileName) {
-                if (funcStartLine <= lineNumber && lineNumber <= funcEndLine) {
+                // ? Let's include every function defined in this file (by user)
+                // if (funcStartLine <= lineNumber && lineNumber <= funcEndLine) {
                     cerr << func->GetSrcCodeIdentifier() << " ";
                     requestedFunctions.insert(func);
-                }
+                // }
             }
         }
-
-        // if (func->GetPackageName() != "std.core") {
-        //     // TODO: Filter user-defined functions only (still reporting $mainInvoke, etc.)
-        //     cerr << func->GetSrcCodeIdentifier() << " ";
-        //     requestedFunctions.push_back(func);
-        // }
     }
     std::cerr << "]" << std::endl;
 
@@ -283,7 +279,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // std::cout << "Constructing phi functions\n";
         for (auto [def, phiBlocks] : variablePhiNodes) {
             for (Block *block : phiBlocks) {
-                Phi phiFunction = Phi(Alias(def), block->GetPredecessors().size());
+                std::string funcName = block->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
+                Phi phiFunction = Phi(Alias(funcName + ":" + def), block->GetPredecessors().size());
                 domTree.AddPhiFunction(block, phiFunction);
             }
         }
