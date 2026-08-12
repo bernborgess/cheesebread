@@ -250,6 +250,10 @@ void RangeAnalysis::RunOnPackage(Package* package)
         DominatorTree domTree(entry, params);
         // std::cout << "Computing dominator tree\n";
         domTree.Compute();
+
+        // * Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
+        domTree.GenerateBranchConstraints();
+
         // domTree.GenerateBranchConstraints();
         // if (func->GetSrcCodeIdentifier() == "foo") {
         //     CHIRPrinter::PrintCFG(*func, "foo.dot");
@@ -304,7 +308,6 @@ void RangeAnalysis::RunOnPackage(Package* package)
         domTree.PrintDominatorTree("domTreeSSA.dot", true);  
         // TODO: Add intersection constriants on branches
         // * Careful to use the right SSA names in the constraint.
-        domTree.GenerateBranchConstraints();
         
         domTree.GenerateSSAConstraints();
 

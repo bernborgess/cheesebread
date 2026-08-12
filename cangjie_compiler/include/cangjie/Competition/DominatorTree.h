@@ -75,8 +75,6 @@ private:
 
     Node* ReverseMapBlockToNode(Block* block);
     void VisitBlockBranch(Block*block);
-    /// Visits the domtree from this block downwards replacing occurences
-    void FindAndReplace(std::string find_str, std::string replace_str, Block* block);
 
 public:
     std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);

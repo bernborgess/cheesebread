@@ -590,37 +590,6 @@ AnalyzedValue DominatorTree::GetVariableState(Alias var) {
     return state[var.to_string()];
 }
 
-
-// TODO: This replace is needed (so far) inside the same function, to update the
-// expressions that refer to a variable that received a branch constraint,
-// therefore has a new "branched" status. 
-// * Keep funcName
-// * (will) Keep identifier
-// * Updates branched
-void DominatorTree::FindAndReplace(std::string find_str, std::string replace_str, Block* block)
-{
-    // Minor optimization
-    if (find_str == replace_str) return;
-
-    for (auto expr : block->GetExpressions()) {
-        if (LocalVar* res = expr->GetResult();
-            res != nullptr && idToAlias[res->GetIdentifier()].to_string() == find_str) {
-            idToAlias[res->GetIdentifier()].def = replace_str;
-            idToAlias[res->GetIdentifier()].setCounter(0);
-        }
-        for (auto op : expr->GetOperands()) {
-            if (idToAlias[op->GetIdentifier()].to_string() == find_str) {
-                idToAlias[op->GetIdentifier()].def = replace_str;
-                idToAlias[op->GetIdentifier()].setCounter(0);
-            }
-        }
-    }
-
-    for (auto child : children_[block]) {
-        FindAndReplace(find_str, replace_str, child);
-    }
-}
-
 /// Visit the dominator tree in Pre-Order to guarantee aliases are propagated ok
 void DominatorTree::VisitBlockBranch(Block* block)
 {
@@ -648,16 +617,11 @@ void DominatorTree::VisitBlockBranch(Block* block)
             for (auto& constraint : ifTrue) {
                 auto ptrConstraint = std::make_shared<IntersectionConstraint>(*constraint);
                 trueNode->pushConstraint(ptrConstraint);
-                
-                // ? After a pattern is matched, we have to traverse the dom tree
-                // downwards replacing occurences of the older alias for the new one.
-                FindAndReplace(constraint->operand, constraint->def, branch->GetTrueBlock());
             }
 
             for (auto& constraint : ifFalse) {
                 auto ptrConstraint = std::make_shared<IntersectionConstraint>(*constraint);
                 falseNode->pushConstraint(ptrConstraint);
-                FindAndReplace(constraint->operand, constraint->def, branch->GetFalseBlock());
             }
         }
     }
