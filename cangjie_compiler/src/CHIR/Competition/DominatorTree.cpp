@@ -339,16 +339,16 @@ void DominatorTree::Renaming()
         for (auto& constraint : node->nodeConstraints) {
             if (auto interc =
                 std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
-                // ? We need to replace the Alias::to_string value stored in
-                // these constraints by the updated values (with counters)
+                // ? We need to replace the plain variable name stored in
+                // these constraints by the updated Aliases::to_string (with counters)
 
                 // Operand
-                std::string op = Alias::from_string(interc->operand).def;
+                std::string op = interc->operand;
                 int newOpCounter = variableStack[op].top();
                 interc->operand = Alias(op, newOpCounter).to_string();
 
                 // Variable Definition
-                std::string var = Alias::from_string(interc->def).def;
+                std::string var = interc->def;
                 int newVarCounter = variableCounter[var];
                 interc->def = Alias(var, newVarCounter).to_string();
                 variableStack[var].emplace(newVarCounter);
@@ -449,10 +449,7 @@ void DominatorTree::Renaming()
         }
 
         // std::cout << "Visiting children\n";
-        auto children = GetChildren(block);
-        // ! Failing now
-        assert(children.size() > -1);
-        for (Block *y : children) {
+        for (Block *y : GetChildren(block)) {
             if (y == nullptr) continue;
             // std::cout << "Call search(" << y->GetIdentifier() << ")\n";
             // search(blockToNodeMap[y]);
