@@ -215,122 +215,92 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // The package contains functions:
     std::set<Function*> requestedFunctions;
 
-    cerr << "Funcs = [ ";
     for (auto func : package->GetGlobalFuncsWithBody()) {
         auto funcFileName = func->GetDebugLocation().GetFileName();
         auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
         auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
         for (auto [fileName, lineNumber, variableName] : queries) {
             if (funcFileName == fileName) {
-                // ? Let's include every function defined in this file (by user)
-                // if (funcStartLine <= lineNumber && lineNumber <= funcEndLine) {
-                    cerr << func->GetSrcCodeIdentifier() << " ";
-                    requestedFunctions.insert(func);
-                // }
+                cerr << func->GetSrcCodeIdentifier() << " ";
+                requestedFunctions.insert(func);
             }
         }
     }
-    std::cerr << "]" << std::endl;
 
     std::fstream outputFile;
     outputFile.open("output.txt", std::ios::out);
-    if(!outputFile.is_open()) {
-        std::cerr << "Failed to open output.txt file!"<< std::endl;
+    if (!outputFile.is_open()) {
+        std::cerr << "Failed to open output.txt file!" << std::endl;
         return;
     }
 
-    
-
-    // Create some dominator tree for each function?
-    // TODO: Interprocedural
+    // Compute dominator tree for each function, insert the intraprocedural
+    // constraints
     for (auto func : requestedFunctions) {
-        // Our debug
         Block* entry = func->GetEntryBlock();
         std::vector<Parameter*> params = func->GetParams();
         DominatorTree domTree(entry, params);
-        // std::cout << "Computing dominator tree\n";
         domTree.Compute();
 
-        // * Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
+        // Produce graph before renaming (func foo only, for debug)
+        if (func->GetSrcCodeIdentifier() == "foo")
+            domTree.PrintDominatorTree("domTreeSSA.dot", true);
+
+        // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
         domTree.GenerateBranchConstraints();
 
-        // domTree.GenerateBranchConstraints();
-        // if (func->GetSrcCodeIdentifier() == "foo") {
-        //     CHIRPrinter::PrintCFG(*func, "foo.dot");
-        //     domTree.PrintDominatorTree("domTree.dot");  
-        // }
+        /// Converting to SSA form = Adding Competition::Alias to each
+        /// identifier
+        std::unordered_map<std::string, std::vector<Block*>> alphaNodes =
+            domTree.GetAlphaNodes();
 
-        // std::cout << "Computing alpha nodes\n";
-        std::unordered_map<std::string, std::vector<Block*>>
-            alphaNodes = domTree.GetAlphaNodes();
-        
-        // std::cout << "Computing phi nodes\n";
         std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
         for (auto [def, blocks] : alphaNodes) {
             if (blocks.empty()) continue;
-            // std::cout << "Blocks with definitions of " << def << ": [";
-            // for (Block *block : blocks) {
-            //     if (block != *blocks.begin()) std::cout << ", ";
-            //     std::cout << block->GetIdentifier();
-            // }
-            // std::cout << "]\n";
             SSABuilder builder(domTree);
-            variablePhiNodes[def] = builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
+            variablePhiNodes[def] =
+                builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
         }
 
-        // We want to rename everything
-
-        // std::cout << "Constructing phi functions\n";
         for (auto [def, phiBlocks] : variablePhiNodes) {
-            for (Block *block : phiBlocks) {
-                std::string funcName = block->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
-                Phi phiFunction = Phi(Alias(funcName + ":" + def), block->GetPredecessors().size());
+            for (Block* block : phiBlocks) {
+                std::string funcName = block->GetParentBlockGroup()
+                                           ->GetOwnerFunc()
+                                           ->GetSrcCodeIdentifier();
+                Phi phiFunction = Phi(Alias(/* funcName + ":" + */ def),
+                                      block->GetPredecessors().size());
                 domTree.AddPhiFunction(block, phiFunction);
             }
         }
 
-        // for (auto [def, phiBlocks] : variablePhiNodes) {
-        //     if (phiBlocks.empty()) continue;
-        //     std::cout << "Phi blocks of " << def << ": [";
-        //     for (Block *block : phiBlocks) {
-        //         if (block != *phiBlocks.begin()) std::cout << ", ";
-        //         std::cout << block->GetIdentifier();
-        //     }
-        //     std::cout << "]\n";
-        // }
-
-        // std::cout << "Applying renaming\n";
-
-        // if (func->GetSrcCodeIdentifier() == "foo") {
-            
         domTree.Renaming();
-        // Produce the graph after renaming alias.
-        domTree.PrintDominatorTree("domTreeSSA.dot", true);  
-        // TODO: Add intersection constriants on branches
-        // * Careful to use the right SSA names in the constraint.
-        
+        /// END Converting to SSA form
+
+        // Produce the graph after renaming alias (func foo only, for debug).
+        if (func->GetSrcCodeIdentifier() == "foo")
+            domTree.PrintDominatorTree("domTreeSSA.dot", true);
+
         domTree.GenerateSSAConstraints();
 
+        // TODO: CallSolver outside of this loop, since we still have to resolve
+        // interprocedural dependencies for the constraints.
         domTree.CallSolver();
-        
-        
-        
-        
+
         auto funcFileName = func->GetDebugLocation().GetFileName();
         auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
         auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
         // Use the solver results to output the analsys
         for (auto [fileName, lineNumber, variableName] : queries) {
-
             if (funcFileName != fileName) continue;
-            if (funcStartLine > lineNumber || funcEndLine < lineNumber) continue;
+            if (funcStartLine > lineNumber || funcEndLine < lineNumber)
+                continue;
 
             std::cerr << "Find the range of variable " << variableName
-                    << " at line " << lineNumber << " of file " << fileName
-                    << std::endl;
-                
+                      << " at line " << lineNumber << " of file " << fileName
+                      << std::endl;
+
             std::queue<Block*> blocks;
-            for (auto block : getBlocksByLineNumber(func,lineNumber)) {
+            for (auto block : getBlocksByLineNumber(func, lineNumber)) {
                 blocks.push(block);
             }
 
@@ -338,37 +308,43 @@ void RangeAnalysis::RunOnPackage(Package* package)
             while (!blocks.empty()) {
                 Block* block = blocks.front();
                 blocks.pop();
-                // std::cout << "Searching for definition of " << variableName << " on block " << block->GetIdentifier() << "\n";
-                
+                // std::cout << "Searching for definition of " << variableName
+                // << " on block " << block->GetIdentifier() << "\n";
+
                 // std::cout << "Searching phi functions\n";
                 for (auto phiFunction : domTree.GetBlockPhiFunctions(block)) {
                     if (phiFunction.getVarDef() == variableName) {
                         variableAlias = phiFunction.getVar();
                     }
                 }
-                
+
                 // std::cout << "Searching intersection constraints\n";
                 for (auto constraint : domTree.GetBlockConstraints(block)) {
-                    if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
-                        Alias intersectionAlias = getAliasFromString(interc->def);
-                        if (removeIntersectionPrefix(intersectionAlias.def) == variableName) {
+                    if (auto interc =
+                            std::dynamic_pointer_cast<IntersectionConstraint>(
+                                constraint)) {
+                        Alias intersectionAlias =
+                            getAliasFromString(interc->def);
+                        if (removeIntersectionPrefix(intersectionAlias.def) ==
+                            variableName) {
                             variableAlias = intersectionAlias;
                         }
                     }
                 }
-                
+
                 // std::cout << "Searching expressions\n";
                 for (auto expr : block->GetExpressions()) {
                     auto exprResult = expr->GetResult();
                     if (exprResult == nullptr) continue;
                     auto exprLine = expr->GetDebugLocation().GetBeginPos().line;
                     if (exprLine > lineNumber) break;
-                    Alias exprAlias = domTree.idToAlias[expr->GetResult()->GetIdentifier()];
+                    Alias exprAlias =
+                        domTree.idToAlias[expr->GetResult()->GetIdentifier()];
                     if (exprAlias.def == variableName) {
                         variableAlias = exprAlias;
                     }
                 }
-                
+
                 if (variableAlias.def == "\%empty") {
                     Block* idom = domTree.GetImmediateDominator(block);
                     if (idom == nullptr || block == idom) continue;
@@ -379,9 +355,10 @@ void RangeAnalysis::RunOnPackage(Package* package)
                     }
                 }
             }
-            
-            AnalyzedValue variableValue = domTree.GetVariableState(variableAlias);
-            
+
+            AnalyzedValue variableValue =
+                domTree.GetVariableState(variableAlias);
+
             // ? For now just using the default range => no info
             if (std::holds_alternative<BV>(variableValue)) {
                 auto boolVal = std::get<BV>(variableValue);
@@ -391,9 +368,14 @@ void RangeAnalysis::RunOnPackage(Package* package)
                 outputFile << intVal << std::endl;
             }
         }
-    // }
-        
+        // }
     }
+
+    // TODO: Interprocedural
+    // * For each function Apply, bind the identifiers of the source function
+    // to the target function parameters phi fn.
+    // * For each return in target function, add the abstract value to the ret
+    // value to the source phi fn.
 
     outputFile.close();
     std::cerr << "@@@@ COMPETITION ANALYSIS END @@@@" << std::endl;

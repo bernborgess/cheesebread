@@ -218,7 +218,7 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
         std::string funcName = param->GetOwnerFunc()->GetSrcCodeIdentifier();
         std::string aliasDef = param->GetSrcCodeIdentifier() == "" ? id
                              : param->GetSrcCodeIdentifier();
-        idToAlias[id] = Alias(funcName + ":" + aliasDef);
+        idToAlias[id] = Alias(/*funcName + ":" + */ aliasDef);
         idToAlias[id].setCounter(0);
         variables.emplace_back(idToAlias[id].def);
     }
@@ -239,7 +239,7 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
                 std::string aliasDef = res->GetSrcCodeIdentifier() == "" ? id
                                      : res->GetSrcCodeIdentifier();
 
-                idToAlias[id] = Alias(funcName + ":" + aliasDef);
+                idToAlias[id] = Alias(/* funcName + ":" + */ aliasDef);
 
                 variables.emplace_back(idToAlias[id].def);
                 // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
@@ -270,17 +270,18 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
     return alphaNodes;
 }
 
+/// @brief As described in the paper 
+/// https://bears.ece.ucsb.edu/class/ece253/papers/cytron91.pdf#page=21 
+// Renames all mentions of variables. New variables denoted Vi, where i is an
+// integer, are generated for each variable V.
 void DominatorTree::Renaming()
 {
     for (auto node : nodes_) {
         // Check that block is valid
         if (node->block == nullptr)
             continue;
-
             
         Block* block = node->block;
-
-        // std::cout << "Node " << block->GetIdentifier() << " have " << node->phiFunctions.size() << " phi functions\n";
 
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
@@ -289,15 +290,23 @@ void DominatorTree::Renaming()
 
             std::string id = expr->GetResult()->GetIdentifier();
             if (idToAlias.count(id) == 0) {
-                idToAlias[id] = Alias(funcName + ":" + id);
+                idToAlias[id] = Alias(/* funcName + ":" + */ id);
                 variables.emplace_back(id);
             }
-            // std::cout << "Variable " << identifier << " received alias " << idToAlias[identifier] << "\n";
         }
     }
 
-    std::map<std::string, int> variableCounter;
+    // We need a loop over all variables only when we initialize two arrays
+    // among the following data structures:
+
+    // -S(*) is an array of stacks, one stack for each variable V. The stacks
+    // can hold integers. The integer i at the top of S(V) is used to construct
+    // the variable Vi that should replace a use of V.
     std::map<std::string, std::stack<int>> variableStack;
+
+    // -C(*) is an array of integers, one for each variable V. The counter value
+    // C(V) tells how many assignments to V have been processed.
+    std::map<std::string, int> variableCounter;
 
     for (std::string var : variables) {
         variableCounter[var] = 0;
@@ -308,20 +317,25 @@ void DominatorTree::Renaming()
         Block *block = node->block;
         if (block == nullptr) return;
 
-        // std::cout << "Searching " << block->GetIdentifier() << "\n";
-
-        // std::cout << "Computing expressions\n";
-        for (size_t i = 0; i < node->phiFunctions.size(); i++) {
-            // std::cout << "Original: " << node->phiFunctions[i] << "\n";
-            std::string varName = node->phiFunctions[i].getVarDef();
+        // The visit to a node processes the statements associated with the node
+        // in sequential order, starting with any φ-functions that may have been
+        // inserted.
+        for (auto& phi : node->phiFunctions) {
+            // std::cout << "Original: " << phi << "\n";
+            std::string varName = phi.getVarDef();
             int counter = variableCounter[varName];
-            node->phiFunctions[i].setVarCounter(counter);
+            phi.setVarCounter(counter);
             variableStack[varName].emplace(counter);
             ++variableCounter[varName];
-            // std::cout << "Modified: " << node->phiFunctions[i] << "\n";
+            // std::cout << "Modified: " << phi << "\n";
         }
+        // TODO: Account for identifiers in the IntersectionConnstraints
+        // in node->nodeConstraints.
+        // ? We assume that Renaming is called
+        // AFTER GenerateBranchConstraints but
+        // BEFORE GenerateSSAConstraints, therefore only
+        // IntersectionConstraints are inside the node.nodeConstraints.
 
-        
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
             // std::cout << "Original: ";
@@ -451,6 +465,9 @@ void DominatorTree::Renaming()
         }
     };
 
+    // Treating the function parameters. 
+    // TODO: Interprocedural will create a phi constraint here that binds these
+    // to each and every call site of this function
     for (auto param : params_) {
         std::string id = param->GetSrcCodeIdentifier();
         if (id == "") id = param->GetIdentifier(); 
@@ -458,6 +475,8 @@ void DominatorTree::Renaming()
         variableCounter[id] = 1;
     }
 
+    // Begins a top-down traversal of the dominator tree by calling SEARCH at
+    // the root node Entry.
     search(search, blockToNodeMap[entry_]);
 }
 

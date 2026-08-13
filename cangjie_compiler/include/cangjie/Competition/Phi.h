@@ -14,41 +14,34 @@ namespace Competition {
 
 struct Alias {
     std::string def;
-    // ? Idea: Structure of the alias
+    // Structure of the alias 
     /* Ex:
 
     func foo() {
         if (x > 0) {
-            (before: x => Alias("foo","x","t",0) )
-            x = 9; => Alias("foo","x","t",1)
+            (before: x => Alias("foo","x",0) )
+            x = 9; => Alias("foo","x",1)
         }
         return x;
     }
 
-           foo:x:t:1
-            |  | | +--> count
-            |  | +----> branched (context of if-then-else tests)
+    * as a string:
+          "foo:x:1"
+            |  | | 
+            |  | +----> count
             |  +------> identifier (GetSrcCodeIdentifier)
-            +---------> func name, avoid coliding between them.
+            +---------> func name, to avoid coliding between them.
             
-    (i) Actually, identifiers could collide even inside the same function, given
-    different code blocks. The implementation of renaming has to grasp that when
-    defining aliases.
-
-    TODO:
-    std::string identifier;
-    std::string branched;
-    */ 
+    TODO: Parameters for all fields
     std::string funcName;
+    std::string identifier;
+    */ 
     int counter;
 
     Alias() : def(""), counter(0) {}
     Alias(std::string def) : def(def), counter(-1) {}
     Alias(std::string def, int counter) : def(def), counter(counter) {}
 
-    // int foo() {
-    //     return std::stoi(this->to_string().substr(def.find_last_of("_")+1, def.size()));
-    // }
     int getCounter() { return counter; }
     void setCounter(int _counter) { counter = _counter; }
 
