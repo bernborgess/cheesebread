@@ -15,11 +15,6 @@ namespace Competition {
 using namespace Cangjie::CHIR;
 using namespace std;
 
-// TODO: Use the alias structure, only casting to_string when in use by the solver.
-Alias getAliasFromString(std::string ssaName) {
-    auto _pos = ssaName.find_last_of('_');
-    return Alias(ssaName.substr(0, _pos), std::stoi(ssaName.substr(_pos+1)));
-}
 
 std::string removeIntersectionPrefix(std::string def) {
     while (def.size() >= 2 && (def.substr(0,2) == "\%t" || def.substr(0,2) == "\%f")) {
@@ -244,7 +239,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
         // Produce graph before renaming (func foo only, for debug)
         if (func->GetSrcCodeIdentifier() == "foo")
-            domTree.PrintDominatorTree("domTreeSSA.dot", true);
+            domTree.PrintDominatorTree("domTreeBefore.dot");
 
         // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
         domTree.GenerateBranchConstraints();
@@ -323,8 +318,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
                     if (auto interc =
                             std::dynamic_pointer_cast<IntersectionConstraint>(
                                 constraint)) {
-                        Alias intersectionAlias =
-                            getAliasFromString(interc->def);
+                        Alias intersectionAlias = Alias::from_string(interc->def);
                         if (removeIntersectionPrefix(intersectionAlias.def) ==
                             variableName) {
                             variableAlias = intersectionAlias;

@@ -56,12 +56,17 @@ struct Alias {
 
     friend std::ostream& operator<<(std::ostream& os, const Alias& a) {
         os << a.def;
-        if (a.counter != -1) os << "_" << a.counter;
+        if (a.counter != -1) os << ":" << a.counter;
         return os;
     }
 
     std::string to_string() {
-        return def + "_" + std::to_string(counter);
+        return def + ":" + std::to_string(counter);
+    }
+
+    static Alias from_string(std::string ssaName) {
+        auto _pos = ssaName.find_last_of(':');
+        return Alias(ssaName.substr(0, _pos), std::stoi(ssaName.substr(_pos + 1)));
     }
 };
 

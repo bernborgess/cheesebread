@@ -35,7 +35,7 @@ using AbstractState = std::unordered_map<std::string, AnalyzedValue>;
  */
 class Constraint {
 public:
-    const std::string def;
+    std::string def;
 
     explicit Constraint(std::string name);
     virtual ~Constraint() = default;

@@ -329,13 +329,34 @@ void DominatorTree::Renaming()
             ++variableCounter[varName];
             // std::cout << "Modified: " << phi << "\n";
         }
+
         // TODO: Account for identifiers in the IntersectionConnstraints
         // in node->nodeConstraints.
         // ? We assume that Renaming is called
         // AFTER GenerateBranchConstraints but
         // BEFORE GenerateSSAConstraints, therefore only
         // IntersectionConstraints are inside the node.nodeConstraints.
+        for (auto& constraint : node->nodeConstraints) {
+            if (auto interc =
+                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+                // ? We need to replace the Alias::to_string value stored in
+                // these constraints by the updated values (with counters)
 
+                // Operand
+                std::string op = Alias::from_string(interc->operand).def;
+                int newOpCounter = variableStack[op].top();
+                interc->operand = Alias(op, newOpCounter).to_string();
+
+                // Variable Definition
+                std::string var = Alias::from_string(interc->def).def;
+                int newVarCounter = variableCounter[var];
+                interc->def = Alias(var, newVarCounter).to_string();
+                variableStack[var].emplace(newVarCounter);
+                ++variableCounter[var];
+            }
+        }
+
+        // For each expression that's not a phi
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
             // std::cout << "Original: ";
@@ -428,7 +449,10 @@ void DominatorTree::Renaming()
         }
 
         // std::cout << "Visiting children\n";
-        for (Block *y : GetChildren(block)) {
+        auto children = GetChildren(block);
+        // ! Failing now
+        assert(children.size() > -1);
+        for (Block *y : children) {
             if (y == nullptr) continue;
             // std::cout << "Call search(" << y->GetIdentifier() << ")\n";
             // search(blockToNodeMap[y]);
@@ -441,6 +465,8 @@ void DominatorTree::Renaming()
             variableStack[varName].pop();
         }
 
+        // For each definition of this block, we have to pop it from the stack,
+        // since it wont be alive in other branch of the dominator tree
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
 
