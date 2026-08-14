@@ -216,7 +216,6 @@ void RangeAnalysis::RunOnPackage(Package* package)
         auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
         for (auto [fileName, lineNumber, variableName] : queries) {
             if (funcFileName == fileName) {
-                cerr << func->GetSrcCodeIdentifier() << " ";
                 requestedFunctions.insert(func);
             }
         }

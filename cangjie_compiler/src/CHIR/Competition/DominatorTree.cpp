@@ -505,7 +505,6 @@ void DominatorTree::Renaming()
 void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
 {
     std::fstream fout;
-    std::cerr << "DEBUG PRINT DOM TREE!" << path << std::endl;
     fout.open(path, std::ios::out);
     if (!fout.is_open()) {
         std::cerr << "open file: " << path << " failed!" << std::endl;
