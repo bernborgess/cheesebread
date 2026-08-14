@@ -56,8 +56,6 @@ public:
      * false if the domain remained unchanged (indicating a fixed point).
      */
     bool narrow(AbstractState& A) {
-      using Type  = Bound::Type;
-
       if (std::holds_alternative<BV>(A[def])) {
         // BoolValue doesn't need narrowing
         return false;

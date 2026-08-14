@@ -523,28 +523,23 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
 
         Block* block = node->block;
 
-        // TODO: Obtain proper identifiers here.
         fout << block->GetIdentifierWithoutPrefix();
         fout << " [shape=none, ";
         fout << "label=<<table border='0' cellborder='1' cellspacing='0'>";
         fout << "<tr><td bgcolor='gray' align='center' colspan='1'>";
         fout << "Block" << block->GetIdentifier() << "</td></tr>";
 
-        // Show the φ-functions
-        for (auto& phi : node->phiFunctions) {
-            std::ostringstream stream;
-            stream << phi;
-            fout << "<tr><td align='left'>" << stream.str() << "</td></tr>";
-        }
-
-        // Show the σ-functions before the expressions
+        // Show the constraints before the expressions
         for (auto& constraint : node->nodeConstraints) {
-            if (auto interc =
-                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
-                std::ostringstream stream;
+            std::ostringstream stream;
+            // Casting is needed to invoke the correct operator<<
+            if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
                 stream << *interc.get();
-                fout << "<tr><td align='left'>" << stream.str() << "</td></tr>";
+            } else if (auto phic = std::dynamic_pointer_cast<PhiConstraint>(constraint)) {
+                stream << *phic.get();
             }
+            if (std::string info = stream.str(); info.length() > 0)
+                fout << "<tr><td align='left'>" << info << "</td></tr>";
         }
 
         // Show the CHIR code inside this block!

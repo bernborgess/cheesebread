@@ -271,11 +271,11 @@ void RangeAnalysis::RunOnPackage(Package* package)
         domTree.Renaming();
         /// END Converting to SSA form
 
+        domTree.GenerateSSAConstraints();
+
         // Produce the graph after renaming alias (func foo only, for debug).
         if (func->GetSrcCodeIdentifier() == "foo")
             domTree.PrintDominatorTree("domTreeSSA.dot", true);
-
-        domTree.GenerateSSAConstraints();
 
         // TODO: CallSolver outside of this loop, since we still have to resolve
         // interprocedural dependencies for the constraints.
