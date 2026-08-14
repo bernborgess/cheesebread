@@ -16,13 +16,6 @@ using namespace Cangjie::CHIR;
 using namespace std;
 
 
-std::string removeIntersectionPrefix(std::string def) {
-    while (def.size() >= 2 && (def.substr(0,2) == "\%t" || def.substr(0,2) == "\%f")) {
-        def = def.substr(3);
-    }
-    return def;
-}
-
 struct Query {
     string fileName;
     unsigned int lineNumber;
@@ -279,6 +272,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // TODO: CallSolver outside of this loop, since we still have to resolve
         // interprocedural dependencies for the constraints.
         domTree.CallSolver();
+        // All we need is in domTree.state;
+        // ? But it doesn't have the value we want yet...
 
         auto funcFileName = func->GetDebugLocation().GetFileName();
         auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
@@ -318,8 +313,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
                             std::dynamic_pointer_cast<IntersectionConstraint>(
                                 constraint)) {
                         Alias intersectionAlias = Alias::from_string(interc->def);
-                        if (removeIntersectionPrefix(intersectionAlias.def) ==
-                            variableName) {
+                        if (intersectionAlias.def == variableName) {
                             variableAlias = intersectionAlias;
                         }
                     }
