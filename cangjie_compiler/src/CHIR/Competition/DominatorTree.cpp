@@ -330,12 +330,11 @@ void DominatorTree::Renaming()
             // std::cout << "Modified: " << phi << "\n";
         }
 
-        // TODO: Account for identifiers in the IntersectionConnstraints
-        // in node->nodeConstraints.
-        // ? We assume that Renaming is called
-        // AFTER GenerateBranchConstraints but
-        // BEFORE GenerateSSAConstraints, therefore only
-        // IntersectionConstraints are inside the node.nodeConstraints.
+        // Account for identifiers in the IntersectionConnstraints in
+        // node->nodeConstraints. We assume that Renaming is called AFTER
+        // GenerateBranchConstraints but BEFORE GenerateSSAConstraints,
+        // therefore only IntersectionConstraints are inside the
+        // node.nodeConstraints.
         for (auto& constraint : node->nodeConstraints) {
             if (auto interc =
                 std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
@@ -517,9 +516,6 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
     fout << "node [fontname=\"Courier, monospace\"];" << std::endl;
     fout << "edge [fontname=\"Courier, monospace\"];" << std::endl;
 
-    // Show block definitions and uses in stderr
-    bool DEBUG_DEFS_AND_USES = false;
-
     for (auto& node : nodes_) {
         // Check that block is valid
         if (node->block == nullptr)
@@ -534,10 +530,23 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
         fout << "<tr><td bgcolor='gray' align='center' colspan='1'>";
         fout << "Block" << block->GetIdentifier() << "</td></tr>";
 
-        if (DEBUG_DEFS_AND_USES)
-            std::cerr << "Block " << block->GetIdentifier() << " :" << std::endl;
+        // Show the φ-functions
+        for (auto& phi : node->phiFunctions) {
+            std::ostringstream stream;
+            stream << phi;
+            fout << "<tr><td align='left'>" << stream.str() << "</td></tr>";
+        }
 
-        
+        // Show the σ-functions before the expressions
+        for (auto& constraint : node->nodeConstraints) {
+            if (auto interc =
+                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+                std::ostringstream stream;
+                stream << *interc.get();
+                fout << "<tr><td align='left'>" << stream.str() << "</td></tr>";
+            }
+        }
+
         // Show the CHIR code inside this block!
         for (auto expr : block->GetExpressions()) {
             std::string info = "";
@@ -547,31 +556,7 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
                 auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
                         : res->GetIdentifier();
                 info += ident + ": " + res->GetType()->ToString() + " = ";
-                if (DEBUG_DEFS_AND_USES)
-                    std::cerr << "- DEF " << res->GetIdentifier() + ": " + res->GetType()->ToString() << std::endl;
             }
-
-            if (DEBUG_DEFS_AND_USES)
-                // Goes through USES of the block
-                for (auto v : expr->GetOperands()) {
-                    if (v->IsLiteral())
-                        continue;
-                    // Filtering out blocks and functions
-                    if (v->IsBlock() || v->IsBlockGroup() || v->IsFunc() || v->IsFuncWithBody())
-                        continue;
-
-                    std::cerr << "- USE ";
-
-                    // v is either GLOBALVAR, PARAMETER or LOCALVAR
-                    if (v->IsGlobalVar())
-                        std::cerr << "[GLOBALVAR] ";
-                    if (v->IsParameter())
-                        std::cerr << "[PARAMETER] ";
-                    if (v->IsLocalVar())
-                        std::cerr << "[LOCALVAR] ";
-
-                    std::cerr << v->GetIdentifier() + ": " + v->GetType()->ToString() << std::endl;
-                }
 
             // Remove the long comments after the instruction
             info += getUncommented(expr->ToString(0));
@@ -582,21 +567,18 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
         }
         fout << "</table>>];" << std::endl;
 
-        if (DEBUG_DEFS_AND_USES)
-            std::cerr << std::endl;
 
         // Immediate dominator!
         Block* idom = nodes_[node->idom]->block;
         // Prevent root from pointing to itself in the graph
         if (block->GetIdentifierWithoutPrefix() != idom->GetIdentifierWithoutPrefix())
-            fout << idom->GetIdentifierWithoutPrefix() << " -> " << block->GetIdentifierWithoutPrefix() << ";"
+            fout << idom->GetIdentifierWithoutPrefix() << " -> "
+                 << block->GetIdentifierWithoutPrefix() << ";"
                  << std::endl;
     }
 
     fout << "}" << std::endl;
     fout.close();
-    if (DEBUG_DEFS_AND_USES)
-        std::cerr << std::endl << std::endl;
 }
 
 DominatorTree::Node* DominatorTree::ReverseMapBlockToNode(Block* block)

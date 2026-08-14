@@ -121,7 +121,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Phi& a) {
-        os << a.var << ": [";
+        os << a.var << " φ[";
         for (int i = 0; i < a.aliases.size(); i++) {
             if (i) os << ", ";
             os << a.aliases[i];
