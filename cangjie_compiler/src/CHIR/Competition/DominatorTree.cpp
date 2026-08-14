@@ -475,15 +475,17 @@ void DominatorTree::Renaming()
                 std::string op = expr->GetOperand(0)->GetIdentifier();
                 if (idToAlias[id].def == idToAlias[op].def) continue;
             }
-            // if (expr->IsAllocate() ||
-            //     expr->IsDebug() ||
-            //     expr->IsStore() ||
-            //     expr->IsLoad()) {
-            //     continue;
-            // }
 
             auto var = expr->GetResult();
             variableStack[idToAlias[var->GetIdentifier()].def].pop();
+        }
+        // Also for those defined in IntersectionConstraints
+        for (auto& constraint : node->nodeConstraints) {
+            if (auto interc =
+                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+                auto var = Alias::from_string(interc->def).def;
+                variableStack[var].pop();
+            }
         }
     };
 
@@ -937,11 +939,14 @@ void DominatorTree::CallSolver()
         }
     }
 
+    std::cerr << "All the constraints: " << std::endl;
     for (auto node : nodes_) {
         for (auto constraint : node->nodeConstraints) {
             constraintGraph.addConstraint(constraint);
+            std::cerr << constraint << std::endl;
         }
     }
+    std::cerr << "END All the constraints." << std::endl;
 
     auto sccs = constraintGraph.getTopologicalSCCs();
     Solver solver(state);
