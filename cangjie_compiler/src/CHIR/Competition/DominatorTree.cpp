@@ -8,7 +8,7 @@
 namespace Competition {
 
 DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*> &params)
-    : entry_(entry), params_(params)
+    : entry_(entry), params_(params), solverCalled(false)
 {
     this->functionName = entry
         ->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
@@ -931,12 +931,14 @@ void DominatorTree::CallSolver()
         if (param->GetType()->IsInteger()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
             // Maybe we need to initialize this variable as [-inf, + inf]
-            auto constraint = std::make_shared<InitializationIntegerTop>(paramAlias.to_string());
+            auto constraint = std::make_shared<InitializationIntegerTop>
+                (paramAlias.to_string());
             constraintGraph.addConstraint(constraint);
         } else if (param->GetType()->IsBoolean()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
             // Maybe we need to initialize this variable as [false, true]
-            auto constraint = std::make_shared<InitializationBoolTop>(paramAlias.to_string());
+            auto constraint = std::make_shared<InitializationBoolTop>
+                (paramAlias.to_string());
             constraintGraph.addConstraint(constraint);
         }
     }
@@ -952,7 +954,85 @@ void DominatorTree::CallSolver()
 
     auto sccs = constraintGraph.getTopologicalSCCs();
     Solver solver(state);
-    solver.solve(sccs);    
+    solver.solve(sccs);
+    solverCalled = true;
+}
+
+std::optional<Alias> DominatorTree::FindVarBeforeLine(
+    std::string variableName, int lineNumber)
+{
+    // Get the blocks that contain our lineNumber
+    std::queue<Block*> blocks;
+    for (auto node : nodes_) {
+        if (node->block == nullptr) continue;
+        Block* block = node->block;
+
+        size_t start = std::numeric_limits<size_t>::max();
+        size_t end = 0;
+
+        for (auto expr : block->GetExpressions()) {
+            auto exprLoc = expr->GetDebugLocation().GetBeginPos();
+            if (exprLoc.IsZero()) continue;
+            size_t exprLine = exprLoc.line;
+            start = std::min(exprLine, start);
+            end = std::max(exprLine, end);
+        }
+
+        if (start <= lineNumber && lineNumber <= end) {
+            blocks.push(block);
+        }
+    }
+
+    // Find alias that matches our variableName, climbing the tree if needed.
+    std::optional<Alias> variableAlias = {};
+    while(!blocks.empty()) {
+        Block* block = blocks.front(); blocks.pop();
+
+        // Look inside phi functions
+        for (auto phiFunction : GetBlockPhiFunctions(block)) {
+            if (phiFunction.getVarDef() == variableName) {
+                variableAlias = phiFunction.getVar();
+            }
+        }
+
+        // Look inside intersection constraints
+        for (auto constraint : GetBlockConstraints(block)) {
+            if (auto interc =
+                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+                Alias intersectionAlias = Alias::from_string(interc->def);
+                if (intersectionAlias.def == variableName) {
+                    variableAlias = intersectionAlias;
+                }
+            }
+        }
+
+        // Look in the block's expressions' definitions
+        for (auto expr : block->GetExpressions()) {
+            auto exprResult = expr->GetResult();
+            if (exprResult == nullptr) continue;
+
+            // Only counts if behind or equal lineNumber 
+            auto exprLine = expr->GetDebugLocation().GetBeginPos().line;
+            if (exprLine > lineNumber) break;
+
+            Alias exprAlias = idToAlias[expr->GetResult()->GetIdentifier()];
+            if (exprAlias.def == variableName) {
+                variableAlias = exprAlias;
+            }
+        }
+
+        // If not found yet, consider the dominator
+        if(!variableAlias.has_value()) {
+            Block* idom = GetImmediateDominator(block);
+            if(idom == nullptr || block == idom) continue;
+            blocks.push(idom);
+        } else {
+            // Found the alias. Clean the queue
+            while(!blocks.empty()) blocks.pop();
+        }
+    }
+
+    return variableAlias;
 }
 
 } // namespace Competition

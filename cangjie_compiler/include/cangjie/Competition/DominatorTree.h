@@ -82,6 +82,7 @@ public:
     void AddPhiFunction(Block* block, Phi phiFunction);
     AnalyzedValue GetVariableState(Alias var);
     void CallSolver();
+    std::optional<Alias> FindVarBeforeLine(std::string variableName, int lineNumber);
     std::unordered_map<std::string, Alias> idToAlias;
 
 private:
@@ -121,6 +122,9 @@ private:
 
     // Value Range Analysis Abstract State
     AbstractState state;
+    bool solverCalled;
+public:
+    bool IsSolverCalled() { return solverCalled; }
 };
 } // namespace Competition
 
