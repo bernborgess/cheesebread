@@ -254,7 +254,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
                 std::string funcName = block->GetParentBlockGroup()
                                            ->GetOwnerFunc()
                                            ->GetSrcCodeIdentifier();
-                Phi phiFunction = Phi(Alias(/* funcName + ":" + */ def),
+                Phi phiFunction = Phi(Alias(funcName, def),
                                       block->GetPredecessors().size());
                 domTree.AddPhiFunction(block, phiFunction);
             }
@@ -293,7 +293,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
                 blocks.push(block);
             }
 
-            Alias variableAlias = Alias("\%empty");
+            Alias variableAlias = Alias();
             while (!blocks.empty()) {
                 Block* block = blocks.front();
                 blocks.pop();
@@ -332,7 +332,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
                     }
                 }
 
-                if (variableAlias.def == "\%empty") {
+                if (variableAlias.def == "") {
                     Block* idom = domTree.GetImmediateDominator(block);
                     if (idom == nullptr || block == idom) continue;
                     blocks.push(idom);

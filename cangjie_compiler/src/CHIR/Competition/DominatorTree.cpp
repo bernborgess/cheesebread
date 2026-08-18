@@ -10,6 +10,8 @@ namespace Competition {
 DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*> &params)
     : entry_(entry), params_(params)
 {
+    this->functionName = entry
+        ->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
 }
 
 void DominatorTree::Compute()
@@ -218,7 +220,7 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
         std::string funcName = param->GetOwnerFunc()->GetSrcCodeIdentifier();
         std::string aliasDef = param->GetSrcCodeIdentifier() == "" ? id
                              : param->GetSrcCodeIdentifier();
-        idToAlias[id] = Alias(/*funcName + ":" + */ aliasDef);
+        idToAlias[id] = Alias(funcName, aliasDef);
         idToAlias[id].setCounter(0);
         variables.emplace_back(idToAlias[id].def);
     }
@@ -239,7 +241,7 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
                 std::string aliasDef = res->GetSrcCodeIdentifier() == "" ? id
                                      : res->GetSrcCodeIdentifier();
 
-                idToAlias[id] = Alias(/* funcName + ":" + */ aliasDef);
+                idToAlias[id] = Alias(funcName, aliasDef);
 
                 variables.emplace_back(idToAlias[id].def);
                 // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
@@ -290,7 +292,7 @@ void DominatorTree::Renaming()
 
             std::string id = expr->GetResult()->GetIdentifier();
             if (idToAlias.count(id) == 0) {
-                idToAlias[id] = Alias(/* funcName + ":" + */ id);
+                idToAlias[id] = Alias(funcName, id);
                 variables.emplace_back(id);
             }
         }
@@ -344,12 +346,12 @@ void DominatorTree::Renaming()
                 // Operand
                 std::string op = interc->operand;
                 int newOpCounter = variableStack[op].top();
-                interc->operand = Alias(op, newOpCounter).to_string();
+                interc->operand = Alias(functionName, op, newOpCounter).to_string();
 
                 // Variable Definition
                 std::string var = interc->def;
                 int newVarCounter = variableCounter[var];
-                interc->def = Alias(var, newVarCounter).to_string();
+                interc->def = Alias(functionName, var, newVarCounter).to_string();
                 variableStack[var].emplace(newVarCounter);
                 ++variableCounter[var];
             }

@@ -13,13 +13,12 @@
 namespace Competition {
 
 struct Alias {
-    std::string def;
     // Structure of the alias 
     /* Ex:
 
     func foo() {
+        var x = 10; => Alias("foo","x",0)
         if (x > 0) {
-            (before: x => Alias("foo","x",0) )
             x = 9; => Alias("foo","x",1)
         }
         return x;
@@ -30,17 +29,18 @@ struct Alias {
             |  | | 
             |  | +----> count
             |  +------> identifier (GetSrcCodeIdentifier)
-            +---------> func name, to avoid coliding between them.
-            
-    TODO: Parameters for all fields
-    std::string funcName;
-    std::string identifier;
+            +---------> funcName, to avoid coliding between them.
     */ 
+
+    std::string funcName;
+    std::string def;
     int counter;
 
-    Alias() : def(""), counter(0) {}
-    Alias(std::string def) : def(def), counter(-1) {}
-    Alias(std::string def, int counter) : def(def), counter(counter) {}
+    Alias() : funcName(""), def(""), counter(0) {}
+    Alias(std::string funcName, std::string def)
+        : funcName(funcName), def(def), counter(-1) {}
+    Alias(std::string funcName, std::string def, int counter)
+        : funcName(funcName), def(def), counter(counter) {}
 
     int getCounter() { return counter; }
     void setCounter(int _counter) { counter = _counter; }
@@ -55,18 +55,26 @@ struct Alias {
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Alias& a) {
-        os << a.def;
-        if (a.counter != -1) os << ":" << a.counter;
+        os << a.funcName << ":" << a.def << ": " << a.counter;
         return os;
     }
 
     std::string to_string() {
-        return def + ":" + std::to_string(counter);
+        return funcName + ":" + def + ":" + std::to_string(counter);
     }
 
+    /// @brief Creates Alias from stringfied version
+    /// @param ssaName "<funcName>:<def>:<counter>"
     static Alias from_string(std::string ssaName) {
-        auto _pos = ssaName.find_last_of(':');
-        return Alias(ssaName.substr(0, _pos), std::stoi(ssaName.substr(_pos + 1)));
+        std::string funcName, def;
+        int counter;
+        std::stringstream ss(ssaName);
+
+        std::getline(ss, funcName, ':');
+        std::getline(ss, def, ':');
+        ss >> counter;
+
+        return Alias(funcName, def, counter);
     }
 };
 

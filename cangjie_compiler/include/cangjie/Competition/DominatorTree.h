@@ -97,6 +97,7 @@ private:
     std::size_t Eval(std::size_t v);
 
 private:
+    std::string functionName;
     Block* entry_;
 
     std::vector<Parameter*> params_;
