@@ -222,15 +222,18 @@ void RangeAnalysis::RunOnPackage(Package* package)
         }
 
         Alias variableAlias = maybeVariableAlias.value();
+            std::cerr << "You want " << variableAlias.to_string() << ", ";
         AnalyzedValue variableValue = domTree->GetVariableState(variableAlias);
 
         // ? For now just using the default range => no info
         if (std::holds_alternative<BV>(variableValue)) {
             auto boolVal = std::get<BV>(variableValue);
             outputFile << boolVal << std::endl;
+            std::cerr << "Boolean range: " << boolVal << std::endl;
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
+            std::cerr << "Integer range: " << intVal << std::endl;
         }
     }
 

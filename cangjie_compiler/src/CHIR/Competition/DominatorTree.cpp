@@ -379,7 +379,32 @@ void DominatorTree::Renaming()
                     }
                     continue;
                 } else {
-                    idToAlias[op].setCounter(variableStack[idToAlias[op].def].top());
+                    // We create the constraint here to matche the counter of
+                    // this use (of 'x') to the current one, not the final
+                    // counter of references to this address (idToAlias[%1])
+                    std::string var = idToAlias[op].def;
+                    int count = variableStack[var].top();
+
+                    // ? Not useful to set loads
+                    idToAlias[op].setCounter(count);
+
+                    // Create the constraint here
+                    auto type = expr->GetResult()->GetType();
+                    if (type->IsInteger()) {
+                        auto constraint = std::make_shared<AddConstraint>(
+                            Alias(functionName, id, 0).to_string(),
+                            Alias(functionName, var, count).to_string(),
+                            "\%const_0"
+                        );
+                        node->pushConstraint(constraint);
+                    } else if(type->IsBoolean()) { // Boolean
+                        auto constraint = std::make_shared<LogicalAndConstraint>(
+                            Alias(functionName, id, 0).to_string(),
+                            Alias(functionName, var, count).to_string(),
+                            "\%const_true"
+                        );
+                        node->pushConstraint(constraint);
+                    }
                 }
             }
             else if (expr->IsAllocate() ||
@@ -897,16 +922,10 @@ void DominatorTree::GenerateSSAConstraints()
                 Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
                 Alias op = idToAlias[expr->GetOperand(0)->GetIdentifier()];
                 if (intIdentifiers.count(op.def)) {
-                    auto constraint = std::make_shared<AddConstraint>(
-                        def.to_string(), op.to_string(), "\%const_0"
-                    );
-                    node->pushConstraint(constraint);
+                    // This is too late to create the constraint with the proper
+                    // version of the loaded variable. Better do it inside renaming.
                     intIdentifiers.emplace(def.def);
                 } else if (boolIdentifiers.count(op.def)) {
-                    auto constraint = std::make_shared<LogicalAndConstraint>(
-                        def.to_string(), op.to_string(), "\%const_true"
-                    );
-                    node->pushConstraint(constraint);
                     boolIdentifiers.emplace(def.def);
                 }
             }
