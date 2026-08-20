@@ -197,14 +197,14 @@ void RangeAnalysis::RunOnPackage(Package* package)
                 auto constraint = std::make_shared<InitializationIntegerTop>(
                     paramAlias.to_string());
                 constraintGraph.addConstraint(constraint);
-                std::cerr << constraint << std::endl;
+                std::cerr << *constraint << std::endl;
             } else if (param->GetType()->IsBoolean()) {
                 Alias paramAlias = Alias(domTree->GetFunctionName(),
                                          param->GetSrcCodeIdentifier(), 0);
                 auto constraint = std::make_shared<InitializationBoolTop>(
                     paramAlias.to_string());
                 constraintGraph.addConstraint(constraint);
-                std::cerr << constraint << std::endl;
+                std::cerr << *constraint << std::endl;
             }
         }
 
