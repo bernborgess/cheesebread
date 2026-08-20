@@ -11,8 +11,10 @@ namespace Matching {
 
 using namespace Cangjie::CHIR;
 
-// Gets x from either a Load(x) or Constant(x)
-std::optional<std::variant<LocalVar*, Constant*>> GetLoadOrConstant(Value* value)
+using VarParamOrConstant = std::variant<LocalVar*, Parameter*, Constant*>;
+
+// Gets x from either a Load(x), Parameter(x) or Constant(x)
+std::optional<VarParamOrConstant> GetLoadParamOrConstant(Value* value)
 {
     if (value->IsLocalVar()) {
         LocalVar* localVar = (LocalVar*)value;
@@ -32,6 +34,9 @@ std::optional<std::variant<LocalVar*, Constant*>> GetLoadOrConstant(Value* value
             // ? Found the constant literal
             return constant;
         }
+    } else if (value->IsParameter()) {
+        Parameter* param = dynamic_cast<Parameter*>(value);
+        return param;
     }
 
     // ? Nothing to be found
@@ -39,8 +44,8 @@ std::optional<std::variant<LocalVar*, Constant*>> GetLoadOrConstant(Value* value
 }
 
 // Matches the binary operator and returns its left and right arguments
-std::pair<std::optional<std::variant<LocalVar*, Constant*>>,
-          std::optional<std::variant<LocalVar*, Constant*>>>
+std::pair<std::optional<VarParamOrConstant>,
+          std::optional<VarParamOrConstant>>
 MatchBinExpr(Value* cond, ExprKind exprKind)
 {
     if (cond->IsLocalVar()) {
@@ -49,8 +54,8 @@ MatchBinExpr(Value* cond, ExprKind exprKind)
         if (condExpr->GetExprMajorKind() == ExprMajorKind::BINARY_EXPR) {
             BinaryExpression* condBinExpr = (BinaryExpression*)condExpr;
             if (condBinExpr->GetExprKind() == exprKind) {
-                return {GetLoadOrConstant(condBinExpr->GetLHSOperand()),
-                        GetLoadOrConstant(condBinExpr->GetRHSOperand())};
+                return {GetLoadParamOrConstant(condBinExpr->GetLHSOperand()),
+                        GetLoadParamOrConstant(condBinExpr->GetRHSOperand())};
             }
         }
     }
@@ -63,11 +68,17 @@ static IntersectionConstraint::Future ft(std::string x, int offset = 0)
 }
 
 // Returns the string that serves as key in idToAlias when phis are used later.
-static std::string DefFromLocalVar(LocalVar* var)
-{
-    if (var->GetSrcCodeIdentifier() != "")
-        return var->GetSrcCodeIdentifier();
-    return var->GetIdentifier();
+static std::optional<std::string> MatchIdentifierFromValue(VarParamOrConstant v) {
+    if (std::holds_alternative<LocalVar*>(v)) {
+        auto lv = std::get<LocalVar*>(v);
+        return lv->GetSrcCodeIdentifier() != "" ? lv->GetSrcCodeIdentifier()
+                                                : lv->GetIdentifier();
+    }
+    if(std::holds_alternative<Parameter*>(v)) {
+        auto param = std::get<Parameter*>(v);
+        return param->GetSrcCodeIdentifier();
+    }
+    return {};
 }
 
 // LT(Load(x), Constant(c))
@@ -83,13 +94,13 @@ MatchedConstraints Matching::MatchLessThanConstraints(
     auto minusInf = Bound::minusInfinity();
     auto plusInf = Bound::plusInfinity();
 
-    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
+    if (auto vx = MatchIdentifierFromValue(matchLHS.value())) {
         // Get x in If-Basic-Block
-        auto x = DefFromLocalVar(std::get<LocalVar*>(matchLHS.value()));
+        auto x = vx.value();
 
         // if (x < y)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto y = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vy = MatchIdentifierFromValue(matchRHS.value())) {
+            auto y = vy.value();
 
             // THEN: x = x ∩ [-inf, ft(y) - 1]
             auto trueConstraintX = new IntersectionConstraint(x, x, minusInf, ft(y, -1));
@@ -122,8 +133,8 @@ MatchedConstraints Matching::MatchLessThanConstraints(
         auto c = std::get<Constant*>(matchLHS.value())->GetSignedIntLitVal();
 
         // if (c < x)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto x = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vvx = MatchIdentifierFromValue(matchRHS.value())) {
+            auto x = vvx.value();
 
             // THEN: x = x ∩ [c + 1, +inf]
             auto trueConstraint = new IntersectionConstraint(x, x, Bound::constant(c + 1), plusInf);
@@ -150,12 +161,12 @@ MatchedConstraints Matching::MatchGreaterThanConstraints(
     auto minusInf = Bound::minusInfinity();
     auto plusInf = Bound::plusInfinity();
 
-    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
-        auto x = DefFromLocalVar(std::get<LocalVar*>(matchLHS.value()));
+    if (auto vx = MatchIdentifierFromValue(matchLHS.value())) {
+        auto x = vx.value();
 
         // if (x > y)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto y = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vy = MatchIdentifierFromValue(matchRHS.value())) {
+            auto y = vy.value();
 
             // THEN: x = x ∩ [ft(y) + 1, +inf]
             auto trueConstraintX = new IntersectionConstraint(x, x, ft(y, -1), plusInf);
@@ -188,8 +199,8 @@ MatchedConstraints Matching::MatchGreaterThanConstraints(
         auto c = std::get<Constant*>(matchLHS.value())->GetSignedIntLitVal();
 
         // if (c > x)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto x = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vvx = MatchIdentifierFromValue(matchRHS.value())) {
+            auto x = vvx.value();
 
             // THEN: x = x ∩ [-inf, c - 1]
             auto trueConstraint = new IntersectionConstraint(x, x, minusInf, Bound::constant(c - 1));
@@ -221,12 +232,12 @@ MatchedConstraints Matching::MatchEqualConstraints(
         std::swap(matchLHS, matchRHS);
     }
 
-    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
-        auto x = DefFromLocalVar(std::get<LocalVar*>(matchLHS.value()));
+    if (auto vx = MatchIdentifierFromValue(matchLHS.value())) {
+        auto x = vx.value();
 
         // if (x == y)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto y = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vy = MatchIdentifierFromValue(matchRHS.value())) {
+            auto y = vy.value();
 
             // THEN: x = x ∩ [ft(y), ft(y)]
             auto trueConstraintX = new IntersectionConstraint(x, x, ft(y, 0), ft(y, 0));
@@ -268,12 +279,12 @@ MatchedConstraints Matching::MatchNotEqualConstraints(
         std::swap(matchLHS, matchRHS);
     }
 
-    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
-        auto x = DefFromLocalVar(std::get<LocalVar*>(matchLHS.value()));
+    if (auto vx = MatchIdentifierFromValue(matchLHS.value())) {
+        auto x = vx.value();
 
         // if (x != y)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto y = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vy = MatchIdentifierFromValue(matchRHS.value())) {
+            auto y = vy.value();
 
             // THEN: can't build disjoint range.
 
@@ -311,12 +322,12 @@ MatchedConstraints Matching::MatchLessEqualConstraints(
     auto minusInf = Bound::minusInfinity();
     auto plusInf = Bound::plusInfinity();
 
-    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
-        auto x = DefFromLocalVar(std::get<LocalVar*>(matchLHS.value()));
+    if (auto vx = MatchIdentifierFromValue(matchLHS.value())) {
+        auto x = vx.value();
 
         // if (x <= y)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto y = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vy = MatchIdentifierFromValue(matchRHS.value())) {
+            auto y = vy.value();
 
             // THEN: x = x ∩ [-inf, ft(y)]
             auto trueConstraintX = new IntersectionConstraint(x, x, minusInf, ft(y));
@@ -348,8 +359,8 @@ MatchedConstraints Matching::MatchLessEqualConstraints(
         auto c = std::get<Constant*>(matchLHS.value())->GetSignedIntLitVal();
 
         // if (c <= x)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto x = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vvx = MatchIdentifierFromValue(matchRHS.value())) {
+            auto x = vvx.value();
 
             // THEN: x = x ∩ [c, +inf]
             auto trueConstraint = new IntersectionConstraint(x, x, Bound::constant(c), plusInf);
@@ -376,12 +387,12 @@ MatchedConstraints Matching::MatchGreaterEqualConstraints(
     auto minusInf = Bound::minusInfinity();
     auto plusInf = Bound::plusInfinity();
 
-    if (std::holds_alternative<LocalVar*>(matchLHS.value())) {
-        auto x = DefFromLocalVar(std::get<LocalVar*>(matchLHS.value()));
+    if (auto vx = MatchIdentifierFromValue(matchLHS.value())) {
+        auto x = vx.value();
 
         // if (x >= y)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto y = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vy = MatchIdentifierFromValue(matchRHS.value())) {
+            auto y = vy.value();
 
             // THEN: x = x ∩ [ft(y), +inf]
             auto trueConstraintX = new IntersectionConstraint(x, x, ft(y), plusInf);
@@ -414,8 +425,8 @@ MatchedConstraints Matching::MatchGreaterEqualConstraints(
         auto c = std::get<Constant*>(matchLHS.value())->GetSignedIntLitVal();
 
         // if (c >= x)
-        if (std::holds_alternative<LocalVar*>(matchRHS.value())) {
-            auto x = DefFromLocalVar(std::get<LocalVar*>(matchRHS.value()));
+        if (auto vvx = MatchIdentifierFromValue(matchRHS.value())) {
+            auto x = vvx.value();
 
             // THEN: x = x ∩ [-inf, c]
             auto trueConstraint = new IntersectionConstraint(x, x, minusInf, Bound::constant(c));
