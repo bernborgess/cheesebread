@@ -3,6 +3,7 @@
 
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Graph.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -17,6 +18,10 @@ public:
     }
 
     void RunOnPackage(Cangjie::CHIR::Package* package);
+
+   private:
+    AbstractState solverState;
+    ConstraintGraph constraintGraph;
 };
 
 } // namespace Competition

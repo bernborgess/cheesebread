@@ -158,16 +158,9 @@ void RangeAnalysis::RunOnPackage(Package* package)
         if (func->GetSrcCodeIdentifier() == "foo")
             domTree->PrintDominatorTree("domTreeSSA.dot", true);
 
-        // TODO: CallSolver outside of this loop, since we still have to resolve
-        // interprocedural dependencies for the constraints.
-        domTree->CallSolver();
-        // All we need is in domTree.state;
-        // ? But it doesn't have the value we want yet...
-
         auto funcFileName = func->GetDebugLocation().GetFileName();
         auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
         auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
-
 
         // Store reference to domTree of each query
         for (int i = 0; i < queries.size(); i++) {
@@ -189,9 +182,51 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // to the target function parameters phi fn.
     // * For each return in target function, add the abstract value to the ret
     // value to the source phi fn.
-    {
-        // Bind params and arguments with phi function
+
+    // General constraints for 0 and true
+    auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
+    auto cst_true =
+        std::make_shared<InitializationBoolConstraint>("\%const_true", true);
+    constraintGraph.addConstraint(cst_0);
+    constraintGraph.addConstraint(cst_true);
+
+    std::cerr << "All the constraints: " << std::endl;
+    for (auto& domTree : allDomTrees) {
+        // ! Temporary code before we bind the parameters
+        for (auto& param : domTree->GetParams()) {
+            if (param->GetType()->IsInteger()) {
+                Alias paramAlias = Alias(domTree->GetFunctionName(),
+                                         param->GetSrcCodeIdentifier(), 0);
+                auto constraint = std::make_shared<InitializationIntegerTop>(
+                    paramAlias.to_string());
+                constraintGraph.addConstraint(constraint);
+                std::cerr << constraint << std::endl;
+            } else if (param->GetType()->IsBoolean()) {
+                Alias paramAlias = Alias(domTree->GetFunctionName(),
+                                         param->GetSrcCodeIdentifier(), 0);
+                auto constraint = std::make_shared<InitializationBoolTop>(
+                    paramAlias.to_string());
+                constraintGraph.addConstraint(constraint);
+                std::cerr << constraint << std::endl;
+            }
+        }
+
+        // TODO: Bind params and arguments with phi function
+
+        // Include the constraints in the Nodes of the domTree (by function)
+        for (auto& node : domTree->GetNodes()) {
+            for (auto& constraint : node->nodeConstraints) {
+                constraintGraph.addConstraint(constraint);
+                std::cerr << constraint << std::endl;
+            }
+        }
     }
+    std::cerr << "END All the constraints." << std::endl;
+
+    // Call the solver
+    auto sccs = constraintGraph.getTopologicalSCCs();
+    Solver solver(solverState);
+    solver.solve(sccs);
 
     // Use the solver results to output the analsys
     for (int i = 0; i < queries.size(); i++) {
@@ -202,10 +237,6 @@ void RangeAnalysis::RunOnPackage(Package* package)
         }
 
         DominatorTree* domTree = queryToDomTree[i].value();
-
-        // TODO: domTree.callSolver needs to change, to consider constraints
-        // not in the same method. 
-        if(!domTree->IsSolverCalled()) domTree->CallSolver();
 
         auto& [fileName, lineNumber, variableName] = queries[i];
         std::cerr << "Find the range of variable " << variableName
@@ -222,8 +253,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
         }
 
         Alias variableAlias = maybeVariableAlias.value();
-            std::cerr << "You want " << variableAlias.to_string() << ", ";
-        AnalyzedValue variableValue = domTree->GetVariableState(variableAlias);
+        std::cerr << "You want " << variableAlias.to_string() << ", ";
+        AnalyzedValue variableValue = solverState[variableAlias.to_string()];
 
         // ? For now just using the default range => no info
         if (std::holds_alternative<BV>(variableValue)) {

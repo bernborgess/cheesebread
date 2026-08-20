@@ -80,8 +80,6 @@ public:
     std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);
     std::vector<Phi> &GetBlockPhiFunctions(Block *block);
     void AddPhiFunction(Block* block, Phi phiFunction);
-    AnalyzedValue GetVariableState(Alias var);
-    void CallSolver();
     std::optional<Alias> FindVarBeforeLine(std::string variableName, int lineNumber);
     std::unordered_map<std::string, Alias> idToAlias;
 
@@ -97,12 +95,11 @@ private:
     void Compress(std::size_t v);
     std::size_t Eval(std::size_t v);
 
-private:
     std::string functionName;
     Block* entry_;
-
     std::vector<Parameter*> params_;
 
+   private:
     std::size_t dfsCount_ = 0;
 
     // Maps CFG block -> DFS number.
@@ -119,12 +116,10 @@ private:
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
-
-    // Value Range Analysis Abstract State
-    AbstractState state;
-    bool solverCalled;
 public:
-    bool IsSolverCalled() { return solverCalled; }
+    const std::vector<Parameter*>& GetParams() { return params_; };
+    const std::string GetFunctionName() { return functionName; };
+    const std::vector<Node*>& GetNodes() { return nodes_; }
 };
 } // namespace Competition
 

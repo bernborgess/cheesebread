@@ -8,7 +8,7 @@
 namespace Competition {
 
 DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*> &params)
-    : entry_(entry), params_(params), solverCalled(false)
+    : entry_(entry), params_(params)
 {
     this->functionName = entry
         ->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
@@ -633,10 +633,6 @@ void DominatorTree::AddPhiFunction(Block* block, Phi phiFunction)
     // std::cout << "Added phi function " << phiFunction << " to block " << block->GetIdentifier() << "\n";
 }
 
-AnalyzedValue DominatorTree::GetVariableState(Alias var) {
-    return state[var.to_string()];
-}
-
 /// Visit the dominator tree in Pre-Order to guarantee aliases are propagated ok
 void DominatorTree::VisitBlockBranch(Block* block)
 {
@@ -932,49 +928,6 @@ void DominatorTree::GenerateSSAConstraints()
         }
     }
     
-}
-
-void DominatorTree::CallSolver()
-{
-    // Value Range Analysis Constraint Graph
-    ConstraintGraph constraintGraph;
-
-    // General constraints for 0 and true
-    auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
-    auto cst_true = std::make_shared<InitializationBoolConstraint>("\%const_true", true);
-
-    constraintGraph.addConstraint(cst_0);
-    constraintGraph.addConstraint(cst_true);
-
-    for (auto param : params_) {
-        if (param->GetType()->IsInteger()) {
-            Alias paramAlias = idToAlias[param->GetIdentifier()];
-            // Maybe we need to initialize this variable as [-inf, + inf]
-            auto constraint = std::make_shared<InitializationIntegerTop>
-                (paramAlias.to_string());
-            constraintGraph.addConstraint(constraint);
-        } else if (param->GetType()->IsBoolean()) {
-            Alias paramAlias = idToAlias[param->GetIdentifier()];
-            // Maybe we need to initialize this variable as [false, true]
-            auto constraint = std::make_shared<InitializationBoolTop>
-                (paramAlias.to_string());
-            constraintGraph.addConstraint(constraint);
-        }
-    }
-
-    std::cerr << "All the constraints: " << std::endl;
-    for (auto node : nodes_) {
-        for (auto constraint : node->nodeConstraints) {
-            constraintGraph.addConstraint(constraint);
-            std::cerr << constraint << std::endl;
-        }
-    }
-    std::cerr << "END All the constraints." << std::endl;
-
-    auto sccs = constraintGraph.getTopologicalSCCs();
-    Solver solver(state);
-    solver.solve(sccs);
-    solverCalled = true;
 }
 
 std::optional<Alias> DominatorTree::FindVarBeforeLine(
