@@ -1004,6 +1004,14 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
         }
     }
 
+    // Last place to check: Function parameters
+    if (!variableAlias.has_value())
+        for (Cangjie::CHIR::Parameter* param : params_) {
+            if (param->GetSrcCodeIdentifier() == variableName) {
+                variableAlias = Alias(functionName, variableName, 0);
+            }
+        }
+
     return variableAlias;
 }
 
