@@ -13,32 +13,30 @@
 namespace Competition {
 
 using namespace Cangjie::CHIR;
-using namespace std;
-
 
 struct Query {
-    string fileName;
+    std::string fileName;
     unsigned int lineNumber;
-    string variableName;
+    std::string variableName;
 };
 
-vector<Query> readCompetitionQueries()
+std::vector<Query> readCompetitionQueries()
 {
     // Open the "input.txt" file
-    ifstream inputFile;
-    inputFile.open("input.txt", ifstream::in);
+    std::ifstream inputFile;
+    inputFile.open("input.txt", std::ifstream::in);
     if (!inputFile.is_open()) {
         //  No file 'input.txt'
         return {};
     }
 
     // Read for lineNumber and variableName
-    string line;
-    vector<Query> queries;
+    std::string line;
+    std::vector<Query> queries;
     while (getline(inputFile, line)) {
         // tokenize format [fileName, lineNumber, variableName]
-        stringstream ss(line);
-        string fileName, variableName;
+        std::stringstream ss(line);
+        std::string fileName, variableName;
 
         getline(ss, fileName, ',');
         fileName.erase(fileName.begin()); // Remove heading [
@@ -64,7 +62,6 @@ vector<Query> readCompetitionQueries()
     return queries;
 }
 
-
 void RangeAnalysis::RunOnPackage(Package* package)
 {
     // Filter out the builtin cangjie code
@@ -74,10 +71,10 @@ void RangeAnalysis::RunOnPackage(Package* package)
     auto queries = readCompetitionQueries();
     if (queries.size() < 1) return;
 
-    cerr << "@@@@ COMPETITION ANALYSIS @@@@" << endl;
+    std::cerr << "@@@@ COMPETITION ANALYSIS @@@@" << std::endl;
 
     // Keeps track of Basic Blocks where query[i].lineNumber occurs
-    unordered_set<unsigned int> interestingLineNumbers;
+    std::unordered_set<unsigned int> interestingLineNumbers;
     for (auto [fileName, lineNumber, variableName] : queries) {
         interestingLineNumbers.insert(lineNumber);
     }
