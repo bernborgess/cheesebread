@@ -154,6 +154,29 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // TODO: Interprocedural
     // * For each function Apply, bind the identifiers of the source function
     // to the target function parameters phi fn.
+
+    ApplyMap argumentsByFnName;
+    for (auto& domTree : allDomTrees) {
+        const auto applyMap = domTree->GetFnApplyMap();
+        argumentsByFnName.insert(applyMap.begin(), applyMap.end());
+    }
+
+    for (auto& [callee, invocations] : argumentsByFnName) {
+        std::cerr << "* " << callee << " was called " << invocations.size()
+                  << " times with args:" << std::endl;
+        for (auto& args : invocations) {
+            std::cerr << "  * ";
+            for (auto& arg : args) {
+                std::cerr << arg << " ";
+            }
+            std::cerr << std::endl;
+        }
+        // TODO: Insert these as arguments to a phi function at the start of
+        // callee
+    }
+
+    // TODO: Gather all return statements inside the function to map back to a
+    // constraint in the caller's return variable
     // * For each return in target function, add the abstract value to the ret
     // value to the source phi fn.
 

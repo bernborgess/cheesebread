@@ -15,6 +15,12 @@ namespace Competition {
 
 using namespace Cangjie::CHIR;
 
+typedef std::unordered_map<
+    /* fnName */ std::string,
+    /* each ocurrence */ std::vector<
+        /* arguments */ std::vector<Competition::Alias>>>
+    ApplyMap;
+
 /// Computes the dominator tree of a CFG using the
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
@@ -109,7 +115,10 @@ private:
     Block* entry_;
     std::vector<Parameter*> params_;
 
-private:
+    // Store all function invocations in here, to create phi later
+    ApplyMap arguments_by_functionName;
+
+   private:
     std::size_t dfsCount_ = 0;
 
     // Maps CFG block -> DFS number.
@@ -130,6 +139,7 @@ public:
     const std::vector<Parameter*>& GetParams() { return params_; };
     const std::string GetFunctionName() { return functionName; };
     const std::vector<Node*>& GetNodes() { return nodes_; }
+    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; };
 };
 } // namespace Competition
 

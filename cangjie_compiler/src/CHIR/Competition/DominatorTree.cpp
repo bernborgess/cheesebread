@@ -761,14 +761,8 @@ void DominatorTree::GenerateSSAConstraints()
                     arguments.push_back(idToAlias.at(arg->GetIdentifier()));
                 }
 
-                // TODO: Register that `fnName` is called with `arguments`
-                std::cerr << "fn " << fnName << " was called with "
-                    << arguments.size() << " arguments: ";
-                for (auto& arg : arguments) {
-                    std::cerr << arg << " ";
-                }
-                std::cerr << '.' << std::endl;
-
+                // Register that `fnName` is called with `arguments`
+                arguments_by_functionName[fnName].push_back(arguments);
 
                 if (app->GetResultType()->IsInteger()) {
                     intIdentifiers.emplace(idToAlias[app->GetResult()->GetIdentifier()].def);
