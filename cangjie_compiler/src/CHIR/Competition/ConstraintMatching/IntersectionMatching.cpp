@@ -82,7 +82,7 @@ static std::optional<std::string> MatchIdentifierFromValue(VarParamOrConstant v)
 }
 
 // LT(Load(x), Constant(c))
-MatchedConstraints Matching::MatchLessThanConstraints(
+MatchedConstraints MatchLessThanConstraints(
     Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias)
 {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::LT);
@@ -149,7 +149,7 @@ MatchedConstraints Matching::MatchLessThanConstraints(
     return {ifTrue, ifFalse};
 }
 
-MatchedConstraints Matching::MatchGreaterThanConstraints(
+MatchedConstraints MatchGreaterThanConstraints(
     Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias)
 {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::GT);
@@ -215,7 +215,7 @@ MatchedConstraints Matching::MatchGreaterThanConstraints(
     return {ifTrue, ifFalse};
 }
 
-MatchedConstraints Matching::MatchEqualConstraints(
+MatchedConstraints MatchEqualConstraints(
     Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias)
 {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::EQUAL);
@@ -262,7 +262,7 @@ MatchedConstraints Matching::MatchEqualConstraints(
     return {ifTrue, ifFalse};
 }
 
-MatchedConstraints Matching::MatchNotEqualConstraints(
+MatchedConstraints MatchNotEqualConstraints(
     Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias)
 {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::NOTEQUAL);
@@ -310,7 +310,7 @@ MatchedConstraints Matching::MatchNotEqualConstraints(
     return {ifTrue, ifFalse};
 }
 
-MatchedConstraints Matching::MatchLessEqualConstraints(
+MatchedConstraints MatchLessEqualConstraints(
     Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias)
 {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::LE);
@@ -375,7 +375,7 @@ MatchedConstraints Matching::MatchLessEqualConstraints(
     return {ifTrue, ifFalse};
 }
 
-MatchedConstraints Matching::MatchGreaterEqualConstraints(
+MatchedConstraints MatchGreaterEqualConstraints(
     Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias)
 {
     auto [matchLHS, matchRHS] = MatchBinExpr(cond, ExprKind::GE);
