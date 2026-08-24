@@ -1,4 +1,5 @@
 #include "cangjie/Competition/DominatorTree.h"
+#include "cangjie/Competition/SSABuilder.h"
 
 #include "cangjie/Competition/ConstraintMatching/IntersectionMatching.h"
 #include <algorithm>
@@ -213,7 +214,7 @@ static std::string getUncommented(std::string s)
     return s;
 }
 
-std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNodes()
+void DominatorTree::ComputeAlphaNodes()
 {
     for (auto param : params_) {
         std::string id = param->GetIdentifier();
@@ -269,7 +270,6 @@ std::unordered_map<std::string, std::vector<Block*>> DominatorTree::GetAlphaNode
     //     if (alias.def != "")
     //         std::cout << id << ": " << alias << "\n";
     // }
-    return alphaNodes;
 }
 
 /// @brief As described in the paper 
@@ -631,6 +631,32 @@ void DominatorTree::AddPhiFunction(Block* block, Phi phiFunction)
     node->phiFunctions.push_back(phiFunction);
 
     // std::cout << "Added phi function " << phiFunction << " to block " << block->GetIdentifier() << "\n";
+}
+
+/// Converting to SSA form = Adding Competition::Alias to each
+/// identifier
+void DominatorTree::ConvertToSSA() {
+    ComputeAlphaNodes();
+
+    std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
+    for (auto [def, blocks] : alphaNodes) {
+        if (blocks.empty()) continue;
+        SSABuilder builder(*this);
+        variablePhiNodes[def] = builder.PlacePhiNodes(blocks, entry_);
+    }
+
+    for (auto [def, phiBlocks] : variablePhiNodes) {
+        for (Block* block : phiBlocks) {
+            std::string funcName = block->GetParentBlockGroup()
+                                       ->GetOwnerFunc()
+                                       ->GetSrcCodeIdentifier();
+            Phi phiFunction =
+                Phi(Alias(funcName, def), block->GetPredecessors().size());
+            AddPhiFunction(block, phiFunction);
+        }
+    }
+
+    Renaming();
 }
 
 /// Visit the dominator tree in Pre-Order to guarantee aliases are propagated ok

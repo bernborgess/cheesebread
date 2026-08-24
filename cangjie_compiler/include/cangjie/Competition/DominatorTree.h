@@ -37,14 +37,19 @@ public:
     /// Prints the current dominator tree to a .dot file.
     void PrintDominatorTree(const std::string& path, bool alias = false);
 
-    /// Get aliases for identifiers
-    std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();
-
     /// Pass along the tree creating constraints on the branches
     void GenerateBranchConstraints() { VisitBlockBranch(entry_); }
 
+    /// Perform all steps to create Phi functions and rename variables to SSA
+    void ConvertToSSA();
+
+private:
+    /// Get aliases for identifiers
+    void ComputeAlphaNodes();
+
     void Renaming();
 
+public:
     void GenerateSSAConstraints();
 
 private:
@@ -78,9 +83,14 @@ private:
 
 public:
     std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);
-    std::vector<Phi> &GetBlockPhiFunctions(Block *block);
+    std::vector<Phi>& GetBlockPhiFunctions(Block* block);
+
+private:
     void AddPhiFunction(Block* block, Phi phiFunction);
-    std::optional<Alias> FindVarBeforeLine(std::string variableName, int lineNumber);
+
+public:
+    std::optional<Alias> FindVarBeforeLine(std::string variableName,
+                                           int lineNumber);
     std::unordered_map<std::string, Alias> idToAlias;
 
 private:
@@ -99,7 +109,7 @@ private:
     Block* entry_;
     std::vector<Parameter*> params_;
 
-   private:
+private:
     std::size_t dfsCount_ = 0;
 
     // Maps CFG block -> DFS number.

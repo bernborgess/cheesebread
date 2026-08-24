@@ -122,32 +122,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
         domTree->GenerateBranchConstraints();
 
-        /// Converting to SSA form = Adding Competition::Alias to each
-        /// identifier
-        std::unordered_map<std::string, std::vector<Block*>> alphaNodes =
-            domTree->GetAlphaNodes();
-
-        std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
-        for (auto [def, blocks] : alphaNodes) {
-            if (blocks.empty()) continue;
-            SSABuilder builder(*domTree);
-            variablePhiNodes[def] =
-                builder.PlacePhiNodes(blocks, func->GetBody()->GetEntryBlock());
-        }
-
-        for (auto [def, phiBlocks] : variablePhiNodes) {
-            for (Block* block : phiBlocks) {
-                std::string funcName = block->GetParentBlockGroup()
-                                           ->GetOwnerFunc()
-                                           ->GetSrcCodeIdentifier();
-                Phi phiFunction = Phi(Alias(funcName, def),
-                                      block->GetPredecessors().size());
-                domTree->AddPhiFunction(block, phiFunction);
-            }
-        }
-
-        domTree->Renaming();
-        /// END Converting to SSA form
+        domTree->ConvertToSSA();
 
         domTree->GenerateSSAConstraints();
 
