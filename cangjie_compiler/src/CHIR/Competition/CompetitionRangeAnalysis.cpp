@@ -110,16 +110,14 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
         // Create with new to store references by query, later needed to gather
         // correct identifiers
+        auto funcName = func->GetSrcCodeIdentifier();
         auto domTree = new DominatorTree(entry, params);
-        domTree_by_fnName[func->GetSrcCodeIdentifier()] = domTree;
+        domTree_by_fnName[funcName] = domTree;
 
         domTree->Compute();
 
-        // Produce graph before renaming (func foo only, for debug)
-        if (func->GetSrcCodeIdentifier() == "foo")
-            domTree->PrintDominatorTree("domTreeBefore.dot");
-        if (func->GetSrcCodeIdentifier() == "main")
-            domTree->PrintDominatorTree("MaindomTree.dot");
+        // Produce graph before renaming
+        domTree->PrintDominatorTree(funcName + "-domTree.dot");
 
         // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
         domTree->GenerateBranchConstraints();
@@ -128,9 +126,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
         domTree->GenerateSSAConstraints();
 
-        // Produce the graph after renaming alias (func foo only, for debug).
-        if (func->GetSrcCodeIdentifier() == "foo")
-            domTree->PrintDominatorTree("domTreeSSA.dot", true);
+        // Produce the graph after renaming alias
+        domTree->PrintDominatorTree(funcName + "-ssa.dot", true);
 
         auto funcFileName = func->GetDebugLocation().GetFileName();
         auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
