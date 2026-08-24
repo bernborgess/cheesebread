@@ -713,12 +713,9 @@ void DominatorTree::GenerateSSAConstraints()
     for (auto param : params_) {
         if (param->GetType()->IsInteger()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
-            // Maybe we need to initialize this variable as [-inf, + inf]
             intIdentifiers.emplace(paramAlias.def);
         } else if (param->GetType()->IsBoolean()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
-            // Maybe we need to initialize this variable as [false, true]
-            auto constraint = std::make_shared<InitializationBoolTop>(paramAlias.to_string());
             boolIdentifiers.emplace(paramAlias.def);
         }
     }

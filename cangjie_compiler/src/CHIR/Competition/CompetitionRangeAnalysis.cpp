@@ -5,6 +5,7 @@
 #include "cangjie/Competition/Phi.h"
 #include "cangjie/Competition/SSABuilder.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
+#include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
 
 
 #include <fstream>
@@ -98,9 +99,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
         return;
     }
 
-    std::vector<DominatorTree*> allDomTrees;
-    std::vector<std::optional<DominatorTree*>>
-        queryToDomTree(queries.size());
+    std::unordered_map<std::string, DominatorTree*> domTree_by_fnName;
+    std::vector<std::optional<DominatorTree*>> queryToDomTree(queries.size());
 
     // Compute dominator tree for each function, insert the intraprocedural
     // constraints
@@ -111,7 +111,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // Create with new to store references by query, later needed to gather
         // correct identifiers
         auto domTree = new DominatorTree(entry, params);
-        allDomTrees.push_back(domTree);
+        domTree_by_fnName[func->GetSrcCodeIdentifier()] = domTree;
 
         domTree->Compute();
 
@@ -156,23 +156,37 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // to the target function parameters phi fn.
 
     ApplyMap argumentsByFnName;
-    for (auto& domTree : allDomTrees) {
+    for (auto& [_, domTree] : domTree_by_fnName) {
         const auto applyMap = domTree->GetFnApplyMap();
         argumentsByFnName.insert(applyMap.begin(), applyMap.end());
     }
 
+    std::cerr << "All the constraints: " << std::endl;
     for (auto& [callee, invocations] : argumentsByFnName) {
-        std::cerr << "* " << callee << " was called " << invocations.size()
-                  << " times with args:" << std::endl;
-        for (auto& args : invocations) {
-            std::cerr << "  * ";
-            for (auto& arg : args) {
-                std::cerr << arg << " ";
-            }
-            std::cerr << std::endl;
+        if (invocations.size() == 0 || domTree_by_fnName.count(callee) == 0) {
+            continue;
         }
-        // TODO: Insert these as arguments to a phi function at the start of
-        // callee
+
+        // Insert these as arguments to a phi function at the start of callee
+        auto domTree = domTree_by_fnName[callee];
+        auto params = domTree->GetParams();
+        for (int i = 0; i < params.size(); i++) {
+            std::vector<std::string> ops;
+
+            for (auto& args : invocations) {
+                // All invocation MUST have the same number of parameters
+                assert(args.size() == params.size());
+
+                ops.push_back(args[i].to_string());
+            }
+
+            auto paramName = params[i]->GetSrcCodeIdentifier();
+            auto alias = Alias(callee, paramName, 0);
+            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops);
+            constraintGraph.addConstraint(phi);
+
+            std::cerr << *phi << std::endl;
+        }
     }
 
     // TODO: Gather all return statements inside the function to map back to a
@@ -187,29 +201,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
     constraintGraph.addConstraint(cst_0);
     constraintGraph.addConstraint(cst_true);
 
-    std::cerr << "All the constraints: " << std::endl;
-    for (auto& domTree : allDomTrees) {
-        // ! Temporary code before we bind the parameters
-        for (auto& param : domTree->GetParams()) {
-            if (param->GetType()->IsInteger()) {
-                Alias paramAlias = Alias(domTree->GetFunctionName(),
-                                         param->GetSrcCodeIdentifier(), 0);
-                auto constraint = std::make_shared<InitializationIntegerTop>(
-                    paramAlias.to_string());
-                constraintGraph.addConstraint(constraint);
-                std::cerr << *constraint << std::endl;
-            } else if (param->GetType()->IsBoolean()) {
-                Alias paramAlias = Alias(domTree->GetFunctionName(),
-                                         param->GetSrcCodeIdentifier(), 0);
-                auto constraint = std::make_shared<InitializationBoolTop>(
-                    paramAlias.to_string());
-                constraintGraph.addConstraint(constraint);
-                std::cerr << *constraint << std::endl;
-            }
-        }
-
-        // TODO: Bind params and arguments with phi function
-
+    for (auto& [_, domTree] : domTree_by_fnName) {
         // Include the constraints in the Nodes of the domTree (by function)
         for (auto& node : domTree->GetNodes()) {
             for (auto& constraint : node->nodeConstraints) {
@@ -266,7 +258,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
     }
 
     // Free created domTrees
-    for (auto ptr : allDomTrees) {
+    for (auto [_, ptr] : domTree_by_fnName) {
         delete ptr;
     }
 
