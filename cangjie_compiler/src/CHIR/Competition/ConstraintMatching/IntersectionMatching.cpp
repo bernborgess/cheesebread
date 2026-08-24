@@ -224,9 +224,6 @@ MatchedConstraints MatchEqualConstraints(
 
     std::vector<IntersectionConstraint*> ifTrue, ifFalse;
 
-    auto minusInf = Bound::minusInfinity();
-    auto plusInf = Bound::plusInfinity();
-
     // Equality is commutative
     if (std::holds_alternative<Constant*>(matchLHS.value())) {
         std::swap(matchLHS, matchRHS);
@@ -270,9 +267,6 @@ MatchedConstraints MatchNotEqualConstraints(
     if (!matchLHS.has_value() || !matchRHS.has_value()) return {{}, {}};
 
     std::vector<IntersectionConstraint*> ifTrue, ifFalse;
-
-    auto minusInf = Bound::minusInfinity();
-    auto plusInf = Bound::plusInfinity();
 
     // Inequality is commutative
     if (std::holds_alternative<Constant*>(matchLHS.value())) {
