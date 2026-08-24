@@ -118,6 +118,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
         // Produce graph before renaming (func foo only, for debug)
         if (func->GetSrcCodeIdentifier() == "foo")
             domTree->PrintDominatorTree("domTreeBefore.dot");
+        if (func->GetSrcCodeIdentifier() == "main")
+            domTree->PrintDominatorTree("MaindomTree.dot");
 
         // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
         domTree->GenerateBranchConstraints();

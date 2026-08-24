@@ -751,6 +751,25 @@ void DominatorTree::GenerateSSAConstraints()
 
             if (expr->IsApply()) {
                 auto app = dynamic_cast<Apply*>(expr);
+
+                // ? Here an apply is performed. We have to identify what is the
+                // target function 'fnName' and what are the arguments[]
+                std::string fnName = app->GetCallee()->GetSrcCodeIdentifier();
+                
+                std::vector<Competition::Alias> arguments;
+                for (auto& arg : app->GetArgs()) {
+                    arguments.push_back(idToAlias.at(arg->GetIdentifier()));
+                }
+
+                // TODO: Register that `fnName` is called with `arguments`
+                std::cerr << "fn " << fnName << " was called with "
+                    << arguments.size() << " arguments: ";
+                for (auto& arg : arguments) {
+                    std::cerr << arg << " ";
+                }
+                std::cerr << '.' << std::endl;
+
+
                 if (app->GetResultType()->IsInteger()) {
                     intIdentifiers.emplace(idToAlias[app->GetResult()->GetIdentifier()].def);
                 } else if (app->GetResultType()->IsBoolean()) {

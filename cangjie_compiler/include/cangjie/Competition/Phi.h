@@ -55,7 +55,7 @@ struct Alias {
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Alias& a) {
-        os << a.funcName << ":" << a.def << ": " << a.counter;
+        os << a.funcName << ":" << a.def << ":" << a.counter;
         return os;
     }
 
