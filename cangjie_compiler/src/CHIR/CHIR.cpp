@@ -657,8 +657,8 @@ void ToCHIR::RunOptimizationPass()
     RunFunctionInline(devirtInfo);
     RedundantLoadElimination();
     RedundantGetOrThrowElimination();
-    // ?! How to get here?
-    RunRangePropagation();
+    // Not using this stock range analysis
+    // RunRangePropagation();
     UselessAllocateElimination();
     Devirtualization(devirtInfo);
     RunArrayLambdaOpt();

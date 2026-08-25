@@ -192,19 +192,16 @@ IntersectionConstraint::resolveFutures(const AbstractState &state) const {
 }
 
 bool IntersectionConstraint::eval(AbstractState &A) {
-
     IV oldValue = std::get<IV>(A[def]);
-    const IV& src = std::get<IV>(A[operand]);
-
-  // Bottom stays bottom.
-  if (src.getKind() == IV::Kind::Set && src.getValues().empty()) {
-    return false;
-  }
+    IV src = std::get<IV>(A[operand]);
 
   auto low = resolveBound(lower_bound, true, A);
   auto up = resolveBound(upper_bound, false, A);
 
-  // AnalyzedValue result;
+  // Bottom operand turns into [-inf, +inf]
+  if (src.getKind() == IV::Kind::Set && src.getValues().empty()) {
+    src.setAsTop();
+  }
 
   // Source is a finite set.
   if (src.getKind() == IV::Kind::Set) {

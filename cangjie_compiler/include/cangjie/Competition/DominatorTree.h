@@ -15,6 +15,12 @@ namespace Competition {
 
 using namespace Cangjie::CHIR;
 
+typedef std::unordered_map<
+    /* fnName */ std::string,
+    /* each ocurrence */ std::vector<
+        /* arguments */ std::vector<Competition::Alias>>>
+    ApplyMap;
+
 /// Computes the dominator tree of a CFG using the
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
@@ -37,14 +43,19 @@ public:
     /// Prints the current dominator tree to a .dot file.
     void PrintDominatorTree(const std::string& path, bool alias = false);
 
-    /// Get aliases for identifiers
-    std::unordered_map<std::string, std::vector<Block*>> GetAlphaNodes();
-
     /// Pass along the tree creating constraints on the branches
     void GenerateBranchConstraints() { VisitBlockBranch(entry_); }
 
+    /// Perform all steps to create Phi functions and rename variables to SSA
+    void ConvertToSSA();
+
+private:
+    /// Get aliases for identifiers
+    void ComputeAlphaNodes();
+
     void Renaming();
 
+public:
     void GenerateSSAConstraints();
 
 private:
@@ -75,15 +86,17 @@ private:
 
     Node* ReverseMapBlockToNode(Block* block);
     void VisitBlockBranch(Block*block);
-    /// Visits the domtree from this block downwards replacing occurences
-    void FindAndReplace(std::string find_str, std::string replace_str, Block* block);
 
 public:
     std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);
-    std::vector<Phi> &GetBlockPhiFunctions(Block *block);
+    std::vector<Phi>& GetBlockPhiFunctions(Block* block);
+
+private:
     void AddPhiFunction(Block* block, Phi phiFunction);
-    AnalyzedValue GetVariableState(Alias var);
-    void CallSolver();
+
+public:
+    std::optional<Alias> FindVarBeforeLine(std::string variableName,
+                                           int lineNumber);
     std::unordered_map<std::string, Alias> idToAlias;
 
 private:
@@ -98,11 +111,14 @@ private:
     void Compress(std::size_t v);
     std::size_t Eval(std::size_t v);
 
-private:
+    std::string functionName;
     Block* entry_;
-
     std::vector<Parameter*> params_;
 
+    // Store all function invocations in here, to create phi later
+    ApplyMap arguments_by_functionName;
+
+   private:
     std::size_t dfsCount_ = 0;
 
     // Maps CFG block -> DFS number.
@@ -119,9 +135,11 @@ private:
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
-
-    // Value Range Analysis Abstract State
-    AbstractState state;
+public:
+    const std::vector<Parameter*>& GetParams() { return params_; };
+    const std::string GetFunctionName() { return functionName; };
+    const std::vector<Node*>& GetNodes() { return nodes_; }
+    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; };
 };
 } // namespace Competition
 

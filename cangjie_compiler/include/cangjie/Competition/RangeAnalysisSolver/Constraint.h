@@ -35,7 +35,7 @@ using AbstractState = std::unordered_map<std::string, AnalyzedValue>;
  */
 class Constraint {
 public:
-    const std::string def;
+    std::string def;
 
     explicit Constraint(std::string name);
     virtual ~Constraint() = default;
@@ -56,8 +56,6 @@ public:
      * false if the domain remained unchanged (indicating a fixed point).
      */
     bool narrow(AbstractState& A) {
-      using Type  = Bound::Type;
-
       if (std::holds_alternative<BV>(A[def])) {
         // BoolValue doesn't need narrowing
         return false;
@@ -186,7 +184,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const PhiConstraint c) {
-        os << c.def << ": φ(";
+        os << c.def << " φ(";
         for (int i = 0; i < c.operands.size(); i++) {
             if (i > 0) os << ", ";
             os << c.operands[i];
@@ -270,8 +268,8 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const IntersectionConstraint c) {
-        os << c.def << ": " << c.operand << " ∩ "
-            << "[" << c.lower_bound << "," << c.upper_bound <<  "]";
+        os << c.def << " = σ(" << c.operand << " ∩ "
+           << "[" << c.lower_bound << "," << c.upper_bound << "])";
         return os;
     }
 };

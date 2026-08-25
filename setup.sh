@@ -168,7 +168,8 @@ elif $FRESH; then
   python3 build.py install;
   mkdir -p ${WORKSPACE}/cangjie_compiler/output/tools/config;
   cp ${WORKSPACE}/cangjie_tools/cjpm/dist/cjpm   ${WORKSPACE}/cangjie_compiler/output/tools/bin;
-  cp ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
+# Is this needed?
+# cp ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
 fi
 
 echo "All projects built successfully!"
