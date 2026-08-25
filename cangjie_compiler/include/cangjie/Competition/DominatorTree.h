@@ -121,6 +121,13 @@ private:
     // Store all function invocations in here, to create phi later
     ApplyMap arguments_by_functionName;
 
+    // Store aliases of possible return values
+    std::vector<Competition::Alias> functionReturnValues;
+
+    // Store invocations to bind their return values later.
+    std::unordered_map<std::string, std::vector<Competition::Alias>>
+        returnAliases_by_functionName;
+
    private:
     std::size_t dfsCount_ = 0;
 
@@ -142,7 +149,12 @@ public:
     const std::vector<Parameter*>& GetParams() { return params_; };
     const std::string GetFunctionName() { return functionName; };
     const std::vector<Node*>& GetNodes() { return nodes_; }
-    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; };
+    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; }
+    const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
+    const std::unordered_map<std::string, std::vector<Competition::Alias>>&
+        GetReturnAliasMap() { return returnAliases_by_functionName; };
+
+
 };
 } // namespace Competition
 

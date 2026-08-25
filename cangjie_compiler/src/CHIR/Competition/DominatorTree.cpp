@@ -687,11 +687,12 @@ void DominatorTree::DetectReturnValues() {
             // that is a return value
             if (!localVar->IsRetValue()) continue;
 
-            // TODO: Store this fact:
+            // Store this fact:
             auto returnValueAlias = idToAlias[store->GetValue()->GetIdentifier()];
             std::cerr << "The function " << functionName << " may return a "
                       << returnValueAlias << "." << std::endl;
-            // possibleReturnValues.push_back(returnValueAlias);
+
+            functionReturnValues.push_back(returnValueAlias);
         }
     }
 }
@@ -797,6 +798,10 @@ void DominatorTree::GenerateSSAConstraints()
 
                 // Register that `fnName` is called with `arguments`
                 arguments_by_functionName[fnName].push_back(arguments);
+
+                // Register that `fnName`'s return value is `returnAlias`
+                auto returnAlias = idToAlias[app->GetResult()->GetIdentifier()];
+                returnAliases_by_functionName[fnName].push_back(returnAlias);
 
                 if (app->GetResultType()->IsInteger()) {
                     intIdentifiers.emplace(
