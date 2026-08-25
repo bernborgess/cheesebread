@@ -126,6 +126,10 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
         domTree->GenerateSSAConstraints();
 
+        // Go after the return values, these will be used to assign as the value
+        // of an Apply from other (or same) function
+        domTree->DetectReturnValues();
+
         // Produce the graph after renaming alias
         domTree->PrintDominatorTree(funcName + "-ssa.dot", true);
 

@@ -49,6 +49,9 @@ public:
     /// Perform all steps to create Phi functions and rename variables to SSA
     void ConvertToSSA();
 
+    /// Detects calls to Exit() and stores the variables that were returned
+    void DetectReturnValues();
+
 private:
     /// Get aliases for identifiers
     void ComputeAlphaNodes();
