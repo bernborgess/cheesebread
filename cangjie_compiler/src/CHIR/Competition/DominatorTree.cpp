@@ -661,8 +661,6 @@ void DominatorTree::ConvertToSSA() {
 
 /// Detects calls to Exit() and stores the variables that were returned
 void DominatorTree::DetectReturnValues() {
-    // Identify which variable is the ret val?
-
     // For each Node, check if it's terminator expression is an exit.
     // if so, gather what variables as set as the ret val for the fn
     for (auto& node : nodes_) {
