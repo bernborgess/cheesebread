@@ -332,7 +332,7 @@ void DominatorTree::Renaming()
             // std::cout << "Modified: " << phi << "\n";
         }
 
-        // Account for identifiers in the IntersectionConnstraints in
+        // Account for identifiers in the IntersectionConstraints in
         // node->nodeConstraints. We assume that Renaming is called AFTER
         // GenerateBranchConstraints but BEFORE GenerateSSAConstraints,
         // therefore only IntersectionConstraints are inside the
@@ -379,7 +379,7 @@ void DominatorTree::Renaming()
                     }
                     continue;
                 } else {
-                    // We create the constraint here to matche the counter of
+                    // We create the constraint here to match the counter of
                     // this use (of 'x') to the current one, not the final
                     // counter of references to this address (idToAlias[%1])
                     std::string var = idToAlias[op].def;
@@ -574,7 +574,7 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
         for (auto expr : block->GetExpressions()) {
             std::string info = "";
 
-            // ? It's an atribution!
+            // It's an attribution!
             if (LocalVar* res = expr->GetResult(); res != nullptr) {
                 auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
                         : res->GetIdentifier();
@@ -689,8 +689,6 @@ void DominatorTree::DetectReturnValues() {
 
             // Store this fact:
             auto returnValueAlias = idToAlias[store->GetValue()->GetIdentifier()];
-            std::cerr << "The function " << functionName << " may return a "
-                      << returnValueAlias << "." << std::endl;
 
             functionReturnValues.push_back(returnValueAlias);
         }
