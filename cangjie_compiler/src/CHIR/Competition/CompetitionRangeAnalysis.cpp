@@ -110,6 +110,14 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
         // we call the solver.
         queryToDomTree[i] = domTree;
     }
+
+    // Inserting the created constraints
+    for (auto& node : domTree->GetNodes()) {
+        for (auto& constraint : node->nodeConstraints) {
+            constraintGraph.addConstraint(constraint);
+            std::cerr << constraint << std::endl;
+        }
+    }
 }
 
 // For each function Apply, bind the identifiers of the source function
@@ -164,7 +172,6 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
         }
 
         // Debugging the returnAliases
-        std::cerr << fnName << " return values:" << std::endl;
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
             if (!domTree_by_fnName.count(callee))
                 continue;
@@ -253,7 +260,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
     ReadCompetitionQueries();
     if (queries.size() < 1)
         return;
-    
+
     queryToDomTree.resize(queries.size());
 
     std::cerr << "@@@@ COMPETITION ANALYSIS @@@@" << std::endl;
