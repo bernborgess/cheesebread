@@ -861,129 +861,92 @@ void DominatorTree::GenerateSSAConstraints()
                 auto def = idToAlias[expr->GetResult()->GetIdentifier()];
                 auto lhs = idToAlias[expr->GetOperand(0)->GetIdentifier()];
                 auto rhs = idToAlias[expr->GetOperand(1)->GetIdentifier()];
+
+#define BINARY_CONSTRAINT_PUSH(CONSTRAINT_TYPE, IDENT_TYPE) \
+    auto constraint = std::make_shared<CONSTRAINT_TYPE>(    \
+        def.to_string(), lhs.to_string(), rhs.to_string()); \
+    node->pushConstraint(constraint);                       \
+    IDENT_TYPE##Identifiers.emplace(def.def)
+
                 if (intIdentifiers.count(lhs.def) &&
                     intIdentifiers.count(rhs.def)) {
-                    if (expr->GetExprKind() == ExprKind::ADD) {
-                        auto constraint = std::make_shared<AddConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
 
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::SUB) {
-                        auto constraint = std::make_shared<SubConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::MUL) {
-                        auto constraint = std::make_shared<MultiplyConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::DIV) {
-                        auto constraint = std::make_shared<DivConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::MOD) {
-                        auto constraint = std::make_shared<ModConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::LSHIFT) {
-                        auto constraint = std::make_shared<ShiftLeftConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::RSHIFT) {
-                        auto constraint =
-                            std::make_shared<ShiftRightConstraint>(
-                                def.to_string(), lhs.to_string(),
-                                rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::BITAND) {
-                        auto constraint =
-                            std::make_shared<BitwiseAndConstraint>(
-                                def.to_string(), lhs.to_string(),
-                                rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::BITXOR) {
-                        auto constraint =
-                            std::make_shared<BitwiseXorConstraint>(
-                                def.to_string(), lhs.to_string(),
-                                rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::BITOR) {
-                        auto constraint = std::make_shared<BitwiseOrConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        intIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::EQUAL) {
-                        auto constraint = std::make_shared<EqualConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::NOTEQUAL) {
-                        auto constraint = std::make_shared<NotEqualConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::LT) {
-                        auto constraint = std::make_shared<LessThanConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::GT) {
-                        auto constraint =
-                            std::make_shared<GreaterThanConstraint>(
-                                def.to_string(), lhs.to_string(),
-                                rhs.to_string());
-
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::LE) {
-                        auto constraint = std::make_shared<LessEqualConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
-                    } else if (expr->GetExprKind() == ExprKind::GE) {
-                        auto constraint =
-                            std::make_shared<GreaterEqualConstraint>(
-                                def.to_string(), lhs.to_string(),
-                                rhs.to_string());
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
+                    switch (expr->GetExprKind()) {
+                    case ExprKind::ADD: {
+                        BINARY_CONSTRAINT_PUSH(AddConstraint, int);
+                        break;
                     }
+                    case ExprKind::SUB: {
+                        BINARY_CONSTRAINT_PUSH(SubConstraint, int);
+                        break;
+                    }
+                    case ExprKind::MUL: {
+                        BINARY_CONSTRAINT_PUSH(MultiplyConstraint, int);
+                        break;
+                    }
+                    case ExprKind::DIV: {
+                        BINARY_CONSTRAINT_PUSH(DivConstraint, int);
+                        break;
+                    }
+                    case ExprKind::MOD: {
+                        BINARY_CONSTRAINT_PUSH(ModConstraint, int);
+                        break;
+                    }
+                    case ExprKind::LSHIFT: {
+                        BINARY_CONSTRAINT_PUSH(ShiftLeftConstraint, int);
+                        break;
+                    }
+                    case ExprKind::RSHIFT: {
+                        BINARY_CONSTRAINT_PUSH(ShiftRightConstraint, int);
+                        break;
+                    }
+                    case ExprKind::BITAND: {
+                        BINARY_CONSTRAINT_PUSH(BitwiseAndConstraint, int);
+                        break;
+                    }
+                    case ExprKind::BITXOR: {
+                        BINARY_CONSTRAINT_PUSH(BitwiseXorConstraint, int);
+                        break;
+                    }
+                    case ExprKind::BITOR: {
+                        BINARY_CONSTRAINT_PUSH(BitwiseOrConstraint, int);
+                        break;
+                    }
+                    case ExprKind::EQUAL: {
+                        BINARY_CONSTRAINT_PUSH(EqualConstraint, bool);
+                        break;
+                    }
+                    case ExprKind::NOTEQUAL: {
+                        BINARY_CONSTRAINT_PUSH(NotEqualConstraint, bool);
+                        break;
+                    }
+                    case ExprKind::LT: {
+                        BINARY_CONSTRAINT_PUSH(LessThanConstraint, bool);
+                        break;
+                    }
+                    case ExprKind::GT: {
+                        BINARY_CONSTRAINT_PUSH(GreaterThanConstraint, bool);
+                        break;
+                    }
+                    case ExprKind::LE: {
+                        BINARY_CONSTRAINT_PUSH(LessEqualConstraint, bool);
+                        break;
+                    }
+                    case ExprKind::GE: {
+                        BINARY_CONSTRAINT_PUSH(GreaterEqualConstraint, bool);
+                        break;
+                    }
+                    }
+
                 } else if (boolIdentifiers.count(lhs.def) &&
                            boolIdentifiers.count(rhs.def)) {
                     if (expr->GetExprKind() == ExprKind::AND) {
-                        auto constraint =
-                            std::make_shared<LogicalAndConstraint>(
-                                def.to_string(), lhs.to_string(),
-                                rhs.to_string());
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
+                        BINARY_CONSTRAINT_PUSH(LogicalAndConstraint, bool);
                     } else if (expr->GetExprKind() == ExprKind::OR) {
-                        auto constraint = std::make_shared<LogicalOrConstraint>(
-                            def.to_string(), lhs.to_string(), rhs.to_string());
-                        node->pushConstraint(constraint);
-                        boolIdentifiers.emplace(def.def);
+                        BINARY_CONSTRAINT_PUSH(LogicalOrConstraint, bool);
                     }
                 }
+#undef BINARY_CONSTRAINT_PUSH
             } else if (expr->IsLoad()) {
                 Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
                 Alias op = idToAlias[expr->GetOperand(0)->GetIdentifier()];
