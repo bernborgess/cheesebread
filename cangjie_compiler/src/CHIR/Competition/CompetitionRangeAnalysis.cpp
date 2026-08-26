@@ -51,6 +51,149 @@ void RangeAnalysis::ReadCompetitionQueries()
     inputFile.close();
 }
 
+void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package)
+{
+    for (auto func : package->GetGlobalFuncsWithBody()) {
+        auto funcFileName = func->GetDebugLocation().GetFileName();
+        for (auto [fileName, lineNumber, variableName] : queries) {
+            if (funcFileName == fileName) {
+                requestedFunctions.insert(func);
+            }
+        }
+    }
+}
+
+void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
+{
+    Block* entry = func->GetEntryBlock();
+    std::vector<Parameter*> params = func->GetParams();
+
+    // Create with new to store references by query, later needed to gather
+    // correct identifiers
+    auto funcName = func->GetSrcCodeIdentifier();
+    auto domTree = new DominatorTree(entry, params);
+    domTree_by_fnName[funcName] = domTree;
+
+    domTree->Compute();
+
+    // Produce graph before renaming
+    domTree->PrintDominatorTree(funcName + "-domTree.dot");
+
+    // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
+    domTree->GenerateBranchConstraints();
+
+    domTree->ConvertToSSA();
+
+    domTree->GenerateSSAConstraints();
+
+    // Go after the return values, these will be used to assign as the value
+    // of an Apply from other (or same) function
+    domTree->DetectReturnValues();
+
+    // Produce the graph after renaming alias
+    domTree->PrintDominatorTree(funcName + "-ssa.dot", true);
+
+    auto funcFileName = func->GetDebugLocation().GetFileName();
+    auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
+    auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
+
+    // Store reference to domTree of each query
+    for (int i = 0; i < queries.size(); i++) {
+        auto& [fileName, lineNumber, variableName] = queries[i];
+        if (funcFileName != fileName)
+            continue;
+        if (funcStartLine > lineNumber || funcEndLine < lineNumber)
+            continue;
+
+        // This query is solved on the dominator tree.
+        // We still need to bind the interprocedural calls, only after that
+        // we call the solver.
+        queryToDomTree[i] = domTree;
+    }
+}
+
+// For each function Apply, bind the identifiers of the source function
+// to the target function parameters with phi functions.
+void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
+{
+    ApplyMap argumentsByFnName;
+    for (auto& [_, domTree] : domTree_by_fnName) {
+        const auto applyMap = domTree->GetFnApplyMap();
+        argumentsByFnName.insert(applyMap.begin(), applyMap.end());
+    }
+
+    for (auto& [callee, invocations] : argumentsByFnName) {
+        if (invocations.size() == 0 || domTree_by_fnName.count(callee) == 0) {
+            continue;
+        }
+
+        // Insert these as arguments to a phi function at the start of callee
+        auto domTree = domTree_by_fnName[callee];
+        auto params = domTree->GetParams();
+        for (int i = 0; i < params.size(); i++) {
+            std::vector<std::string> ops;
+
+            for (auto& args : invocations) {
+                // All invocation MUST have the same number of parameters
+                assert(args.size() == params.size());
+
+                ops.push_back(args[i].to_string());
+            }
+
+            auto paramName = params[i]->GetSrcCodeIdentifier();
+            auto alias = Alias(callee, paramName, 0);
+            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops);
+            constraintGraph.addConstraint(phi);
+
+            std::cerr << *phi << std::endl;
+        }
+    }
+}
+
+// For each return value in target function, bind it to the call result with a
+// phi function
+void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
+{
+    for (auto& [fnName, domTree] : domTree_by_fnName) {
+        // Include the constraints in the Nodes of the domTree (by function)
+        for (auto& node : domTree->GetNodes()) {
+            for (auto& constraint : node->nodeConstraints) {
+                constraintGraph.addConstraint(constraint);
+                std::cerr << constraint << std::endl;
+            }
+        }
+
+        // Debugging the returnAliases
+        std::cerr << fnName << " return values:" << std::endl;
+        for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
+            if (!domTree_by_fnName.count(callee))
+                continue;
+
+            std::vector<std::string> ops;
+            for (auto rv : domTree_by_fnName[callee]->GetReturnValues()) {
+                ops.push_back(rv.to_string());
+            }
+
+            // !DEBUG: ops aren't all the same type (BV, IV)
+            // Check that getInt return var ACTUALLY becomes an IV.
+
+            for (auto& val : vals) {
+                auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops);
+                constraintGraph.addConstraint(phi);
+                std::cerr << *phi << std::endl;
+            }
+        }
+    }
+}
+
+void RangeAnalysis::CreateHelperConstraints()
+{
+    auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
+    auto cst_true = std::make_shared<InitializationBoolConstraint>("\%const_true", true);
+    constraintGraph.addConstraint(cst_0);
+    constraintGraph.addConstraint(cst_true);
+}
+
 void RangeAnalysis::OutputAnalysisToFile()
 {
     std::fstream outputFile;
@@ -110,157 +253,31 @@ void RangeAnalysis::RunOnPackage(Package* package)
     ReadCompetitionQueries();
     if (queries.size() < 1)
         return;
+    
+    queryToDomTree.resize(queries.size());
 
     std::cerr << "@@@@ COMPETITION ANALYSIS @@@@" << std::endl;
 
-    for (auto func : package->GetGlobalFuncsWithBody()) {
-        auto funcFileName = func->GetDebugLocation().GetFileName();
-        for (auto [fileName, lineNumber, variableName] : queries) {
-            if (funcFileName == fileName) {
-                requestedFunctions.insert(func);
-            }
-        }
-    }
-
-    queryToDomTree.resize(queries.size());
+    GatherRequestedFunctions(package);
 
     // Compute dominator tree for each function, insert the intraprocedural
     // constraints
-    for (auto func : requestedFunctions) {
-        Block* entry = func->GetEntryBlock();
-        std::vector<Parameter*> params = func->GetParams();
+    for (auto func : requestedFunctions)
+        BuildDomTreeWithConstraints(func);
 
-        // Create with new to store references by query, later needed to gather
-        // correct identifiers
-        auto funcName = func->GetSrcCodeIdentifier();
-        auto domTree = new DominatorTree(entry, params);
-        domTree_by_fnName[funcName] = domTree;
-
-        domTree->Compute();
-
-        // Produce graph before renaming
-        domTree->PrintDominatorTree(funcName + "-domTree.dot");
-
-        // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
-        domTree->GenerateBranchConstraints();
-
-        domTree->ConvertToSSA();
-
-        domTree->GenerateSSAConstraints();
-
-        // Go after the return values, these will be used to assign as the value
-        // of an Apply from other (or same) function
-        domTree->DetectReturnValues();
-
-        // Produce the graph after renaming alias
-        domTree->PrintDominatorTree(funcName + "-ssa.dot", true);
-
-        auto funcFileName = func->GetDebugLocation().GetFileName();
-        auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
-        auto funcEndLine = func->GetDebugLocation().GetEndPos().line;
-
-        // Store reference to domTree of each query
-        for (int i = 0; i < queries.size(); i++) {
-            auto& [fileName, lineNumber, variableName] = queries[i];
-            if (funcFileName != fileName)
-                continue;
-            if (funcStartLine > lineNumber || funcEndLine < lineNumber)
-                continue;
-
-            // This query is solved on the dominator tree.
-            // We still need to bind the interprocedural calls, only after that
-            // we call the solver.
-            queryToDomTree[i] = domTree;
-        }
-    }
-
-    // TODO: Interprocedural
-    // * For each function Apply, bind the identifiers of the source function
-    // to the target function parameters phi fn.
-
-    ApplyMap argumentsByFnName;
-    for (auto& [_, domTree] : domTree_by_fnName) {
-        const auto applyMap = domTree->GetFnApplyMap();
-        argumentsByFnName.insert(applyMap.begin(), applyMap.end());
-    }
-
-    std::cerr << "All the constraints: " << std::endl;
-    for (auto& [callee, invocations] : argumentsByFnName) {
-        if (invocations.size() == 0 || domTree_by_fnName.count(callee) == 0) {
-            continue;
-        }
-
-        // Insert these as arguments to a phi function at the start of callee
-        auto domTree = domTree_by_fnName[callee];
-        auto params = domTree->GetParams();
-        for (int i = 0; i < params.size(); i++) {
-            std::vector<std::string> ops;
-
-            for (auto& args : invocations) {
-                // All invocation MUST have the same number of parameters
-                assert(args.size() == params.size());
-
-                ops.push_back(args[i].to_string());
-            }
-
-            auto paramName = params[i]->GetSrcCodeIdentifier();
-            auto alias = Alias(callee, paramName, 0);
-            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops);
-            constraintGraph.addConstraint(phi);
-
-            std::cerr << *phi << std::endl;
-        }
-    }
-
-    // TODO: Gather all return statements inside the function to map back to a
-    // constraint in the caller's return variable
-    // * For each return in target function, add the abstract value to the ret
-    // value to the source phi fn.
+    // Interprocedural
+    BindArgumentsToParamsWithPhiConstraint();
+    BindReturnValuesToCallResultsWithPhiConstraint();
 
     // General constraints for 0 and true
-    auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
-    auto cst_true = std::make_shared<InitializationBoolConstraint>("\%const_true", true);
-    constraintGraph.addConstraint(cst_0);
-    constraintGraph.addConstraint(cst_true);
-
-    for (auto& [fnName, domTree] : domTree_by_fnName) {
-        // Include the constraints in the Nodes of the domTree (by function)
-        for (auto& node : domTree->GetNodes()) {
-            for (auto& constraint : node->nodeConstraints) {
-                constraintGraph.addConstraint(constraint);
-                std::cerr << constraint << std::endl;
-            }
-        }
-
-        // Debugging the returnAliases
-        std::cerr << fnName << " return values:" << std::endl;
-        for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
-            if (!domTree_by_fnName.count(callee))
-                continue;
-
-            std::vector<std::string> ops;
-            for (auto rv : domTree_by_fnName[callee]->GetReturnValues()) {
-                ops.push_back(rv.to_string());
-            }
-
-            // !DEBUG: ops aren't all the same type (BV, IV)
-            // Check that getInt return var ACTUALLY becomes an IV.
-
-            for (auto& val : vals) {
-                auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops);
-                constraintGraph.addConstraint(phi);
-                std::cerr << *phi << std::endl;
-            }
-        }
-    }
-    std::cerr << "END All the constraints." << std::endl;
+    CreateHelperConstraints();
 
     // Call the solver
     auto sccs = constraintGraph.getTopologicalSCCs();
     Solver solver(solverState);
     solver.solve(sccs);
 
-    // Use the solver results to output the analsys
+    // Use the solver results to output the analysis
     OutputAnalysisToFile();
 
     // Free created domTrees

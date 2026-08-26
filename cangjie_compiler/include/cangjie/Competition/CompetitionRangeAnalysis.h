@@ -27,12 +27,19 @@ public:
 private:
     std::vector<Competition::Query> queries;
     void ReadCompetitionQueries();
+    
+    std::set<Cangjie::CHIR::Function*> requestedFunctions;
+    void GatherRequestedFunctions(Cangjie::CHIR::Package* package);
+
+    std::unordered_map<std::string, DominatorTree*> domTree_by_fnName;
+    std::vector<std::optional<DominatorTree*>> queryToDomTree;
+    void BuildDomTreeWithConstraints(Cangjie::CHIR::Function *func);
+    void BindArgumentsToParamsWithPhiConstraint();
+    void BindReturnValuesToCallResultsWithPhiConstraint();
 
     AbstractState solverState;
     ConstraintGraph constraintGraph;
-    std::set<Cangjie::CHIR::Function*> requestedFunctions;
-    std::unordered_map<std::string, DominatorTree*> domTree_by_fnName;
-    std::vector<std::optional<DominatorTree*>> queryToDomTree;
+    void CreateHelperConstraints();
 
     void OutputAnalysisToFile();
 };
