@@ -758,17 +758,13 @@ void DominatorTree::GenerateSSAConstraints()
 
     // std::cout << "\tGenerating SSA Constraints for parameters\n";
 
-#define PRINT_A(X, Y) std::cerr << this->functionName << ":" << Y << "  ∈ " #X << std::endl
-
     for (auto param : params_) {
         if (param->GetType()->IsInteger()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
             intIdentifiers.emplace(paramAlias.def);
-            PRINT_A(INT, paramAlias.def);
         } else if (param->GetType()->IsBoolean()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
             boolIdentifiers.emplace(paramAlias.def);
-            PRINT_A(BOOL, paramAlias.def);
         }
     }
 
@@ -784,8 +780,7 @@ void DominatorTree::GenerateSSAConstraints()
         for (auto phiFunction : node->phiFunctions) {
             if (intIdentifiers.count(phiFunction.getVarDef()) || boolIdentifiers.count(phiFunction.getVarDef())) {
 
-                auto valueType = intIdentifiers.count(phiFunction.getVarDef()) ?
-                    ValueType::IVType : ValueType::BVType; 
+                auto valueType = intIdentifiers.count(phiFunction.getVarDef()) ? ValueType::IVType : ValueType::BVType;
                 auto constraint = std::make_shared<PhiConstraint>(
                     phiFunction.getVarString(),
                     phiFunction.getAliasesStrings(),
@@ -821,11 +816,9 @@ void DominatorTree::GenerateSSAConstraints()
                 if (app->GetResultType()->IsInteger()) {
                     auto def = idToAlias[app->GetResult()->GetIdentifier()].def;
                     intIdentifiers.emplace(def);
-                    PRINT_A(INT, def);
                 } else if (app->GetResultType()->IsBoolean()) {
                     auto def = idToAlias[app->GetResult()->GetIdentifier()].def;
                     boolIdentifiers.emplace(def);
-                    PRINT_A(BOOL, def);
                 }
             } else if (expr->IsConstant()) {
                 auto cst = dynamic_cast<Constant*>(expr);
@@ -837,7 +830,6 @@ void DominatorTree::GenerateSSAConstraints()
 
                     node->pushConstraint(constraint);
                     intIdentifiers.emplace(def.def);
-                    PRINT_A(INT, def.def);
                 } else if (cst->IsBoolLit()) {
                     Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
                     bool val = cst->GetBoolLitVal();
@@ -846,7 +838,6 @@ void DominatorTree::GenerateSSAConstraints()
 
                     node->pushConstraint(constraint);
                     boolIdentifiers.emplace(def.def);
-                    PRINT_A(BOOL, def.def);
                 }
             } else if (expr->IsUnaryExpr()) {
                 auto def = idToAlias[expr->GetResult()->GetIdentifier()];
@@ -858,14 +849,12 @@ void DominatorTree::GenerateSSAConstraints()
 
                         node->pushConstraint(constraint);
                         intIdentifiers.emplace(def.def);
-                        PRINT_A(INT, def.def);
                     } else if (expr->GetExprKind() == ExprKind::BITNOT) {
                         auto constraint = std::make_shared<BitwiseNotConstraint>(
                             def.to_string(), op.to_string());
 
                         node->pushConstraint(constraint);
                         intIdentifiers.emplace(def.def);
-                        PRINT_A(INT, def.def);
                     }
                 } else if (boolIdentifiers.count(op.def)) {
                     if (expr->GetExprKind() == ExprKind::NOT) {
@@ -874,7 +863,6 @@ void DominatorTree::GenerateSSAConstraints()
 
                         node->pushConstraint(constraint);
                         boolIdentifiers.emplace(def.def);
-                        PRINT_A(BOOL, def.def);
                     }
                 }
             } else if (expr->IsBinaryExpr()) {
@@ -886,8 +874,7 @@ void DominatorTree::GenerateSSAConstraints()
     auto constraint = std::make_shared<CONSTRAINT_TYPE>(    \
         def.to_string(), lhs.to_string(), rhs.to_string()); \
     node->pushConstraint(constraint);                       \
-    IDENT_TYPE##Identifiers.emplace(def.def);               \
-    PRINT_A(IDENT_TYPE, def.def)
+    IDENT_TYPE##Identifiers.emplace(def.def)
 
                 if (intIdentifiers.count(lhs.def) && intIdentifiers.count(rhs.def)) {
 
@@ -974,15 +961,12 @@ void DominatorTree::GenerateSSAConstraints()
                     // version of the loaded variable. Better do it inside
                     // renaming.
                     intIdentifiers.emplace(def.def);
-                    PRINT_A(INT, def.def);
                 } else if (boolIdentifiers.count(op.def)) {
                     boolIdentifiers.emplace(def.def);
-                    PRINT_A(BOOL, def.def);
                 }
             }
         }
     }
-#undef PRINT_A
 }
 
 std::optional<Alias> DominatorTree::FindVarBeforeLine(
