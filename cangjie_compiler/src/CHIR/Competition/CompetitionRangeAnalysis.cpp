@@ -13,6 +13,11 @@ namespace Competition {
 
 using namespace Cangjie::CHIR;
 
+// Define this to show all constraints added to the constraint graph
+// #define DEBUG_SHOW_INSERTED_CONSTRAINTS
+// Define this to log the queries to stderr
+// #define DEBUG_PRINT_QUERIES
+
 void RangeAnalysis::ReadCompetitionQueries()
 {
     // Open the "input.txt" file
@@ -115,7 +120,9 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
     for (auto& node : domTree->GetNodes()) {
         for (auto& constraint : node->nodeConstraints) {
             constraintGraph.addConstraint(constraint);
+#ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
             std::cerr << constraint << std::endl;
+#endif
         }
     }
 }
@@ -150,13 +157,14 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
 
             auto paramName = params[i]->GetSrcCodeIdentifier();
             auto alias = Alias(callee, paramName, 0);
-            auto valueType = params[i]->GetType()->IsNumeric() ?
-                    ValueType::IVType : ValueType::BVType;
+            auto valueType = params[i]->GetType()->IsNumeric() ? ValueType::IVType : ValueType::BVType;
             auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops,
-                    valueType);
+                valueType);
             constraintGraph.addConstraint(phi);
 
+#ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
             std::cerr << *phi << std::endl;
+#endif
         }
     }
 }
@@ -178,14 +186,14 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
             }
 
             for (auto& val : vals) {
-                auto valueType = calleeTree->GetReturnType()->IsNumeric() ?
-                    ValueType::IVType : ValueType::BVType;
+                auto valueType = calleeTree->GetReturnType()->IsNumeric() ? ValueType::IVType : ValueType::BVType;
                 auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops,
-                    valueType
-                );
+                    valueType);
 
                 constraintGraph.addConstraint(phi);
+#ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
                 std::cerr << *phi << std::endl;
+#endif
             }
         }
     }
@@ -218,8 +226,11 @@ void RangeAnalysis::OutputAnalysisToFile()
         DominatorTree* domTree = queryToDomTree[i].value();
 
         auto& [fileName, lineNumber, variableName] = queries[i];
+
+#ifdef DEBUG_PRINT_QUERIES
         std::cerr << "Find the range of variable " << variableName << " at line "
                   << lineNumber << " of file " << fileName << std::endl;
+#endif
 
         auto maybeVariableAlias = domTree->FindVarBeforeLine(variableName, lineNumber);
         if (!maybeVariableAlias.has_value()) {
@@ -231,18 +242,27 @@ void RangeAnalysis::OutputAnalysisToFile()
         }
 
         Alias variableAlias = maybeVariableAlias.value();
+
+#ifdef DEBUG_PRINT_QUERIES
         std::cerr << "You want " << variableAlias.to_string() << ", ";
+#endif
+
         AnalyzedValue variableValue = solverState[variableAlias.to_string()];
 
         // ? For now just using the default range => no info
         if (std::holds_alternative<BV>(variableValue)) {
             auto boolVal = std::get<BV>(variableValue);
             outputFile << boolVal << std::endl;
+#ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Boolean range: " << boolVal << std::endl;
+#endif
+
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
+#ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Integer range: " << intVal << std::endl;
+#endif
         }
     }
     outputFile.close();
@@ -261,7 +281,9 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
     queryToDomTree.resize(queries.size());
 
+#ifdef DEBUG_PRINT_QUERIES
     std::cerr << "@@@@ COMPETITION ANALYSIS @@@@" << std::endl;
+#endif
 
     GatherRequestedFunctions(package);
 
@@ -290,7 +312,9 @@ void RangeAnalysis::RunOnPackage(Package* package)
         delete ptr;
     }
 
+#ifdef DEBUG_PRINT_QUERIES
     std::cerr << "@@@@ COMPETITION ANALYSIS END @@@@" << std::endl;
+#endif
     return;
 }
 
