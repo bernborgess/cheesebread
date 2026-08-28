@@ -17,7 +17,7 @@ using namespace Cangjie::CHIR;
 
 typedef std::unordered_map<
     /* fnName */ std::string,
-    /* each ocurrence */ std::vector<
+    /* each occurrence */ std::vector<
         /* arguments */ std::vector<Competition::Alias>>>
     ApplyMap;
 
@@ -115,6 +115,7 @@ private:
     std::size_t Eval(std::size_t v);
 
     std::string functionName;
+    Cangjie::CHIR::Type* returnType;
     Block* entry_;
     std::vector<Parameter*> params_;
 
@@ -148,9 +149,13 @@ private:
 public:
     const std::vector<Parameter*>& GetParams() { return params_; };
     const std::string GetFunctionName() { return functionName; };
+    const Cangjie::CHIR::Type* GetReturnType() { return returnType; };
     const std::vector<Node*>& GetNodes() { return nodes_; }
+    // Map of functions that are invoked and their arguments
     const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; }
+    // List of possible aliases returned by this function
     const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
+    // Map of function names to aliases that are defined by their return value
     const std::unordered_map<std::string, std::vector<Competition::Alias>>&
         GetReturnAliasMap() { return returnAliases_by_functionName; };
 

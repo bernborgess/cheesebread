@@ -150,7 +150,10 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
 
             auto paramName = params[i]->GetSrcCodeIdentifier();
             auto alias = Alias(callee, paramName, 0);
-            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops);
+            auto valueType = params[i]->GetType()->IsNumeric() ?
+                    ValueType::IVType : ValueType::BVType;
+            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops,
+                    valueType);
             constraintGraph.addConstraint(phi);
 
             std::cerr << *phi << std::endl;
@@ -163,29 +166,24 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
 void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
 {
     for (auto& [fnName, domTree] : domTree_by_fnName) {
-        // Include the constraints in the Nodes of the domTree (by function)
-        for (auto& node : domTree->GetNodes()) {
-            for (auto& constraint : node->nodeConstraints) {
-                constraintGraph.addConstraint(constraint);
-                std::cerr << constraint << std::endl;
-            }
-        }
-
         // Debugging the returnAliases
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
             if (!domTree_by_fnName.count(callee))
                 continue;
 
             std::vector<std::string> ops;
-            for (auto rv : domTree_by_fnName[callee]->GetReturnValues()) {
+            auto& calleeTree = domTree_by_fnName[callee];
+            for (auto rv : calleeTree->GetReturnValues()) {
                 ops.push_back(rv.to_string());
             }
 
-            // !DEBUG: ops aren't all the same type (BV, IV)
-            // Check that getInt return var ACTUALLY becomes an IV.
-
             for (auto& val : vals) {
-                auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops);
+                auto valueType = calleeTree->GetReturnType()->IsNumeric() ?
+                    ValueType::IVType : ValueType::BVType;
+                auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops,
+                    valueType
+                );
+
                 constraintGraph.addConstraint(phi);
                 std::cerr << *phi << std::endl;
             }

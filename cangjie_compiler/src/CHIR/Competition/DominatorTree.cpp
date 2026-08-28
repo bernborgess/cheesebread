@@ -8,11 +8,13 @@
 
 namespace Competition {
 
-DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*> &params)
-    : entry_(entry), params_(params)
+DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*>& params)
+    : entry_(entry)
+    , params_(params)
 {
-    this->functionName = entry
-        ->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
+    Function* func = entry->GetParentBlockGroup()->GetOwnerFunc();
+    this->functionName = func->GetSrcCodeIdentifier();
+    this->returnType = func->GetReturnType();
 }
 
 void DominatorTree::Compute()
@@ -220,7 +222,7 @@ void DominatorTree::ComputeAlphaNodes()
         std::string id = param->GetIdentifier();
         std::string funcName = param->GetOwnerFunc()->GetSrcCodeIdentifier();
         std::string aliasDef = param->GetSrcCodeIdentifier() == "" ? id
-                             : param->GetSrcCodeIdentifier();
+                                                                   : param->GetSrcCodeIdentifier();
         idToAlias[id] = Alias(funcName, aliasDef);
         idToAlias[id].setCounter(0);
         variables.emplace_back(idToAlias[id].def);
@@ -240,7 +242,7 @@ void DominatorTree::ComputeAlphaNodes()
                 LocalVar* res = expr->GetResult();
                 std::string id = res->GetIdentifier();
                 std::string aliasDef = res->GetSrcCodeIdentifier() == "" ? id
-                                     : res->GetSrcCodeIdentifier();
+                                                                         : res->GetSrcCodeIdentifier();
 
                 idToAlias[id] = Alias(funcName, aliasDef);
 
@@ -258,7 +260,8 @@ void DominatorTree::ComputeAlphaNodes()
                 auto id = expr->GetOperand(0)->GetIdentifier();
                 auto opId = expr->GetOperand(1)->GetIdentifier();
                 // ? Why would this happen?
-                if (idToAlias[opId].def == "") continue;
+                if (idToAlias[opId].def == "")
+                    continue;
                 if (idToAlias[id].def == "")
                     idToAlias[id] = idToAlias[opId];
                 alphaNodes[idToAlias[opId].def].emplace_back(block);
@@ -272,8 +275,8 @@ void DominatorTree::ComputeAlphaNodes()
     // }
 }
 
-/// @brief As described in the paper 
-/// https://bears.ece.ucsb.edu/class/ece253/papers/cytron91.pdf#page=21 
+/// @brief As described in the paper
+/// https://bears.ece.ucsb.edu/class/ece253/papers/cytron91.pdf#page=21
 // Renames all mentions of variables. New variables denoted Vi, where i is an
 // integer, are generated for each variable V.
 void DominatorTree::Renaming()
@@ -282,11 +285,12 @@ void DominatorTree::Renaming()
         // Check that block is valid
         if (node->block == nullptr)
             continue;
-            
+
         Block* block = node->block;
 
         for (auto expr : block->GetExpressions()) {
-            if (expr->GetResult() == nullptr) continue;
+            if (expr->GetResult() == nullptr)
+                continue;
 
             auto funcName = expr->GetParentBlockGroup()->GetOwnerFunc()->GetSrcCodeIdentifier();
 
@@ -315,9 +319,10 @@ void DominatorTree::Renaming()
         variableStack[var] = std::stack<int>();
     }
 
-    auto search = [this, &variableCounter, &variableStack](auto&& self, Node *node) -> void {
-        Block *block = node->block;
-        if (block == nullptr) return;
+    auto search = [this, &variableCounter, &variableStack](auto&& self, Node* node) -> void {
+        Block* block = node->block;
+        if (block == nullptr)
+            return;
 
         // The visit to a node processes the statements associated with the node
         // in sequential order, starting with any φ-functions that may have been
@@ -338,8 +343,7 @@ void DominatorTree::Renaming()
         // therefore only IntersectionConstraints are inside the
         // node.nodeConstraints.
         for (auto& constraint : node->nodeConstraints) {
-            if (auto interc =
-                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+            if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
                 // ? We need to replace the plain variable name stored in
                 // these constraints by the updated Aliases::to_string (with counters)
 
@@ -359,15 +363,16 @@ void DominatorTree::Renaming()
 
         // For each expression that's not a phi
         for (auto expr : block->GetExpressions()) {
-            if (expr->GetResult() == nullptr) continue;
+            if (expr->GetResult() == nullptr)
+                continue;
             // std::cout << "Original: ";
             // expr->Dump();
-            
+
             if (expr->IsConstant()) {
                 ;
             } else if (expr->IsApply()) {
                 ;
-            } else if (expr->IsLoad() ) {
+            } else if (expr->IsLoad()) {
                 std::string id = expr->GetResult()->GetIdentifier();
                 std::string op = expr->GetOperand(0)->GetIdentifier();
                 if (idToAlias[id].def == idToAlias[op].def) {
@@ -394,25 +399,19 @@ void DominatorTree::Renaming()
                         auto constraint = std::make_shared<AddConstraint>(
                             Alias(functionName, id, 0).to_string(),
                             Alias(functionName, var, count).to_string(),
-                            "\%const_0"
-                        );
+                            "\%const_0");
                         node->pushConstraint(constraint);
-                    } else if(type->IsBoolean()) { // Boolean
+                    } else if (type->IsBoolean()) { // Boolean
                         auto constraint = std::make_shared<LogicalAndConstraint>(
                             Alias(functionName, id, 0).to_string(),
                             Alias(functionName, var, count).to_string(),
-                            "\%const_true"
-                        );
+                            "\%const_true");
                         node->pushConstraint(constraint);
                     }
                 }
-            }
-            else if (expr->IsAllocate() ||
-                     expr->IsDebug() ||
-                     expr->IsStore()) {
+            } else if (expr->IsAllocate() || expr->IsDebug() || expr->IsStore()) {
                 continue;
-            }
-            else {
+            } else {
                 for (auto op : expr->GetOperands()) {
                     std::string id = op->GetIdentifier();
                     idToAlias[id].setCounter(variableStack[idToAlias[id].def].top());
@@ -447,15 +446,18 @@ void DominatorTree::Renaming()
         }
 
         // std::cout << "Computing phi functions of successors\n";
-        for (Block *y : block->GetSuccessors()) {
-            if (y == nullptr) continue;
-            Node *successor = ReverseMapBlockToNode(y);
+        for (Block* y : block->GetSuccessors()) {
+            if (y == nullptr)
+                continue;
+            Node* successor = ReverseMapBlockToNode(y);
 
             int j = 0;
-            for (Block *aux : y->GetPredecessors()) {
-                if (aux == nullptr) continue;
+            for (Block* aux : y->GetPredecessors()) {
+                if (aux == nullptr)
+                    continue;
                 // std::cout << "Predecessor " << j << ": " << aux->GetIdentifier() << "\n";
-                if (aux == block) break;
+                if (aux == block)
+                    break;
                 ++j;
             }
             // std::cout << "WhichPred(" << y->GetIdentifier()
@@ -475,8 +477,9 @@ void DominatorTree::Renaming()
         }
 
         // std::cout << "Visiting children\n";
-        for (Block *y : GetChildren(block)) {
-            if (y == nullptr) continue;
+        for (Block* y : GetChildren(block)) {
+            if (y == nullptr)
+                continue;
             // std::cout << "Call search(" << y->GetIdentifier() << ")\n";
             // search(blockToNodeMap[y]);
             self(self, blockToNodeMap[y]);
@@ -491,16 +494,17 @@ void DominatorTree::Renaming()
         // For each definition of this block, we have to pop it from the stack,
         // since it wont be alive in other branch of the dominator tree
         for (auto expr : block->GetExpressions()) {
-            if (expr->GetResult() == nullptr) continue;
+            if (expr->GetResult() == nullptr)
+                continue;
 
-            if (expr->IsAllocate() ||
-                expr->IsDebug() ||
-                expr->IsStore()) continue;
+            if (expr->IsAllocate() || expr->IsDebug() || expr->IsStore())
+                continue;
 
             if (expr->IsLoad()) {
                 std::string id = expr->GetResult()->GetIdentifier();
                 std::string op = expr->GetOperand(0)->GetIdentifier();
-                if (idToAlias[id].def == idToAlias[op].def) continue;
+                if (idToAlias[id].def == idToAlias[op].def)
+                    continue;
             }
 
             auto var = expr->GetResult();
@@ -508,20 +512,20 @@ void DominatorTree::Renaming()
         }
         // Also for those defined in IntersectionConstraints
         for (auto& constraint : node->nodeConstraints) {
-            if (auto interc =
-                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+            if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
                 auto var = Alias::from_string(interc->def).def;
                 variableStack[var].pop();
             }
         }
     };
 
-    // Treating the function parameters. 
+    // Treating the function parameters.
     // TODO: Interprocedural will create a phi constraint here that binds these
     // to each and every call site of this function
     for (auto param : params_) {
         std::string id = param->GetSrcCodeIdentifier();
-        if (id == "") id = param->GetIdentifier(); 
+        if (id == "")
+            id = param->GetIdentifier();
         variableStack[id].emplace(0);
         variableCounter[id] = 1;
     }
@@ -577,7 +581,7 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
             // It's an attribution!
             if (LocalVar* res = expr->GetResult(); res != nullptr) {
                 auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
-                        : res->GetIdentifier();
+                                   : res->GetIdentifier();
                 info += ident + ": " + res->GetType()->ToString() + " = ";
             }
 
@@ -589,7 +593,6 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
             fout << "<tr><td align='left'>" << info << "</td></tr>";
         }
         fout << "</table>>];" << std::endl;
-
 
         // Immediate dominator!
         Block* idom = nodes_[node->idom]->block;
@@ -614,11 +617,13 @@ DominatorTree::Node* DominatorTree::ReverseMapBlockToNode(Block* block)
     return blockToNodeMap[block];
 }
 
-std::vector<std::shared_ptr<Constraint>> &DominatorTree::GetBlockConstraints(Block *block) {
+std::vector<std::shared_ptr<Constraint>>& DominatorTree::GetBlockConstraints(Block* block)
+{
     return ReverseMapBlockToNode(block)->nodeConstraints;
 }
 
-std::vector<Phi> &DominatorTree::GetBlockPhiFunctions(Block *block) {
+std::vector<Phi>& DominatorTree::GetBlockPhiFunctions(Block* block)
+{
     return ReverseMapBlockToNode(block)->phiFunctions;
 }
 
@@ -635,12 +640,14 @@ void DominatorTree::AddPhiFunction(Block* block, Phi phiFunction)
 
 /// Converting to SSA form = Adding Competition::Alias to each
 /// identifier
-void DominatorTree::ConvertToSSA() {
+void DominatorTree::ConvertToSSA()
+{
     ComputeAlphaNodes();
 
     std::unordered_map<std::string, std::vector<Block*>> variablePhiNodes;
     for (auto [def, blocks] : alphaNodes) {
-        if (blocks.empty()) continue;
+        if (blocks.empty())
+            continue;
         SSABuilder builder(*this);
         variablePhiNodes[def] = builder.PlacePhiNodes(blocks, entry_);
     }
@@ -650,8 +657,7 @@ void DominatorTree::ConvertToSSA() {
             std::string funcName = block->GetParentBlockGroup()
                                        ->GetOwnerFunc()
                                        ->GetSrcCodeIdentifier();
-            Phi phiFunction =
-                Phi(Alias(funcName, def), block->GetPredecessors().size());
+            Phi phiFunction = Phi(Alias(funcName, def), block->GetPredecessors().size());
             AddPhiFunction(block, phiFunction);
         }
     }
@@ -660,14 +666,17 @@ void DominatorTree::ConvertToSSA() {
 }
 
 /// Detects calls to Exit() and stores the variables that were returned
-void DominatorTree::DetectReturnValues() {
+void DominatorTree::DetectReturnValues()
+{
     // For each Node, check if it's terminator expression is an exit.
     // if so, gather what variables as set as the ret val for the fn
     for (auto& node : nodes_) {
-        if (node->block == nullptr) continue;
+        if (node->block == nullptr)
+            continue;
         Block* block = node->block;
 
-        if (!block->GetTerminator()->IsExit()) continue;
+        if (!block->GetTerminator()->IsExit())
+            continue;
 
         // This is a return statement of the function. Go back in the
         // expressions to find a store that sets the return value (if exists)
@@ -675,17 +684,20 @@ void DominatorTree::DetectReturnValues() {
         for (auto it = exprs.rbegin(); it != exprs.rend(); ++it) {
             auto expr = *it;
             // Find the last Store in this block
-            if (!expr->IsStore()) continue;
+            if (!expr->IsStore())
+                continue;
             auto store = dynamic_cast<Store*>(expr);
 
             auto dest = store->GetLocation();
             // that sets on an localVar
-            if (!dest->IsLocalVar()) continue;
+            if (!dest->IsLocalVar())
+                continue;
 
             auto localVar = dynamic_cast<LocalVar*>(dest);
 
             // that is a return value
-            if (!localVar->IsRetValue()) continue;
+            if (!localVar->IsRetValue())
+                continue;
 
             // Store this fact:
             auto returnValueAlias = idToAlias[store->GetValue()->GetIdentifier()];
@@ -746,13 +758,17 @@ void DominatorTree::GenerateSSAConstraints()
 
     // std::cout << "\tGenerating SSA Constraints for parameters\n";
 
+#define PRINT_A(X, Y) std::cerr << this->functionName << ":" << Y << "  ∈ " #X << std::endl
+
     for (auto param : params_) {
         if (param->GetType()->IsInteger()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
             intIdentifiers.emplace(paramAlias.def);
+            PRINT_A(INT, paramAlias.def);
         } else if (param->GetType()->IsBoolean()) {
             Alias paramAlias = idToAlias[param->GetIdentifier()];
             boolIdentifiers.emplace(paramAlias.def);
+            PRINT_A(BOOL, paramAlias.def);
         }
     }
 
@@ -766,21 +782,22 @@ void DominatorTree::GenerateSSAConstraints()
         // std::cout << "\t\tBlock: " << block->GetIdentifier() << "\n";
 
         for (auto phiFunction : node->phiFunctions) {
-            if (intIdentifiers.count(phiFunction.getVarDef()) ||
-                boolIdentifiers.count(phiFunction.getVarDef())) {
+            if (intIdentifiers.count(phiFunction.getVarDef()) || boolIdentifiers.count(phiFunction.getVarDef())) {
+
+                auto valueType = intIdentifiers.count(phiFunction.getVarDef()) ?
+                    ValueType::IVType : ValueType::BVType; 
                 auto constraint = std::make_shared<PhiConstraint>(
                     phiFunction.getVarString(),
-                    phiFunction.getAliasesStrings()
-                );
-                
+                    phiFunction.getAliasesStrings(),
+                    valueType);
+
                 node->pushConstraint(constraint);
             }
         }
 
         for (auto expr : block->GetExpressions()) {
-            if (expr->IsAllocate() ||
-                expr->IsDebug() ||
-                expr->IsStore()) continue;
+            if (expr->IsAllocate() || expr->IsDebug() || expr->IsStore())
+                continue;
 
             if (expr->IsApply()) {
                 auto app = dynamic_cast<Apply*>(expr);
@@ -788,7 +805,7 @@ void DominatorTree::GenerateSSAConstraints()
                 // ? Here an apply is performed. We have to identify what is the
                 // target function 'fnName' and what are the arguments[]
                 std::string fnName = app->GetCallee()->GetSrcCodeIdentifier();
-                
+
                 std::vector<Competition::Alias> arguments;
                 for (auto& arg : app->GetArgs()) {
                     arguments.push_back(idToAlias.at(arg->GetIdentifier()));
@@ -802,32 +819,34 @@ void DominatorTree::GenerateSSAConstraints()
                 returnAliases_by_functionName[fnName].push_back(returnAlias);
 
                 if (app->GetResultType()->IsInteger()) {
-                    intIdentifiers.emplace(
-                        idToAlias[app->GetResult()->GetIdentifier()].def);
+                    auto def = idToAlias[app->GetResult()->GetIdentifier()].def;
+                    intIdentifiers.emplace(def);
+                    PRINT_A(INT, def);
                 } else if (app->GetResultType()->IsBoolean()) {
-                    boolIdentifiers.emplace(
-                        idToAlias[app->GetResult()->GetIdentifier()].def);
+                    auto def = idToAlias[app->GetResult()->GetIdentifier()].def;
+                    boolIdentifiers.emplace(def);
+                    PRINT_A(BOOL, def);
                 }
             } else if (expr->IsConstant()) {
                 auto cst = dynamic_cast<Constant*>(expr);
                 if (cst->IsIntLit()) {
                     Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
                     int val = cst->GetSignedIntLitVal();
-                    auto constraint =
-                        std::make_shared<InitializationConstraint>(
-                            def.to_string(), val);
+                    auto constraint = std::make_shared<InitializationConstraint>(
+                        def.to_string(), val);
 
                     node->pushConstraint(constraint);
                     intIdentifiers.emplace(def.def);
+                    PRINT_A(INT, def.def);
                 } else if (cst->IsBoolLit()) {
                     Alias def = idToAlias[expr->GetResult()->GetIdentifier()];
                     bool val = cst->GetBoolLitVal();
-                    auto constraint =
-                        std::make_shared<InitializationBoolConstraint>(
-                            def.to_string(), val);
+                    auto constraint = std::make_shared<InitializationBoolConstraint>(
+                        def.to_string(), val);
 
                     node->pushConstraint(constraint);
                     boolIdentifiers.emplace(def.def);
+                    PRINT_A(BOOL, def.def);
                 }
             } else if (expr->IsUnaryExpr()) {
                 auto def = idToAlias[expr->GetResult()->GetIdentifier()];
@@ -839,22 +858,23 @@ void DominatorTree::GenerateSSAConstraints()
 
                         node->pushConstraint(constraint);
                         intIdentifiers.emplace(def.def);
+                        PRINT_A(INT, def.def);
                     } else if (expr->GetExprKind() == ExprKind::BITNOT) {
-                        auto constraint =
-                            std::make_shared<BitwiseNotConstraint>(
-                                def.to_string(), op.to_string());
+                        auto constraint = std::make_shared<BitwiseNotConstraint>(
+                            def.to_string(), op.to_string());
 
                         node->pushConstraint(constraint);
                         intIdentifiers.emplace(def.def);
+                        PRINT_A(INT, def.def);
                     }
                 } else if (boolIdentifiers.count(op.def)) {
                     if (expr->GetExprKind() == ExprKind::NOT) {
-                        auto constraint =
-                            std::make_shared<LogicalNotConstraint>(
-                                def.to_string(), op.to_string());
+                        auto constraint = std::make_shared<LogicalNotConstraint>(
+                            def.to_string(), op.to_string());
 
                         node->pushConstraint(constraint);
                         boolIdentifiers.emplace(def.def);
+                        PRINT_A(BOOL, def.def);
                     }
                 }
             } else if (expr->IsBinaryExpr()) {
@@ -866,10 +886,10 @@ void DominatorTree::GenerateSSAConstraints()
     auto constraint = std::make_shared<CONSTRAINT_TYPE>(    \
         def.to_string(), lhs.to_string(), rhs.to_string()); \
     node->pushConstraint(constraint);                       \
-    IDENT_TYPE##Identifiers.emplace(def.def)
+    IDENT_TYPE##Identifiers.emplace(def.def);               \
+    PRINT_A(IDENT_TYPE, def.def)
 
-                if (intIdentifiers.count(lhs.def) &&
-                    intIdentifiers.count(rhs.def)) {
+                if (intIdentifiers.count(lhs.def) && intIdentifiers.count(rhs.def)) {
 
                     switch (expr->GetExprKind()) {
                     case ExprKind::ADD: {
@@ -938,8 +958,7 @@ void DominatorTree::GenerateSSAConstraints()
                     }
                     }
 
-                } else if (boolIdentifiers.count(lhs.def) &&
-                           boolIdentifiers.count(rhs.def)) {
+                } else if (boolIdentifiers.count(lhs.def) && boolIdentifiers.count(rhs.def)) {
                     if (expr->GetExprKind() == ExprKind::AND) {
                         BINARY_CONSTRAINT_PUSH(LogicalAndConstraint, bool);
                     } else if (expr->GetExprKind() == ExprKind::OR) {
@@ -955,13 +974,15 @@ void DominatorTree::GenerateSSAConstraints()
                     // version of the loaded variable. Better do it inside
                     // renaming.
                     intIdentifiers.emplace(def.def);
+                    PRINT_A(INT, def.def);
                 } else if (boolIdentifiers.count(op.def)) {
                     boolIdentifiers.emplace(def.def);
+                    PRINT_A(BOOL, def.def);
                 }
             }
         }
     }
-    
+#undef PRINT_A
 }
 
 std::optional<Alias> DominatorTree::FindVarBeforeLine(
@@ -970,7 +991,8 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
     // Get the blocks that contain our lineNumber
     std::queue<Block*> blocks;
     for (auto node : nodes_) {
-        if (node->block == nullptr) continue;
+        if (node->block == nullptr)
+            continue;
         Block* block = node->block;
 
         size_t start = std::numeric_limits<size_t>::max();
@@ -978,7 +1000,8 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
 
         for (auto expr : block->GetExpressions()) {
             auto exprLoc = expr->GetDebugLocation().GetBeginPos();
-            if (exprLoc.IsZero()) continue;
+            if (exprLoc.IsZero())
+                continue;
             size_t exprLine = exprLoc.line;
             start = std::min(exprLine, start);
             end = std::max(exprLine, end);
@@ -990,9 +1013,10 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
     }
 
     // Find alias that matches our variableName, climbing the tree if needed.
-    std::optional<Alias> variableAlias = {};
-    while(!blocks.empty()) {
-        Block* block = blocks.front(); blocks.pop();
+    std::optional<Alias> variableAlias = { };
+    while (!blocks.empty()) {
+        Block* block = blocks.front();
+        blocks.pop();
 
         // Look inside phi functions
         for (auto phiFunction : GetBlockPhiFunctions(block)) {
@@ -1003,8 +1027,7 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
 
         // Look inside intersection constraints
         for (auto constraint : GetBlockConstraints(block)) {
-            if (auto interc =
-                std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
+            if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(constraint)) {
                 Alias intersectionAlias = Alias::from_string(interc->def);
                 if (intersectionAlias.def == variableName) {
                     variableAlias = intersectionAlias;
@@ -1015,11 +1038,13 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
         // Look in the block's expressions' definitions
         for (auto expr : block->GetExpressions()) {
             auto exprResult = expr->GetResult();
-            if (exprResult == nullptr) continue;
+            if (exprResult == nullptr)
+                continue;
 
-            // Only counts if behind or equal lineNumber 
+            // Only counts if behind or equal lineNumber
             auto exprLine = expr->GetDebugLocation().GetBeginPos().line;
-            if (exprLine > lineNumber) break;
+            if (exprLine > lineNumber)
+                break;
 
             Alias exprAlias = idToAlias[expr->GetResult()->GetIdentifier()];
             if (exprAlias.def == variableName) {
@@ -1028,13 +1053,15 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(
         }
 
         // If not found yet, consider the dominator
-        if(!variableAlias.has_value()) {
+        if (!variableAlias.has_value()) {
             Block* idom = GetImmediateDominator(block);
-            if(idom == nullptr || block == idom) continue;
+            if (idom == nullptr || block == idom)
+                continue;
             blocks.push(idom);
         } else {
             // Found the alias. Clean the queue
-            while(!blocks.empty()) blocks.pop();
+            while (!blocks.empty())
+                blocks.pop();
         }
     }
 
