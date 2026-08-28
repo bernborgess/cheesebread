@@ -17,7 +17,7 @@ using namespace Cangjie::CHIR;
 
 typedef std::unordered_map<
     /* fnName */ std::string,
-    /* each ocurrence */ std::vector<
+    /* each occurrence */ std::vector<
         /* arguments */ std::vector<Competition::Alias>>>
     ApplyMap;
 
@@ -48,6 +48,9 @@ public:
 
     /// Perform all steps to create Phi functions and rename variables to SSA
     void ConvertToSSA();
+
+    /// Detects calls to Exit() and stores the variables that were returned
+    void DetectReturnValues();
 
 private:
     /// Get aliases for identifiers
@@ -112,11 +115,19 @@ private:
     std::size_t Eval(std::size_t v);
 
     std::string functionName;
+    Cangjie::CHIR::Type* returnType;
     Block* entry_;
     std::vector<Parameter*> params_;
 
     // Store all function invocations in here, to create phi later
     ApplyMap arguments_by_functionName;
+
+    // Store aliases of possible return values
+    std::vector<Competition::Alias> functionReturnValues;
+
+    // Store invocations to bind their return values later.
+    std::unordered_map<std::string, std::vector<Competition::Alias>>
+        returnAliases_by_functionName;
 
    private:
     std::size_t dfsCount_ = 0;
@@ -138,8 +149,17 @@ private:
 public:
     const std::vector<Parameter*>& GetParams() { return params_; };
     const std::string GetFunctionName() { return functionName; };
+    const Cangjie::CHIR::Type* GetReturnType() { return returnType; };
     const std::vector<Node*>& GetNodes() { return nodes_; }
-    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; };
+    // Map of functions that are invoked and their arguments
+    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; }
+    // List of possible aliases returned by this function
+    const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
+    // Map of function names to aliases that are defined by their return value
+    const std::unordered_map<std::string, std::vector<Competition::Alias>>&
+        GetReturnAliasMap() { return returnAliases_by_functionName; };
+
+
 };
 } // namespace Competition
 

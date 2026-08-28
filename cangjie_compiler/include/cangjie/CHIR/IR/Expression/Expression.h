@@ -136,6 +136,7 @@ public:
     bool IsConstantString() const;
     bool IsDebug() const;
     bool IsDynamicDispatch() const;
+    bool IsExit() const;
     bool IsField() const;
     bool IsFuncCall() const;
     bool IsIntOpWithException() const;

@@ -23,6 +23,11 @@ struct UseEdge{
    EdgeType type;
 };
 
+enum ValueType {
+    IVType,
+    BVType
+};
+
 using IV = IntValue<4>;
 using BV = BoolValue;
 using AnalyzedValue = std::variant<IV, BV>;
@@ -168,8 +173,9 @@ public:
 class PhiConstraint : public Constraint {
 private:
     std::vector<std::string> operands;
+    ValueType type;
 public:
-    PhiConstraint(std::string var, std::vector<std::string> ops);
+    PhiConstraint(std::string var, std::vector<std::string> ops, ValueType type);
     bool eval(AbstractState& A) override;
 
     std::vector<UseEdge> get_uses() const override {

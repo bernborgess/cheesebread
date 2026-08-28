@@ -221,6 +221,11 @@ bool Expression::IsDebug() const
     return kind == ExprKind::DEBUGEXPR;
 }
 
+bool Expression::IsExit() const
+{
+    return kind == ExprKind::EXIT;
+}
+
 std::string Expression::GetExprKindName() const
 {
     return ExprKindMgr::Instance()->GetKindName(static_cast<size_t>(kind));

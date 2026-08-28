@@ -78,43 +78,27 @@ bool InitializationIntegerTop::eval(AbstractState& A) {
 }
 
 // --- PhiConstraint (v0 = phi(v1, v2, ...)) ---
-PhiConstraint::PhiConstraint(std::string var, std::vector<std::string> ops)
-    : Constraint(std::move(var)), operands(std::move(ops)) {}
+PhiConstraint::PhiConstraint(std::string var, std::vector<std::string> ops,
+    ValueType type)
+    : Constraint(std::move(var)), operands(std::move(ops)), type(type) {}
 
 bool PhiConstraint::eval(AbstractState& A) {
     if (!A.count(def)) {
-      bool typeDefined = false;
-      bool isBoolValue = true;
-      bool sameValueType = true;
-      for (int i = 0; i < operands.size(); i++) {
-        std::string op = operands[i];
-        if (A.count(op)) {
-          if (std::holds_alternative<BV>(A[op])) {
-            if (!isBoolValue) sameValueType = false;
-            typeDefined = true;
-          } else {
-            if (typeDefined && isBoolValue) sameValueType = false;
-            typeDefined = true;
-            isBoolValue = false;
-          }
-        }
-      }
-      if (sameValueType) {
-        if (isBoolValue) {
-          A.try_emplace(def, BV());
+        // A PHI constraint binds a series of OTHER variables with same type to
+        // `def`. There is a possibility that NONE of the phi ops were defined
+        // by a constraint, so we have to pass in the `type` to the constraint.
+        if (type == ValueType::IVType) {
+            A.try_emplace(def, IV());
         } else {
-          A.try_emplace(def, IV());
+            A.try_emplace(def, BV());
         }
-      } else {
-        return false;
-      }
     }
     if (std::holds_alternative<BV>(A[def])) {
         BV old_val = std::get<BV>(A[def]);
         BV accumulated_join; // Starts at bottom element
     
         for (const auto &op : operands) {
-          accumulated_join.join(std::get<BV>(A[op]));
+            accumulated_join.join(std::get<BV>(A[op]));
         }
     
         std::get<BV>(A[def]) = accumulated_join;
