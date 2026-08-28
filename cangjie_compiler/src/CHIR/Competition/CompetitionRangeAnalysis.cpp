@@ -219,7 +219,10 @@ void RangeAnalysis::OutputAnalysisToFile()
     for (int i = 0; i < queries.size(); i++) {
         if (!queryToDomTree[i].has_value()) {
             std::cerr << "No domTree was found for query!" << std::endl;
-            // TODO: Output bottom range here.
+            // ? Output bottom range here.
+            IV iv;
+            iv.setAsBottom();
+            outputFile << iv << std::endl;
             continue;
         }
 
@@ -237,7 +240,10 @@ void RangeAnalysis::OutputAnalysisToFile()
             std::cerr << "No alias for variable \"" << variableName
                       << "\" was found for query before line " << lineNumber << "!"
                       << std::endl;
-            // TODO: Output bottom range here.
+            // ? Output bottom range here.
+            IV iv;
+            iv.setAsBottom();
+            outputFile << iv << std::endl;
             continue;
         }
 
