@@ -98,7 +98,6 @@ bool PhiConstraint::eval(AbstractState& A) {
         BV accumulated_join; // Starts at bottom element
     
         for (const auto &op : operands) {
-            // ! Error here in i-plus-j code: std::bad_variant_access
             accumulated_join.join(std::get<BV>(A[op]));
         }
     
