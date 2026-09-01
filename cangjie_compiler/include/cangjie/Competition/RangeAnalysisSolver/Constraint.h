@@ -161,7 +161,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& os, const InitializationIntegerTop& c) {
-        os << c.def << ": [-inf, +inf]";
+        os << c.def << ": [-2147483648, 2147483647:1]";
         return os;
     }
 };

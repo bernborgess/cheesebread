@@ -943,6 +943,7 @@ void DominatorTree::GenerateSSAConstraints()
                         BINARY_CONSTRAINT_PUSH(GreaterEqualConstraint, bool);
                         break;
                     }
+                    default: break;
                     }
 
                 } else if (boolIdentifiers.count(lhs.def) && boolIdentifiers.count(rhs.def)) {
