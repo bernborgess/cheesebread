@@ -576,17 +576,8 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
 
         // Show the CHIR code inside this block!
         for (auto expr : block->GetExpressions()) {
-            std::string info = "";
-
-            // It's an attribution!
-            if (LocalVar* res = expr->GetResult(); res != nullptr) {
-                auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
-                                   : res->GetIdentifier();
-                info += ident + ": " + res->GetType()->ToString() + " = ";
-            }
-
             // Remove the long comments after the instruction
-            info += getUncommented(expr->ToString(0));
+            std::string info = getUncommented(expr->ToString(0));
             ReplaceAll(info, "&", "&amp;");
             ReplaceAll(info, "<", "&lt;");
             ReplaceAll(info, ">", "&gt;");
