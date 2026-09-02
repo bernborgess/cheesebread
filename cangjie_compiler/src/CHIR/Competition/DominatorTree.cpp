@@ -280,6 +280,13 @@ void DominatorTree::ComputeAlphaNodes()
     // }
 }
 
+// Returns if a value with this type may be analyzed.
+// Currently only Int64 and Bool
+static bool CanAnalyzeType(Cangjie::CHIR::Type* type)
+{
+    return type->IsBoolean() || type->IsNumeric();
+}
+
 /// @brief As described in the paper
 /// https://bears.ece.ucsb.edu/class/ece253/papers/cytron91.pdf#page=21
 // Renames all mentions of variables. New variables denoted Vi, where i is an
@@ -376,8 +383,44 @@ void DominatorTree::Renaming()
             if (expr->IsConstant()) {
                 ;
             } else if (expr->IsApply()) {
-                ;
-            } else if (expr->IsLoad()) {
+                // There is the case that a function application is used to
+                // initialize an array (along with its elements)
+
+                // Decide whether an apply is a initialization
+                auto apply = dynamic_cast<Apply*>(expr);
+
+                auto callee = apply->GetCallee();
+                if (!callee->IsFunc())
+                    continue;
+
+                auto func = dynamic_cast<Function*>(callee);
+                if (func->GetFuncKind() != FuncKind::STRUCT_CONSTRUCTOR)
+                    continue;
+
+                /*
+                TODO: This may be the init function of an Array:
+                @Frozen
+                init(data: RawArray<T>, start: Int64, len: Int64) {
+                    this.rawptr = data
+                    this.start = start
+                    this.len = len
+                }
+
+                if so, we create a new identifier for the array:
+
+                auto var = expr->GetResult();
+                std::string varId = var->GetIdentifier();
+                std::string varName = idToAlias[varId].def;
+                int counter = variableCounter[varName];
+                idToAlias[varId].setCounter(counter);
+                variableStack[varName].emplace(counter);
+                ++variableCounter[varName];
+
+                or similar code.
+
+                */
+                continue;
+            } else if (expr->IsLoad()) { // id = Load(op)
                 std::string id = expr->GetResult()->GetIdentifier();
                 std::string op = expr->GetOperand(0)->GetIdentifier();
                 if (idToAlias[id].def == idToAlias[op].def) {
@@ -393,13 +436,21 @@ void DominatorTree::Renaming()
                     // this use (of 'x') to the current one, not the final
                     // counter of references to this address (idToAlias[%1])
                     std::string var = idToAlias[op].def;
+
+                    // If the variable is a structured type, our analysis can't 
+                    // track its initialization and different values either way
+                    auto type = expr->GetResult()->GetType();
+                    if (!CanAnalyzeType(type)) {
+                        // ? Possibly create support for arrays
+                        continue;
+                    }
+
                     int count = variableStack[var].top();
 
                     // ? Not useful to set loads
                     idToAlias[op].setCounter(count);
 
                     // Create the constraint here
-                    auto type = expr->GetResult()->GetType();
                     if (type->IsInteger()) {
                         auto constraint = std::make_shared<AddConstraint>(
                             Alias(functionName, id, 0).to_string(),
@@ -419,7 +470,10 @@ void DominatorTree::Renaming()
             } else {
                 for (auto op : expr->GetOperands()) {
                     std::string id = op->GetIdentifier();
-                    idToAlias[id].setCounter(variableStack[idToAlias[id].def].top());
+                    if (!CanAnalyzeType(op->GetType())) continue;
+                    auto def = idToAlias[id].def;
+                    auto stackCounter = variableStack[def].top();
+                    idToAlias[id].setCounter(stackCounter);
                 }
             }
 
