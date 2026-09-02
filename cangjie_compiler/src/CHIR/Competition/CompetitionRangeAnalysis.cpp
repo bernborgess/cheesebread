@@ -157,7 +157,17 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
 
             auto paramName = params[i]->GetSrcCodeIdentifier();
             auto alias = Alias(callee, paramName, 0);
-            auto valueType = params[i]->GetType()->IsNumeric() ? ValueType::IVType : ValueType::BVType;
+
+            ValueType valueType;
+            auto paramType = params[i]->GetType();
+            if (paramType->IsNumeric()) {
+                valueType = ValueType::IVType;
+            } else if (paramType->IsBoolean()) {
+                valueType = ValueType::BVType;
+            } else {
+                continue; // Unit or unsupported type
+            }
+
             auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops,
                 valueType);
             constraintGraph.addConstraint(phi);
@@ -186,7 +196,16 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
             }
 
             for (auto& val : vals) {
-                auto valueType = calleeTree->GetReturnType()->IsNumeric() ? ValueType::IVType : ValueType::BVType;
+                ValueType valueType;
+                auto retType = calleeTree->GetReturnType();
+                if (retType->IsNumeric()) {
+                    valueType = ValueType::IVType;
+                } else if (retType->IsBoolean()) {
+                    valueType = ValueType::BVType;
+                } else {
+                    continue; // Unit or unsupported type
+                }
+
                 auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops,
                     valueType);
 

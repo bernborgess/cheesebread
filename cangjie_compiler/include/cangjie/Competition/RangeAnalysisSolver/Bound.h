@@ -98,8 +98,8 @@ public:
    */
   friend std::ostream& operator<<(std::ostream& os, const Bound& bound) {
     switch (bound.type) {
-      case Bound::Type::MinusInfinity: os << "-inf"; break;
-      case Bound::Type::PlusInfinity:  os << "+inf"; break;
+      case Bound::Type::MinusInfinity: os << "-2147483648"; break;
+      case Bound::Type::PlusInfinity:  os << "2147483647"; break;
       case Bound::Type::Constant:      os << bound.value; break;
       default: break;
     }
