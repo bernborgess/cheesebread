@@ -115,7 +115,7 @@ public:
         TYPE_CSTRING,
         // Generic type
         TYPE_GENERIC,
-        // Referece to an value with abritray type
+        // Reference to an value with arbitrary type
         TYPE_REFTYPE,
         // Built-in box type
         TYPE_BOXTYPE,
@@ -147,7 +147,7 @@ public:
         return this->kind == type.kind;
     }
 
-    /** @brief Check whether the type is Interger. */
+    /** @brief Check whether the type is Integer. */
     bool IsInteger() const
     {
         return kind >= TYPE_INT8 && kind <= TYPE_UINT_NATIVE;
