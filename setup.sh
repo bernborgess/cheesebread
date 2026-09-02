@@ -1,5 +1,5 @@
 set -e # Stop on first error
-set -v # Verbose
+#set -v # Verbose
 
 # Architecture name
 export ARCH=$(uname -m)
@@ -74,7 +74,7 @@ fi
 # Build process
 export CMAKE_PREFIX_PATH=$BUILD_ROOT/libedit-3.1:$BUILD_ROOT/ncurses-6.5/usr;
 
-# Initilialize submodules if needed.
+# Initialize submodules if needed.
 cd $WORKSPACE
 #git submodule update --init --recursive 
 # ! The main branch of cangjie_runtime has compilation issues,
@@ -172,5 +172,7 @@ elif $FRESH; then
 # cp ${WORKSPACE}/cangjie_tools/cjpm/dist/*.toml ${WORKSPACE}/cangjie_compiler/output/tools/config;
 fi
 
-echo "All projects built successfully!"
+GREEN='\033[0;32m'
+RESET='\033[0m'
+echo -e "\n${GREEN}All projects built successfully!${RESET}"
 
