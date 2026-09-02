@@ -104,6 +104,8 @@ public:
 
 private:
     std::vector<std::string> variables;
+    // All mutations of `variables` should be here.
+    void addVariable(std::string variable);
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
     std::unordered_map<Block*,Node*> blockToNodeMap;
 

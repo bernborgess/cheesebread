@@ -96,6 +96,11 @@ void DominatorTree::Compute()
     }
 }
 
+void DominatorTree::addVariable(std::string variable)
+{
+    variables.emplace_back(variable);
+}
+
 void DominatorTree::DFS(Block* block)
 {
     ++dfsCount_;
@@ -225,7 +230,7 @@ void DominatorTree::ComputeAlphaNodes()
                                                                    : param->GetSrcCodeIdentifier();
         idToAlias[id] = Alias(funcName, aliasDef);
         idToAlias[id].setCounter(0);
-        variables.emplace_back(idToAlias[id].def);
+        addVariable(idToAlias[id].def);
     }
 
     for (auto node : nodes_) {
@@ -246,7 +251,7 @@ void DominatorTree::ComputeAlphaNodes()
 
                 idToAlias[id] = Alias(funcName, aliasDef);
 
-                variables.emplace_back(idToAlias[id].def);
+                addVariable(idToAlias[id].def);
                 // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
             }
 
@@ -297,7 +302,7 @@ void DominatorTree::Renaming()
             std::string id = expr->GetResult()->GetIdentifier();
             if (idToAlias.count(id) == 0) {
                 idToAlias[id] = Alias(funcName, id);
-                variables.emplace_back(id);
+                addVariable(id);
             }
         }
     }
