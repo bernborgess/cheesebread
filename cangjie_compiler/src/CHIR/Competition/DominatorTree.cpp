@@ -280,13 +280,6 @@ void DominatorTree::ComputeAlphaNodes()
     // }
 }
 
-// Returns if a value with this type may be analyzed.
-// Currently only Int64 and Bool
-static bool CanAnalyzeType(Cangjie::CHIR::Type* type)
-{
-    return type->IsBoolean() || type->IsNumeric();
-}
-
 /// @brief As described in the paper
 /// https://bears.ece.ucsb.edu/class/ece253/papers/cytron91.pdf#page=21
 // Renames all mentions of variables. New variables denoted Vi, where i is an
@@ -440,9 +433,13 @@ void DominatorTree::Renaming()
                     // If the variable is a structured type, our analysis can't 
                     // track its initialization and different values either way
                     auto type = expr->GetResult()->GetType();
-                    if (!CanAnalyzeType(type)) {
-                        // ? Possibly create support for arrays
-                        continue;
+
+                    // ! If var does not have a identifier so far, we will just 
+                    // ! create one right now!
+                    if (variableStack[var].empty()) {
+                        int counter = variableCounter[var];
+                        variableStack[var].emplace(counter);
+                        ++variableCounter[var];
                     }
 
                     int count = variableStack[var].top();
@@ -470,8 +467,16 @@ void DominatorTree::Renaming()
             } else {
                 for (auto op : expr->GetOperands()) {
                     std::string id = op->GetIdentifier();
-                    if (!CanAnalyzeType(op->GetType())) continue;
                     auto def = idToAlias[id].def;
+
+                    // ! If def does not have a identifier so far, we will just 
+                    // ! create one right now!
+                    if (variableStack[def].empty()) {
+                        int counter = variableCounter[def];
+                        variableStack[def].emplace(counter);
+                        ++variableCounter[def];
+                    }
+
                     auto stackCounter = variableStack[def].top();
                     idToAlias[id].setCounter(stackCounter);
                 }
