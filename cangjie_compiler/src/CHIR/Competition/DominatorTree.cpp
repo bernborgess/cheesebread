@@ -636,7 +636,11 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
         // Show the CHIR code inside this block!
         for (auto expr : block->GetExpressions()) {
             // Remove the long comments after the instruction
-            std::string info = getUncommented(expr->ToString(0));
+            std::string info;
+            if (LocalVar* res = expr->GetResult(); res != nullptr && alias) {
+                info += "[" + idToAlias[res->GetIdentifier()].to_string() + "] ";
+            }
+            info += getUncommented(expr->ToString(0));
             ReplaceAll(info, "&", "&amp;");
             ReplaceAll(info, "<", "&lt;");
             ReplaceAll(info, ">", "&gt;");
