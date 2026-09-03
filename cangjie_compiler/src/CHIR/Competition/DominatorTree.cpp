@@ -96,6 +96,11 @@ void DominatorTree::Compute()
     }
 }
 
+void DominatorTree::addVariable(std::string variable)
+{
+    variables.emplace_back(variable);
+}
+
 void DominatorTree::DFS(Block* block)
 {
     ++dfsCount_;
@@ -225,7 +230,7 @@ void DominatorTree::ComputeAlphaNodes()
                                                                    : param->GetSrcCodeIdentifier();
         idToAlias[id] = Alias(funcName, aliasDef);
         idToAlias[id].setCounter(0);
-        variables.emplace_back(idToAlias[id].def);
+        addVariable(idToAlias[id].def);
     }
 
     for (auto node : nodes_) {
@@ -246,7 +251,7 @@ void DominatorTree::ComputeAlphaNodes()
 
                 idToAlias[id] = Alias(funcName, aliasDef);
 
-                variables.emplace_back(idToAlias[id].def);
+                addVariable(idToAlias[id].def);
                 // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
             }
 
@@ -275,6 +280,13 @@ void DominatorTree::ComputeAlphaNodes()
     // }
 }
 
+// Returns if a value with this type may be analyzed.
+// Currently only Int64 and Bool
+static bool CanAnalyzeType(Cangjie::CHIR::Type* type)
+{
+    return type->IsBoolean() || type->IsNumeric();
+}
+
 /// @brief As described in the paper
 /// https://bears.ece.ucsb.edu/class/ece253/papers/cytron91.pdf#page=21
 // Renames all mentions of variables. New variables denoted Vi, where i is an
@@ -297,7 +309,7 @@ void DominatorTree::Renaming()
             std::string id = expr->GetResult()->GetIdentifier();
             if (idToAlias.count(id) == 0) {
                 idToAlias[id] = Alias(funcName, id);
-                variables.emplace_back(id);
+                addVariable(id);
             }
         }
     }
@@ -371,8 +383,44 @@ void DominatorTree::Renaming()
             if (expr->IsConstant()) {
                 ;
             } else if (expr->IsApply()) {
-                ;
-            } else if (expr->IsLoad()) {
+                // There is the case that a function application is used to
+                // initialize an array (along with its elements)
+
+                // Decide whether an apply is a initialization
+                auto apply = dynamic_cast<Apply*>(expr);
+
+                auto callee = apply->GetCallee();
+                if (!callee->IsFunc())
+                    continue;
+
+                auto func = dynamic_cast<Function*>(callee);
+                if (func->GetFuncKind() != FuncKind::STRUCT_CONSTRUCTOR)
+                    continue;
+
+                /*
+                TODO: This may be the init function of an Array:
+                @Frozen
+                init(data: RawArray<T>, start: Int64, len: Int64) {
+                    this.rawptr = data
+                    this.start = start
+                    this.len = len
+                }
+
+                if so, we create a new identifier for the array:
+
+                auto var = expr->GetResult();
+                std::string varId = var->GetIdentifier();
+                std::string varName = idToAlias[varId].def;
+                int counter = variableCounter[varName];
+                idToAlias[varId].setCounter(counter);
+                variableStack[varName].emplace(counter);
+                ++variableCounter[varName];
+
+                or similar code.
+
+                */
+                continue;
+            } else if (expr->IsLoad()) { // id = Load(op)
                 std::string id = expr->GetResult()->GetIdentifier();
                 std::string op = expr->GetOperand(0)->GetIdentifier();
                 if (idToAlias[id].def == idToAlias[op].def) {
@@ -388,13 +436,21 @@ void DominatorTree::Renaming()
                     // this use (of 'x') to the current one, not the final
                     // counter of references to this address (idToAlias[%1])
                     std::string var = idToAlias[op].def;
+
+                    // If the variable is a structured type, our analysis can't 
+                    // track its initialization and different values either way
+                    auto type = expr->GetResult()->GetType();
+                    if (!CanAnalyzeType(type)) {
+                        // ? Possibly create support for arrays
+                        continue;
+                    }
+
                     int count = variableStack[var].top();
 
                     // ? Not useful to set loads
                     idToAlias[op].setCounter(count);
 
                     // Create the constraint here
-                    auto type = expr->GetResult()->GetType();
                     if (type->IsInteger()) {
                         auto constraint = std::make_shared<AddConstraint>(
                             Alias(functionName, id, 0).to_string(),
@@ -414,7 +470,10 @@ void DominatorTree::Renaming()
             } else {
                 for (auto op : expr->GetOperands()) {
                     std::string id = op->GetIdentifier();
-                    idToAlias[id].setCounter(variableStack[idToAlias[id].def].top());
+                    if (!CanAnalyzeType(op->GetType())) continue;
+                    auto def = idToAlias[id].def;
+                    auto stackCounter = variableStack[def].top();
+                    idToAlias[id].setCounter(stackCounter);
                 }
             }
 
@@ -576,17 +635,8 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
 
         // Show the CHIR code inside this block!
         for (auto expr : block->GetExpressions()) {
-            std::string info = "";
-
-            // It's an attribution!
-            if (LocalVar* res = expr->GetResult(); res != nullptr) {
-                auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
-                                   : res->GetIdentifier();
-                info += ident + ": " + res->GetType()->ToString() + " = ";
-            }
-
             // Remove the long comments after the instruction
-            info += getUncommented(expr->ToString(0));
+            std::string info = getUncommented(expr->ToString(0));
             ReplaceAll(info, "&", "&amp;");
             ReplaceAll(info, "<", "&lt;");
             ReplaceAll(info, ">", "&gt;");
