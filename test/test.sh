@@ -1,6 +1,6 @@
 
 TESTS=('array' 'call12' 'i-plus-j' 'i-plus-plus' 'official' 'readif' \
-    'return-compare' 'return012' 'while10' 'x14') # 'wcet'
+    'return-compare' 'return012' 'while10' 'x14' 'wcet')
 
 CJC_PATH=../../cangjie_compiler/output/bin/
 GENERATE_GRAPHS=false
