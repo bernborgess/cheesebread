@@ -56,12 +56,14 @@ void RangeAnalysis::ReadCompetitionQueries()
     inputFile.close();
 }
 
-void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package)
-{
+void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package) {
     for (auto func : package->GetGlobalFuncsWithBody()) {
         auto funcFileName = func->GetDebugLocation().GetFileName();
         for (auto [fileName, lineNumber, variableName] : queries) {
             if (funcFileName == fileName) {
+                auto funcSrcId = func->GetSrcCodeIdentifier();
+                if (funcSrcId.find('$') != std::string::npos)
+                    continue;  // Internal function
                 requestedFunctions.insert(func);
             }
         }
@@ -138,6 +140,7 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
     }
 
     for (auto& [callee, invocations] : argumentsByFnName) {
+        std::cerr << "callee: " << callee << std::endl;
         if (invocations.size() == 0 || domTree_by_fnName.count(callee) == 0) {
             continue;
         }
@@ -188,6 +191,8 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
             if (!domTree_by_fnName.count(callee))
                 continue;
+
+            std::cerr << "returns of" << fnName << " = " << callee << std::endl;
 
             std::vector<std::string> ops;
             auto& calleeTree = domTree_by_fnName[callee];
@@ -316,6 +321,8 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // constraints
     for (auto func : requestedFunctions)
         BuildDomTreeWithConstraints(func);
+
+    return;
 
     // Interprocedural
     BindArgumentsToParamsWithPhiConstraint();
