@@ -1,15 +1,15 @@
 #ifndef COMPETITION_DOMINATOR_TREE_H
 #define COMPETITION_DOMINATOR_TREE_H
 
+#include <unordered_map>
+#include <vector>
+
 #include "cangjie/CHIR/CHIR.h"
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
+#include "cangjie/Competition/Phi.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Graph.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
-#include "cangjie/Competition/Phi.h"
-
-#include <unordered_map>
-#include <vector>
 
 namespace Competition {
 
@@ -24,8 +24,8 @@ typedef std::unordered_map<
 /// Computes the dominator tree of a CFG using the
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
-public:
-    explicit DominatorTree(Block* entry, std::vector<Parameter*> &params);
+   public:
+    explicit DominatorTree(Block* entry, std::vector<Parameter*>& params);
 
     /// Computes the dominator tree.
     void Compute();
@@ -52,16 +52,16 @@ public:
     /// Detects calls to Exit() and stores the variables that were returned
     void DetectReturnValues();
 
-private:
+   private:
     /// Get aliases for identifiers
     void ComputeAlphaNodes();
 
     void Renaming();
 
-public:
+   public:
     void GenerateSSAConstraints();
 
-private:
+   private:
     struct Node {
         std::vector<Phi> phiFunctions;
 
@@ -84,32 +84,31 @@ private:
         void pushConstraint(std::shared_ptr<Constraint> constraint) {
             nodeConstraints.push_back(constraint);
         }
-
     };
 
     Node* ReverseMapBlockToNode(Block* block);
-    void VisitBlockBranch(Block*block);
+    void VisitBlockBranch(Block* block);
 
-public:
-    std::vector<std::shared_ptr<Constraint>> &GetBlockConstraints(Block *block);
+   public:
+    std::vector<std::shared_ptr<Constraint>>& GetBlockConstraints(Block* block);
     std::vector<Phi>& GetBlockPhiFunctions(Block* block);
 
-private:
+   private:
     void AddPhiFunction(Block* block, Phi phiFunction);
 
-public:
+   public:
     std::optional<Alias> FindVarBeforeLine(std::string variableName,
                                            int lineNumber);
     std::unordered_map<std::string, Alias> idToAlias;
 
-private:
+   private:
     std::vector<std::string> variables;
     // All mutations of `variables` should be here.
     void addVariable(std::string variable);
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
-    std::unordered_map<Block*,Node*> blockToNodeMap;
+    std::unordered_map<Block*, Node*> blockToNodeMap;
 
-private:
+   private:
     void DFS(Block* block);
 
     void Link(std::size_t parent, std::size_t child);
@@ -148,7 +147,8 @@ private:
 
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
-public:
+
+   public:
     const std::vector<Parameter*>& GetParams() { return params_; };
     const std::string GetFunctionName() { return functionName; };
     const Cangjie::CHIR::Type* GetReturnType() { return returnType; };
@@ -159,10 +159,10 @@ public:
     const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
     // Map of function names to aliases that are defined by their return value
     const std::unordered_map<std::string, std::vector<Competition::Alias>>&
-        GetReturnAliasMap() { return returnAliases_by_functionName; };
-
-
+    GetReturnAliasMap() {
+        return returnAliases_by_functionName;
+    };
 };
-} // namespace Competition
+}  // namespace Competition
 
-#endif // COMPETITION_DOMINATOR_TREE_H
+#endif  // COMPETITION_DOMINATOR_TREE_H

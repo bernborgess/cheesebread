@@ -19,21 +19,21 @@ struct Query {
 };
 
 class RangeAnalysis {
-public:
-    RangeAnalysis() { }
+   public:
+    RangeAnalysis() {}
 
     void RunOnPackage(Cangjie::CHIR::Package* package);
 
-private:
+   private:
     std::vector<Competition::Query> queries;
     void ReadCompetitionQueries();
-    
+
     std::set<Cangjie::CHIR::Function*> requestedFunctions;
     void GatherRequestedFunctions(Cangjie::CHIR::Package* package);
 
     std::unordered_map<std::string, DominatorTree*> domTree_by_fnName;
     std::vector<std::optional<DominatorTree*>> queryToDomTree;
-    void BuildDomTreeWithConstraints(Cangjie::CHIR::Function *func);
+    void BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func);
     void BindArgumentsToParamsWithPhiConstraint();
     void BindReturnValuesToCallResultsWithPhiConstraint();
 
@@ -44,6 +44,6 @@ private:
     void OutputAnalysisToFile();
 };
 
-} // namespace Competition
+}  // namespace Competition
 
 #endif

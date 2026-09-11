@@ -1,13 +1,13 @@
 #include "cangjie/Competition/CompetitionRangeAnalysis.h"
 
+#include <fstream>
+#include <sstream>
+
 #include "cangjie/CHIR/Utils/CHIRPrinter.h"
 #include "cangjie/Competition/Phi.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
 #include "cangjie/Competition/SSABuilder.h"
-
-#include <fstream>
-#include <sstream>
 
 namespace Competition {
 
@@ -18,12 +18,11 @@ using namespace Cangjie::CHIR;
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
 
-void RangeAnalysis::ReadCompetitionQueries()
-{
+void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
     std::ifstream inputFile;
     inputFile.open("input.txt", std::ifstream::in);
-    if (!inputFile.is_open()) { //  No file 'input.txt'
+    if (!inputFile.is_open()) {  //  No file 'input.txt'
         return;
     }
 
@@ -35,12 +34,12 @@ void RangeAnalysis::ReadCompetitionQueries()
         std::string fileName, variableName;
 
         getline(ss, fileName, ',');
-        fileName.erase(fileName.begin()); // Remove heading [
+        fileName.erase(fileName.begin());  // Remove heading [
 
         unsigned int lineNumber;
         ss >> lineNumber;
 
-        getline(ss, variableName, ','); // Remove comma
+        getline(ss, variableName, ',');  // Remove comma
         getline(ss, variableName, ',');
 
         // Remove leading space
@@ -48,9 +47,9 @@ void RangeAnalysis::ReadCompetitionQueries()
             variableName.erase(variableName.begin());
         }
 
-        variableName.erase(variableName.end() - 1); // Remove last ]
+        variableName.erase(variableName.end() - 1);  // Remove last ]
 
-        queries.push_back({ fileName, lineNumber, variableName });
+        queries.push_back({fileName, lineNumber, variableName});
     }
 
     inputFile.close();
@@ -70,8 +69,7 @@ void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package) {
     }
 }
 
-void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
-{
+void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
     Block* entry = func->GetEntryBlock();
     std::vector<Parameter*> params = func->GetParams();
 
@@ -107,10 +105,8 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
     // Store reference to domTree of each query
     for (int i = 0; i < queries.size(); i++) {
         auto& [fileName, lineNumber, variableName] = queries[i];
-        if (funcFileName != fileName)
-            continue;
-        if (funcStartLine > lineNumber || funcEndLine < lineNumber)
-            continue;
+        if (funcFileName != fileName) continue;
+        if (funcStartLine > lineNumber || funcEndLine < lineNumber) continue;
 
         // This query is solved on the dominator tree.
         // We still need to bind the interprocedural calls, only after that
@@ -131,8 +127,7 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
 
 // For each function Apply, bind the identifiers of the source function
 // to the target function parameters with phi functions.
-void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
-{
+void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
     ApplyMap argumentsByFnName;
     for (auto& [_, domTree] : domTree_by_fnName) {
         const auto applyMap = domTree->GetFnApplyMap();
@@ -167,11 +162,11 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
             } else if (paramType->IsBoolean()) {
                 valueType = ValueType::BVType;
             } else {
-                continue; // Unit or unsupported type
+                continue;  // Unit or unsupported type
             }
 
             auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops,
-                valueType);
+                                                       valueType);
             constraintGraph.addConstraint(phi);
 
 #ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
@@ -183,13 +178,11 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
 
 // For each return value in target function, bind it to the call result with a
 // phi function
-void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
-{
+void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint() {
     for (auto& [fnName, domTree] : domTree_by_fnName) {
         // Debugging the returnAliases
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
-            if (!domTree_by_fnName.count(callee))
-                continue;
+            if (!domTree_by_fnName.count(callee)) continue;
 
             std::vector<std::string> ops;
             auto& calleeTree = domTree_by_fnName[callee];
@@ -205,11 +198,11 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
                 } else if (retType->IsBoolean()) {
                     valueType = ValueType::BVType;
                 } else {
-                    continue; // Unit or unsupported type
+                    continue;  // Unit or unsupported type
                 }
 
                 auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops,
-                    valueType);
+                                                           valueType);
 
                 constraintGraph.addConstraint(phi);
 #ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
@@ -220,16 +213,15 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
     }
 }
 
-void RangeAnalysis::CreateHelperConstraints()
-{
+void RangeAnalysis::CreateHelperConstraints() {
     auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
-    auto cst_true = std::make_shared<InitializationBoolConstraint>("\%const_true", true);
+    auto cst_true =
+        std::make_shared<InitializationBoolConstraint>("\%const_true", true);
     constraintGraph.addConstraint(cst_0);
     constraintGraph.addConstraint(cst_true);
 }
 
-void RangeAnalysis::OutputAnalysisToFile()
-{
+void RangeAnalysis::OutputAnalysisToFile() {
     std::fstream outputFile;
     outputFile.open("output.txt", std::ios::out);
     if (!outputFile.is_open()) {
@@ -252,15 +244,17 @@ void RangeAnalysis::OutputAnalysisToFile()
         auto& [fileName, lineNumber, variableName] = queries[i];
 
 #ifdef DEBUG_PRINT_QUERIES
-        std::cerr << "Find the range of variable " << variableName << " at line "
-                  << lineNumber << " of file " << fileName << std::endl;
+        std::cerr << "Find the range of variable " << variableName
+                  << " at line " << lineNumber << " of file " << fileName
+                  << std::endl;
 #endif
 
-        auto maybeVariableAlias = domTree->FindVarBeforeLine(variableName, lineNumber);
+        auto maybeVariableAlias =
+            domTree->FindVarBeforeLine(variableName, lineNumber);
         if (!maybeVariableAlias.has_value()) {
             std::cerr << "No alias for variable \"" << variableName
-                      << "\" was found for query before line " << lineNumber << "!"
-                      << std::endl;
+                      << "\" was found for query before line " << lineNumber
+                      << "!" << std::endl;
             // ? Output bottom range here.
             IV iv;
             iv.setAsBottom();
@@ -295,16 +289,13 @@ void RangeAnalysis::OutputAnalysisToFile()
     outputFile.close();
 }
 
-void RangeAnalysis::RunOnPackage(Package* package)
-{
+void RangeAnalysis::RunOnPackage(Package* package) {
     // Filter out the builtin cangjie code
-    if (package->GetName() == "std.core")
-        return;
+    if (package->GetName() == "std.core") return;
 
     // Reads input file for value range queries
     ReadCompetitionQueries();
-    if (queries.size() < 1)
-        return;
+    if (queries.size() < 1) return;
 
     queryToDomTree.resize(queries.size());
 
@@ -316,9 +307,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
 
     // Compute dominator tree for each function, insert the intraprocedural
     // constraints
-    for (auto func : requestedFunctions)
-        BuildDomTreeWithConstraints(func);
-
+    for (auto func : requestedFunctions) BuildDomTreeWithConstraints(func);
 
     // Interprocedural
     BindArgumentsToParamsWithPhiConstraint();
@@ -346,4 +335,4 @@ void RangeAnalysis::RunOnPackage(Package* package)
     return;
 }
 
-} // namespace Competition
+}  // namespace Competition
