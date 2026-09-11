@@ -412,28 +412,6 @@ void DominatorTree::Renaming()
                 if (func->GetFuncKind() != FuncKind::STRUCT_CONSTRUCTOR)
                     continue;
 
-                /*
-                TODO: This may be the init function of an Array:
-                @Frozen
-                init(data: RawArray<T>, start: Int64, len: Int64) {
-                    this.rawptr = data
-                    this.start = start
-                    this.len = len
-                }
-
-                if so, we create a new identifier for the array:
-
-                auto var = expr->GetResult();
-                std::string varId = var->GetIdentifier();
-                std::string varName = idToAlias[varId].def;
-                int counter = variableCounter[varName];
-                idToAlias[varId].setCounter(counter);
-                variableStack[varName].emplace(counter);
-                ++variableCounter[varName];
-
-                or similar code.
-
-                */
                 continue;
             } else if (expr->IsLoad()) { // id = Load(op)
                 std::string id = expr->GetResult()->GetIdentifier();
