@@ -140,7 +140,6 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
     }
 
     for (auto& [callee, invocations] : argumentsByFnName) {
-        std::cerr << "callee: " << callee << std::endl;
         if (invocations.size() == 0 || domTree_by_fnName.count(callee) == 0) {
             continue;
         }
@@ -191,8 +190,6 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
             if (!domTree_by_fnName.count(callee))
                 continue;
-
-            std::cerr << "returns of" << fnName << " = " << callee << std::endl;
 
             std::vector<std::string> ops;
             auto& calleeTree = domTree_by_fnName[callee];

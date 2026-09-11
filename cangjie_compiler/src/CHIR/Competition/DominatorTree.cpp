@@ -352,15 +352,37 @@ void DominatorTree::Renaming()
                 // ? We need to replace the plain variable name stored in
                 // these constraints by the updated Aliases::to_string (with counters)
 
-                // Operand
+                // Operands:
+                // * src
                 std::string op = interc->operand;
                 int newOpCounter = variableStack[op].top();
-                interc->operand = Alias(functionName, op, newOpCounter).to_string();
+                interc->operand =
+                    Alias(functionName, op, newOpCounter).to_string();
+
+                // * low
+                if (auto fut = std::get_if<IntersectionConstraint::Future>(
+                        &interc->lower_bound)) {
+                    std::string op = fut->target_variable;
+                    int newOpCounter = variableStack[op].top();
+                    fut->target_variable =
+                        Alias(functionName, op, newOpCounter).to_string();
+                }
+
+                // * up
+                if (auto fut = std::get_if<IntersectionConstraint::Future>(
+                        &interc->upper_bound)) {
+                    std::string op = fut->target_variable;
+                    int newOpCounter = variableStack[op].top();
+                    fut->target_variable =
+                        Alias(functionName, op, newOpCounter).to_string();
+                }
 
                 // Variable Definition
                 std::string var = interc->def;
                 int newVarCounter = variableCounter[var];
-                interc->def = Alias(functionName, var, newVarCounter).to_string();
+                interc->def =
+                    Alias(functionName, var, newVarCounter).to_string();
+
                 variableStack[var].emplace(newVarCounter);
                 ++variableCounter[var];
             }

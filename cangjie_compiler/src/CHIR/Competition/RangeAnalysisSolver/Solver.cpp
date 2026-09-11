@@ -5,8 +5,10 @@
 
 #include "cangjie/Competition/RangeAnalysisSolver/Solver.h"
 
+// Define this to show each active constraint
+// #define DEBUG_SHOW_SOLVER_CONSTRAINTS
 // Define this to show all steps the solver takes
-#define DEBUG_SHOW_SOLVER_STEPS
+// #define DEBUG_SHOW_SOLVER_STEPS
 
 Solver::Solver(AbstractState& state) : state(state) {}
 
@@ -17,7 +19,7 @@ void Solver::addConstraint(std::shared_ptr<Constraint> constraint) {
 void Solver::clear() { constraints.clear(); }
 
 void Solver::resolveSCC() {
-#ifdef DEBUG_SHOW_SOLVER_STEPS
+#ifdef DEBUG_SHOW_SOLVER_CONSTRAINTS
     std::cout << "\nSolver called for the following constraints:\n";
     for (auto& constraint : this->constraints) {
         std::cout << "\t" << constraint << "\n";
