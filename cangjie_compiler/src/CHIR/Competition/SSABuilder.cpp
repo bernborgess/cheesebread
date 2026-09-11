@@ -10,11 +10,10 @@ namespace Competition {
 // Computes the iterated dominance frontier (IDF) for a set of blocks.
 // N_alpha is the set of blocks that define a specific variable.
 // Returns the set of blocks where phi-functions must be inserted.
-std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha, Block* entryBlock)
-{
+std::vector<Block*> SSABuilder::PlacePhiNodes(
+    const std::vector<Block*>& n_alpha, Block* entryBlock) {
     std::vector<Block*> idf;
-    if (n_alpha.empty())
-        return idf;
+    if (n_alpha.empty()) return idf;
 
     // 1. Initialize state
     ResetState();
@@ -62,17 +61,19 @@ std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha
 
             // Determine edge type. If x is NOT the immediate dominator of y,
             // it is a J-edge. Otherwise, it is a D-edge.
-            bool isJEdge = (domTree_.GetImmediateDominator(y->block) != x->block);
+            bool isJEdge =
+                (domTree_.GetImmediateDominator(y->block) != x->block);
 
             if (isJEdge) {
                 // J-edge processing
                 if (y->level <= currentRoot->level) {
                     if (!y->in_phi) {
                         y->in_phi = true;
-                        idf.push_back(y->block); // Place Phi function here
+                        idf.push_back(y->block);  // Place Phi function here
                     }
                     if (!y->alpha) {
-                        InsertNode(y); // Schedule y to have its frontier explored
+                        InsertNode(
+                            y);  // Schedule y to have its frontier explored
                     }
                 }
             } else {
@@ -95,8 +96,7 @@ std::vector<Block*> SSABuilder::PlacePhiNodes(const std::vector<Block*>& n_alpha
 }
 
 // Call this once before placing phis to precompute levels using the DomTree
-void SSABuilder::ComputeLevels(Block* entryBlock)
-{
+void SSABuilder::ComputeLevels(Block* entryBlock) {
     djNodes_.clear();
     maxLevel_ = 0;
 
@@ -121,8 +121,7 @@ void SSABuilder::ComputeLevels(Block* entryBlock)
     }
 }
 
-DJNode* SSABuilder::GetDJNode(Block* block)
-{
+DJNode* SSABuilder::GetDJNode(Block* block) {
     auto it = djNodes_.find(block);
     if (it == djNodes_.end()) {
         djNodes_[block] = DJNode{block, 0, false, false, false};
@@ -130,8 +129,7 @@ DJNode* SSABuilder::GetDJNode(Block* block)
     return &djNodes_[block];
 }
 
-void SSABuilder::ResetState()
-{
+void SSABuilder::ResetState() {
     for (auto& pair : djNodes_) {
         pair.second.visited = false;
         pair.second.alpha = false;
@@ -139,4 +137,4 @@ void SSABuilder::ResetState()
     }
 }
 
-} // namespace competition
+}  // namespace Competition

@@ -1,19 +1,18 @@
 #ifndef COMPETITION_PHI_H
 #define COMPETITION_PHI_H
 
+#include <unordered_map>
+#include <vector>
+
 #include "cangjie/CHIR/CHIR.h"
 #include "cangjie/CHIR/IR/Package.h"
 #include "cangjie/CHIR/IR/Value/Value.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
 
-#include <unordered_map>
-#include <vector>
-
-
 namespace Competition {
 
 struct Alias {
-    // Structure of the alias 
+    // Structure of the alias
     /* Ex:
 
     func foo() {
@@ -26,11 +25,11 @@ struct Alias {
 
     * as a string:
           "foo:x:1"
-            |  | | 
+            |  | |
             |  | +----> count
             |  +------> identifier (GetSrcCodeIdentifier)
             +---------> funcName, to avoid coliding between them.
-    */ 
+    */
 
     std::string funcName;
     std::string def;
@@ -46,8 +45,8 @@ struct Alias {
     void setCounter(int _counter) { counter = _counter; }
 
     const bool operator<(const Alias& other) const {
-        return this->def < other.def
-            || (this->def == other.def && this->counter < other.counter);
+        return this->def < other.def ||
+               (this->def == other.def && this->counter < other.counter);
     }
 
     const bool operator==(const Alias& other) const {
@@ -63,7 +62,7 @@ struct Alias {
         return funcName + ":" + def + ":" + std::to_string(counter);
     }
 
-    /// @brief Creates Alias from stringfied version
+    /// @brief Creates Alias from stringified version
     /// @param ssaName "<funcName>:<def>:<counter>"
     static Alias from_string(std::string ssaName) {
         std::string funcName, def;
@@ -79,46 +78,32 @@ struct Alias {
 };
 
 class Phi {
-private:
+   private:
     Alias var;
     std::vector<Alias> aliases;
 
-public:
+   public:
     Phi(Alias var, size_t arity) : var(var) {
         aliases = std::vector<Alias>(arity, var);
     }
 
-    void addAlias(Alias other) {
-        aliases.emplace_back(other);
-    }
+    void addAlias(Alias other) { aliases.emplace_back(other); }
 
     void setAliasCounterByIdx(size_t idx, int counter) {
         aliases[idx].setCounter(counter);
     }
 
-    void setVarCounter(int counter) {
-        var.setCounter(counter);
-    }
+    void setVarCounter(int counter) { var.setCounter(counter); }
 
-    Alias getVar() {
-        return var;
-    }
+    Alias getVar() { return var; }
 
-    std::string getVarDef() {
-        return var.def;
-    }
+    std::string getVarDef() { return var.def; }
 
-    int getVarCounter() {
-        return var.counter;
-    }
+    int getVarCounter() { return var.counter; }
 
-    std::string getAliasDefByIdx(size_t idx) {
-        return aliases[idx].def;
-    }
+    std::string getAliasDefByIdx(size_t idx) { return aliases[idx].def; }
 
-    std::string getVarString() {
-        return var.to_string();
-    }
+    std::string getVarString() { return var.to_string(); }
 
     std::vector<std::string> getAliasesStrings() {
         std::vector<std::string> aliasesStrings;
@@ -139,7 +124,6 @@ public:
     }
 };
 
-}
+}  // namespace Competition
 
-
-#endif // COMPETITION_PHI_H
+#endif  // COMPETITION_PHI_H

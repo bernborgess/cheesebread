@@ -25,14 +25,14 @@ void ConstraintGraph::addConstraint(std::shared_ptr<Constraint> c) {
     operation_vertices.push_back(std::move(c));
 }
 
-std::vector<std::vector<std::shared_ptr<Constraint>>> 
+std::vector<std::vector<std::shared_ptr<Constraint>>>
 ConstraintGraph::getTopologicalSCCs() const {
     int timer = 0;
     std::unordered_map<std::shared_ptr<Constraint>, int> index;
     std::unordered_map<std::shared_ptr<Constraint>, int> lowlink;
     std::unordered_map<std::shared_ptr<Constraint>, bool> on_stack;
     std::stack<std::shared_ptr<Constraint>> st;
-    
+
     std::vector<std::vector<std::shared_ptr<Constraint>>> sccs;
 
     auto tarjan = [&](auto& self, std::shared_ptr<Constraint> u) -> void {
@@ -45,13 +45,13 @@ ConstraintGraph::getTopologicalSCCs() const {
         if (it != data_vertices.end()) {
             for (const auto& edge : it->second->used_by) {
                 std::shared_ptr<Constraint> v = edge.target.lock();
-                
+
                 if (!v) continue;
 
-                if (index.find(v) == index.end()) { 
+                if (index.find(v) == index.end()) {
                     self(self, v);
                     lowlink[u] = std::min(lowlink[u], lowlink[v]);
-                } else if (on_stack[v]) { 
+                } else if (on_stack[v]) {
                     lowlink[u] = std::min(lowlink[u], index[v]);
                 }
             }
@@ -66,7 +66,7 @@ ConstraintGraph::getTopologicalSCCs() const {
                 on_stack[w] = false;
                 current_scc.push_back(w);
             } while (w != u);
-            
+
             sccs.push_back(current_scc);
         }
     };
