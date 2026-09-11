@@ -882,7 +882,11 @@ std::string Apply::OperandsToString() const
     if (thisType != nullptr) {
         func += thisType->ToString() + "->";
     }
-    func += GetCallee()->GetIdentifier();
+    if (auto srcId = GetCallee()->GetSrcCodeIdentifier(); srcId != "")
+        func += srcId;
+    else
+        func += GetCallee()->GetIdentifier();
+
     func += TypeVecToString("<", instantiatedTypeArgs, ">");
     res.emplace_back(func);
     res.emplace_back(ValueIdVecToString("", GetArgs(), ""));

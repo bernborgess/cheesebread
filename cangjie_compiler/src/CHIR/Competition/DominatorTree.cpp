@@ -96,6 +96,11 @@ void DominatorTree::Compute()
     }
 }
 
+void DominatorTree::addVariable(std::string variable)
+{
+    variables.emplace_back(variable);
+}
+
 void DominatorTree::DFS(Block* block)
 {
     ++dfsCount_;
@@ -225,7 +230,7 @@ void DominatorTree::ComputeAlphaNodes()
                                                                    : param->GetSrcCodeIdentifier();
         idToAlias[id] = Alias(funcName, aliasDef);
         idToAlias[id].setCounter(0);
-        variables.emplace_back(idToAlias[id].def);
+        addVariable(idToAlias[id].def);
     }
 
     for (auto node : nodes_) {
@@ -246,7 +251,7 @@ void DominatorTree::ComputeAlphaNodes()
 
                 idToAlias[id] = Alias(funcName, aliasDef);
 
-                variables.emplace_back(idToAlias[id].def);
+                addVariable(idToAlias[id].def);
                 // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
             }
 
@@ -297,7 +302,7 @@ void DominatorTree::Renaming()
             std::string id = expr->GetResult()->GetIdentifier();
             if (idToAlias.count(id) == 0) {
                 idToAlias[id] = Alias(funcName, id);
-                variables.emplace_back(id);
+                addVariable(id);
             }
         }
     }
@@ -347,15 +352,37 @@ void DominatorTree::Renaming()
                 // ? We need to replace the plain variable name stored in
                 // these constraints by the updated Aliases::to_string (with counters)
 
-                // Operand
+                // Operands:
+                // * src
                 std::string op = interc->operand;
                 int newOpCounter = variableStack[op].top();
-                interc->operand = Alias(functionName, op, newOpCounter).to_string();
+                interc->operand =
+                    Alias(functionName, op, newOpCounter).to_string();
+
+                // * low
+                if (auto fut = std::get_if<IntersectionConstraint::Future>(
+                        &interc->lower_bound)) {
+                    std::string op = fut->target_variable;
+                    int newOpCounter = variableStack[op].top();
+                    fut->target_variable =
+                        Alias(functionName, op, newOpCounter).to_string();
+                }
+
+                // * up
+                if (auto fut = std::get_if<IntersectionConstraint::Future>(
+                        &interc->upper_bound)) {
+                    std::string op = fut->target_variable;
+                    int newOpCounter = variableStack[op].top();
+                    fut->target_variable =
+                        Alias(functionName, op, newOpCounter).to_string();
+                }
 
                 // Variable Definition
                 std::string var = interc->def;
                 int newVarCounter = variableCounter[var];
-                interc->def = Alias(functionName, var, newVarCounter).to_string();
+                interc->def =
+                    Alias(functionName, var, newVarCounter).to_string();
+
                 variableStack[var].emplace(newVarCounter);
                 ++variableCounter[var];
             }
@@ -371,8 +398,22 @@ void DominatorTree::Renaming()
             if (expr->IsConstant()) {
                 ;
             } else if (expr->IsApply()) {
-                ;
-            } else if (expr->IsLoad()) {
+                // There is the case that a function application is used to
+                // initialize an array (along with its elements)
+
+                // Decide whether an apply is a initialization
+                auto apply = dynamic_cast<Apply*>(expr);
+
+                auto callee = apply->GetCallee();
+                if (!callee->IsFunc())
+                    continue;
+
+                auto func = dynamic_cast<Function*>(callee);
+                if (func->GetFuncKind() != FuncKind::STRUCT_CONSTRUCTOR)
+                    continue;
+
+                continue;
+            } else if (expr->IsLoad()) { // id = Load(op)
                 std::string id = expr->GetResult()->GetIdentifier();
                 std::string op = expr->GetOperand(0)->GetIdentifier();
                 if (idToAlias[id].def == idToAlias[op].def) {
@@ -388,13 +429,25 @@ void DominatorTree::Renaming()
                     // this use (of 'x') to the current one, not the final
                     // counter of references to this address (idToAlias[%1])
                     std::string var = idToAlias[op].def;
+
+                    // If the variable is a structured type, our analysis can't 
+                    // track its initialization and different values either way
+                    auto type = expr->GetResult()->GetType();
+
+                    // ! If var does not have a identifier so far, we will just 
+                    // ! create one right now!
+                    if (variableStack[var].empty()) {
+                        int counter = variableCounter[var];
+                        variableStack[var].emplace(counter);
+                        ++variableCounter[var];
+                    }
+
                     int count = variableStack[var].top();
 
                     // ? Not useful to set loads
                     idToAlias[op].setCounter(count);
 
                     // Create the constraint here
-                    auto type = expr->GetResult()->GetType();
                     if (type->IsInteger()) {
                         auto constraint = std::make_shared<AddConstraint>(
                             Alias(functionName, id, 0).to_string(),
@@ -414,7 +467,18 @@ void DominatorTree::Renaming()
             } else {
                 for (auto op : expr->GetOperands()) {
                     std::string id = op->GetIdentifier();
-                    idToAlias[id].setCounter(variableStack[idToAlias[id].def].top());
+                    auto def = idToAlias[id].def;
+
+                    // ! If def does not have a identifier so far, we will just 
+                    // ! create one right now!
+                    if (variableStack[def].empty()) {
+                        int counter = variableCounter[def];
+                        variableStack[def].emplace(counter);
+                        ++variableCounter[def];
+                    }
+
+                    auto stackCounter = variableStack[def].top();
+                    idToAlias[id].setCounter(stackCounter);
                 }
             }
 
@@ -576,16 +640,11 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias)
 
         // Show the CHIR code inside this block!
         for (auto expr : block->GetExpressions()) {
-            std::string info = "";
-
-            // It's an attribution!
-            if (LocalVar* res = expr->GetResult(); res != nullptr) {
-                auto ident = alias ? idToAlias[res->GetIdentifier()].to_string()
-                                   : res->GetIdentifier();
-                info += ident + ": " + res->GetType()->ToString() + " = ";
-            }
-
             // Remove the long comments after the instruction
+            std::string info;
+            if (LocalVar* res = expr->GetResult(); res != nullptr && alias) {
+                info += "[" + idToAlias[res->GetIdentifier()].to_string() + "] ";
+            }
             info += getUncommented(expr->ToString(0));
             ReplaceAll(info, "&", "&amp;");
             ReplaceAll(info, "<", "&lt;");

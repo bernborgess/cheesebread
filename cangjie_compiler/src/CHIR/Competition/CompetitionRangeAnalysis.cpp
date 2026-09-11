@@ -56,12 +56,14 @@ void RangeAnalysis::ReadCompetitionQueries()
     inputFile.close();
 }
 
-void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package)
-{
+void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package) {
     for (auto func : package->GetGlobalFuncsWithBody()) {
         auto funcFileName = func->GetDebugLocation().GetFileName();
         for (auto [fileName, lineNumber, variableName] : queries) {
             if (funcFileName == fileName) {
+                auto funcSrcId = func->GetSrcCodeIdentifier();
+                if (funcSrcId.find('$') != std::string::npos)
+                    continue;  // Internal function
                 requestedFunctions.insert(func);
             }
         }
@@ -316,6 +318,7 @@ void RangeAnalysis::RunOnPackage(Package* package)
     // constraints
     for (auto func : requestedFunctions)
         BuildDomTreeWithConstraints(func);
+
 
     // Interprocedural
     BindArgumentsToParamsWithPhiConstraint();

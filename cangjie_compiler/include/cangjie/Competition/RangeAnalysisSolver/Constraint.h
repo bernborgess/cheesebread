@@ -238,10 +238,10 @@ public:
 
     // Needed in renaming as well
     std::string operand;
-
-private:
     IntersectionBound lower_bound;
     IntersectionBound upper_bound;
+
+private:
 
     // Helper to resolve a variant bound into a concrete Bound
     // at runtime
