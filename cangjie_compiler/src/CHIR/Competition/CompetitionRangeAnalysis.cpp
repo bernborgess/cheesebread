@@ -322,7 +322,6 @@ void RangeAnalysis::RunOnPackage(Package* package)
     for (auto func : requestedFunctions)
         BuildDomTreeWithConstraints(func);
 
-    return;
 
     // Interprocedural
     BindArgumentsToParamsWithPhiConstraint();
