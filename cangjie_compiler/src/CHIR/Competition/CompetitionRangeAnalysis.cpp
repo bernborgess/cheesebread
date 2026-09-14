@@ -17,6 +17,8 @@ using namespace Cangjie::CHIR;
 // #define DEBUG_SHOW_INSERTED_CONSTRAINTS
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
+// Define this to evaluate Metric 1: Range Reduction
+#define EVAL_RANGE_REDUCTION
 
 void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
@@ -221,6 +223,19 @@ void RangeAnalysis::CreateHelperConstraints() {
     constraintGraph.addConstraint(cst_true);
 }
 
+// TODO: Accumulate the ranges
+static void PrintRangeReduction(IV iv) {
+    long long int x = 0;
+    std::cout << "From " << x << " to " << x << ", reduced " << x
+              << " elements, (" << x << "%)" << std::endl;
+}
+
+static void PrintRangeReduction(BV bv) {
+    long long int x = 0;
+    std::cout << "From " << x << " to " << x << ", reduced " << x
+              << " elements, (" << x << "%)" << std::endl;
+}
+
 void RangeAnalysis::OutputAnalysisToFile() {
     std::fstream outputFile;
     outputFile.open("output.txt", std::ios::out);
@@ -236,6 +251,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
+#ifdef EVAL_RANGE_REDUCTION
+            PrintRangeReduction(iv);
+#endif
             continue;
         }
 
@@ -259,6 +277,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
+#ifdef EVAL_RANGE_REDUCTION
+            PrintRangeReduction(iv);
+#endif
             continue;
         }
 
@@ -274,6 +295,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
         if (std::holds_alternative<BV>(variableValue)) {
             auto boolVal = std::get<BV>(variableValue);
             outputFile << boolVal << std::endl;
+#ifdef EVAL_RANGE_REDUCTION
+            PrintRangeReduction(boolVal);
+#endif
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Boolean range: " << boolVal << std::endl;
 #endif
@@ -281,6 +305,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
+#ifdef EVAL_RANGE_REDUCTION
+            PrintRangeReduction(intVal);
+#endif
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Integer range: " << intVal << std::endl;
 #endif
