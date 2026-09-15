@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cangjie Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/test/${input:testName}/code.cj",
+                "-O2",
+                "-j1",
+            ],
+            "cwd": "${workspaceFolder}/test/${input:testName}",
+            "preLaunchTask": "source envsetup"
+        },
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "testName",
+            "description": "Test case to run:",
+            "options": [
+                "array",
+                "wcet",
+                "call12",
+                "i-plus-j",
+                "i-plus-plus",
+                "official",
+                "readif",
+                "return-compare",
+                "return012",
+                "while10",
+                "x14",
+            ]
+        }
+    ]
+}
