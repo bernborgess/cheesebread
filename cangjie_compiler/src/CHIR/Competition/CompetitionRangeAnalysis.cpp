@@ -17,7 +17,6 @@ using namespace Cangjie::CHIR;
 // #define DEBUG_SHOW_INSERTED_CONSTRAINTS
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
-// Define this to evaluate Metric 1: Range Reduction
 
 void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
@@ -222,7 +221,6 @@ void RangeAnalysis::CreateHelperConstraints() {
     constraintGraph.addConstraint(cst_true);
 }
 
-// TODO: Accumulate the ranges
 static uint32_t CalculateRangeReduction(IV iv) {
     const uint32_t FULL_RANGE = 64;
 
