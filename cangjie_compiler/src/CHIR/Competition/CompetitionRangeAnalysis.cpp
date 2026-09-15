@@ -18,7 +18,6 @@ using namespace Cangjie::CHIR;
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
 // Define this to evaluate Metric 1: Range Reduction
-#define EVAL_RANGE_REDUCTION
 
 void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
@@ -224,16 +223,85 @@ void RangeAnalysis::CreateHelperConstraints() {
 }
 
 // TODO: Accumulate the ranges
-static void PrintRangeReduction(IV iv) {
-    long long int x = 0;
-    std::cout << "From " << x << " to " << x << ", reduced " << x
-              << " elements, (" << x << "%)" << std::endl;
+static uint32_t CalculateRangeReduction(IV iv) {
+    const uint32_t FULL_RANGE = 64;
+
+    // Required number of bits to represent n values.
+    auto ceil_log2 = [](std::size_t n) -> uint32_t {
+        uint32_t result = 0;
+        if (n == 0) return result;
+        n--;
+        while (n > 0) {
+            result++;
+            n >>= 1;
+        }
+        return result;
+    };
+
+    if (iv.isBottom()) {  // Full range [-inf, +inf]
+        return FULL_RANGE;
+    }
+
+    if (iv.getKind() == IV::Kind::Set) {
+        // ? # of bits to store that many elements?
+        auto el_count = iv.getValues().size();
+        return ceil_log2(el_count);
+    }
+
+    // iv : IV::King::StridedInterval
+    auto low = iv.getLower();
+    auto up = iv.getUpper();
+
+    if (low.isConstant() && up.isConstant()) {  // [c1, c2]
+        auto c1 = low.getConstant();
+        auto c2 = up.getConstant();
+        return ceil_log2(c2 - c1 + 1);
+    }
+
+    if (low.isConstant()) {  // [c,+inf]
+        auto c = low.getConstant();
+        return ceil_log2(LONG_MAX - c + 1);
+    }
+
+    if (up.isConstant()) {  // [-inf, c]
+        auto c = up.getConstant();
+        return ceil_log2(c - LONG_MIN + 1);
+    }
+
+    // [-inf, +inf]
+    return FULL_RANGE;
 }
 
-static void PrintRangeReduction(BV bv) {
-    long long int x = 0;
-    std::cout << "From " << x << " to " << x << ", reduced " << x
-              << " elements, (" << x << "%)" << std::endl;
+static void RunRangeReductionUnitTests() {
+#define TEST_CASE_MK(INIT_CODE, EXPECT)                                   \
+    do {                                                                  \
+        IV iv;                                                            \
+        INIT_CODE;                                                        \
+        auto actual = CalculateRangeReduction(iv);                        \
+        auto passed = actual == EXPECT;                                   \
+        if (passed) {                                                     \
+            std::cerr << "Test " << test_id << " Passed" << std::endl;    \
+        } else {                                                          \
+            std::cerr << "Test " << test_id << " Failed" << std::endl;    \
+            std::cerr << "\tExpected " << EXPECT << " but got " << actual \
+                      << std::endl;                                       \
+        }                                                                 \
+        test_id++;                                                        \
+    } while (false)
+
+    int test_id = 1;
+    TEST_CASE_MK(iv.setAsBottom(), 64);
+    TEST_CASE_MK(auto b = Bound::constant(0); iv.setAsInterval(b, b), 0);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1023);
+                 iv.setAsInterval(l, r), 10);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1024);
+                 iv.setAsInterval(l, r), 11);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::plusInfinity();
+                 iv.setAsInterval(l, r), 63);
+    TEST_CASE_MK(auto l = Bound::minusInfinity(); auto r = Bound::constant(-1);
+                 iv.setAsInterval(l, r), 63);
+
+#undef TEST_CASE_MK
 }
 
 void RangeAnalysis::OutputAnalysisToFile() {
@@ -251,9 +319,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
-#ifdef EVAL_RANGE_REDUCTION
-            PrintRangeReduction(iv);
-#endif
+            CalculateRangeReduction(iv);
             continue;
         }
 
@@ -277,9 +343,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
-#ifdef EVAL_RANGE_REDUCTION
-            PrintRangeReduction(iv);
-#endif
+            CalculateRangeReduction(iv);
             continue;
         }
 
@@ -295,9 +359,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
         if (std::holds_alternative<BV>(variableValue)) {
             auto boolVal = std::get<BV>(variableValue);
             outputFile << boolVal << std::endl;
-#ifdef EVAL_RANGE_REDUCTION
-            PrintRangeReduction(boolVal);
-#endif
+
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Boolean range: " << boolVal << std::endl;
 #endif
@@ -305,9 +367,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
-#ifdef EVAL_RANGE_REDUCTION
-            PrintRangeReduction(intVal);
-#endif
+            CalculateRangeReduction(intVal);
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Integer range: " << intVal << std::endl;
 #endif
@@ -319,6 +379,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
 void RangeAnalysis::RunOnPackage(Package* package) {
     // Filter out the builtin cangjie code
     if (package->GetName() == "std.core") return;
+
+    // Run unit tests against range reduction
+    RunRangeReductionUnitTests();
 
     // Reads input file for value range queries
     ReadCompetitionQueries();
