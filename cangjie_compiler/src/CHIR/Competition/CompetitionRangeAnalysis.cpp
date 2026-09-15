@@ -17,6 +17,7 @@ using namespace Cangjie::CHIR;
 // #define DEBUG_SHOW_INSERTED_CONSTRAINTS
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
+// Define this to evaluate Metric 1: Range Reduction
 
 void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
@@ -221,6 +222,88 @@ void RangeAnalysis::CreateHelperConstraints() {
     constraintGraph.addConstraint(cst_true);
 }
 
+// TODO: Accumulate the ranges
+static uint32_t CalculateRangeReduction(IV iv) {
+    const uint32_t FULL_RANGE = 64;
+
+    // Required number of bits to represent n values.
+    auto ceil_log2 = [](std::size_t n) -> uint32_t {
+        uint32_t result = 0;
+        if (n == 0) return result;
+        n--;
+        while (n > 0) {
+            result++;
+            n >>= 1;
+        }
+        return result;
+    };
+
+    if (iv.isBottom()) {  // Full range [-inf, +inf]
+        return FULL_RANGE;
+    }
+
+    if (iv.getKind() == IV::Kind::Set) {
+        // ? # of bits to store that many elements?
+        auto el_count = iv.getValues().size();
+        return ceil_log2(el_count);
+    }
+
+    // iv : IV::King::StridedInterval
+    auto low = iv.getLower();
+    auto up = iv.getUpper();
+
+    if (low.isConstant() && up.isConstant()) {  // [c1, c2]
+        auto c1 = low.getConstant();
+        auto c2 = up.getConstant();
+        return ceil_log2(c2 - c1 + 1);
+    }
+
+    if (low.isConstant()) {  // [c,+inf]
+        auto c = low.getConstant();
+        return ceil_log2(LONG_MAX - c + 1);
+    }
+
+    if (up.isConstant()) {  // [-inf, c]
+        auto c = up.getConstant();
+        return ceil_log2(c - LONG_MIN + 1);
+    }
+
+    // [-inf, +inf]
+    return FULL_RANGE;
+}
+
+static void RunRangeReductionUnitTests() {
+#define TEST_CASE_MK(INIT_CODE, EXPECT)                                   \
+    {                                                                     \
+        IV iv;                                                            \
+        INIT_CODE;                                                        \
+        auto actual = CalculateRangeReduction(iv);                        \
+        auto passed = actual == EXPECT;                                   \
+        if (passed) {                                                     \
+            std::cerr << "Test " << test_id << " Passed" << std::endl;    \
+        } else {                                                          \
+            std::cerr << "Test " << test_id << " Failed" << std::endl;    \
+            std::cerr << "\tExpected " << EXPECT << " but got " << actual \
+                      << std::endl;                                       \
+        }                                                                 \
+        test_id++;                                                        \
+    }
+
+    int test_id = 1;
+    TEST_CASE_MK(iv.setAsBottom(), 64);
+    TEST_CASE_MK(auto b = Bound::constant(0); iv.setAsInterval(b, b), 0);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1023);
+                 iv.setAsInterval(l, r), 10);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1024);
+                 iv.setAsInterval(l, r), 11);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::plusInfinity();
+                 iv.setAsInterval(l, r), 63);
+    TEST_CASE_MK(auto l = Bound::minusInfinity(); auto r = Bound::constant(-1);
+                 iv.setAsInterval(l, r), 63);
+
+#undef TEST_CASE_MK
+}
+
 void RangeAnalysis::OutputAnalysisToFile() {
     std::fstream outputFile;
     outputFile.open("output.txt", std::ios::out);
@@ -229,6 +312,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
         return;
     }
 
+    uint32_t bits_needed = 0;
+    uint32_t total_bits = 0;
+
     for (int i = 0; i < queries.size(); i++) {
         if (!queryToDomTree[i].has_value()) {
             std::cerr << "No domTree was found for query!" << std::endl;
@@ -236,6 +322,8 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
+            bits_needed += CalculateRangeReduction(iv);
+            total_bits += 64;
             continue;
         }
 
@@ -259,6 +347,8 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
+            bits_needed += CalculateRangeReduction(iv);
+            total_bits += 64;
             continue;
         }
 
@@ -274,6 +364,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
         if (std::holds_alternative<BV>(variableValue)) {
             auto boolVal = std::get<BV>(variableValue);
             outputFile << boolVal << std::endl;
+
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Boolean range: " << boolVal << std::endl;
 #endif
@@ -281,11 +372,20 @@ void RangeAnalysis::OutputAnalysisToFile() {
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
+            bits_needed += CalculateRangeReduction(intVal);
+            total_bits += 64;
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Integer range: " << intVal << std::endl;
 #endif
         }
     }
+
+    std::cerr << "Out of " << total_bits << " only " << bits_needed
+              << " were required to represent the Int64 values of this program."
+              << std::endl;
+    double reduction = 100 * (1.0 - bits_needed / (double)total_bits);
+    std::cerr << "Reduction: " << reduction << "%" << std::endl;
+
     outputFile.close();
 }
 
