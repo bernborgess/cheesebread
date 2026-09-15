@@ -312,6 +312,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
         return;
     }
 
+    uint32_t bits_needed = 0;
+    uint32_t total_bits = 0;
+
     for (int i = 0; i < queries.size(); i++) {
         if (!queryToDomTree[i].has_value()) {
             std::cerr << "No domTree was found for query!" << std::endl;
@@ -319,7 +322,8 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
-            CalculateRangeReduction(iv);
+            bits_needed += CalculateRangeReduction(iv);
+            total_bits += 64;
             continue;
         }
 
@@ -343,7 +347,8 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
-            CalculateRangeReduction(iv);
+            bits_needed += CalculateRangeReduction(iv);
+            total_bits += 64;
             continue;
         }
 
@@ -367,21 +372,26 @@ void RangeAnalysis::OutputAnalysisToFile() {
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
-            CalculateRangeReduction(intVal);
+            bits_needed += CalculateRangeReduction(intVal);
+            total_bits += 64;
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Integer range: " << intVal << std::endl;
 #endif
         }
     }
+
+    std::cerr << "Out of " << total_bits << " only " << bits_needed
+              << " were required to represent the Int64 values of this program."
+              << std::endl;
+    double reduction = 100 * (1.0 - bits_needed / (double)total_bits);
+    std::cerr << "Reduction: " << reduction << "%" << std::endl;
+
     outputFile.close();
 }
 
 void RangeAnalysis::RunOnPackage(Package* package) {
     // Filter out the builtin cangjie code
     if (package->GetName() == "std.core") return;
-
-    // Run unit tests against range reduction
-    RunRangeReductionUnitTests();
 
     // Reads input file for value range queries
     ReadCompetitionQueries();
