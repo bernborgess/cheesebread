@@ -274,7 +274,7 @@ static uint32_t CalculateRangeReduction(IV iv) {
 
 static void RunRangeReductionUnitTests() {
 #define TEST_CASE_MK(INIT_CODE, EXPECT)                                   \
-    do {                                                                  \
+    {                                                                     \
         IV iv;                                                            \
         INIT_CODE;                                                        \
         auto actual = CalculateRangeReduction(iv);                        \
@@ -287,7 +287,7 @@ static void RunRangeReductionUnitTests() {
                       << std::endl;                                       \
         }                                                                 \
         test_id++;                                                        \
-    } while (false)
+    }
 
     int test_id = 1;
     TEST_CASE_MK(iv.setAsBottom(), 64);
