@@ -17,6 +17,8 @@ using namespace Cangjie::CHIR;
 // #define DEBUG_SHOW_INSERTED_CONSTRAINTS
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
+// Define this to generate graphs for the dominator trees
+// #define DEBUG_GENERATE_GRAPH_DOMTREE
 
 void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
@@ -81,8 +83,10 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
 
     domTree->Compute();
 
+#ifdef DEBUG_GENERATE_GRAPH_DOMTREE
     // Produce graph before renaming
     domTree->PrintDominatorTree(funcName + "-domTree.dot");
+#endif
 
     // Intersection constraints use same identifiers ex: x = x ∩ [0,+inf]
     domTree->GenerateBranchConstraints();
@@ -95,8 +99,10 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
     // of an Apply from other (or same) function
     domTree->DetectReturnValues();
 
+#ifdef DEBUG_GENERATE_GRAPH_DOMTREE
     // Produce the graph after renaming alias
     domTree->PrintDominatorTree(funcName + "-ssa.dot", true);
+#endif
 
     auto funcFileName = func->GetDebugLocation().GetFileName();
     auto funcStartLine = func->GetDebugLocation().GetBeginPos().line;
