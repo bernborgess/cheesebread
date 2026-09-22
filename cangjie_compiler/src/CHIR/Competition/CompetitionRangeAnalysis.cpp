@@ -316,18 +316,13 @@ void RangeAnalysis::OutputAnalysisToFile() {
         return;
     }
 
-    uint32_t bits_needed = 0;
-    uint32_t total_bits = 0;
-
     for (int i = 0; i < queries.size(); i++) {
         if (!queryToDomTree[i].has_value()) {
-            std::cerr << "No domTree was found for query!" << std::endl;
+            // std::cerr << "No domTree was found for query!" << std::endl;
             // ? Output bottom range here.
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
-            bits_needed += CalculateRangeReduction(iv);
-            total_bits += 64;
             continue;
         }
 
@@ -351,8 +346,6 @@ void RangeAnalysis::OutputAnalysisToFile() {
             IV iv;
             iv.setAsBottom();
             outputFile << iv << std::endl;
-            bits_needed += CalculateRangeReduction(iv);
-            total_bits += 64;
             continue;
         }
 
@@ -376,19 +369,40 @@ void RangeAnalysis::OutputAnalysisToFile() {
         } else {
             auto intVal = std::get<IV>(variableValue);
             outputFile << intVal << std::endl;
-            bits_needed += CalculateRangeReduction(intVal);
-            total_bits += 64;
+
 #ifdef DEBUG_PRINT_QUERIES
             std::cerr << "Integer range: " << intVal << std::endl;
 #endif
         }
     }
 
-    std::cerr << "Out of " << total_bits << " only " << bits_needed
-              << " were required to represent the Int64 values of this program."
-              << std::endl;
-    double reduction = 100 * (1.0 - bits_needed / (double)total_bits);
+    // For each variable in the solver, count its occurrence and the bits needed
+    uint32_t bits_needed = 0;
+    uint32_t total_vars = 0;
+    for (auto& [varName, varRange] : solverState) {
+        if (varName.empty() or varName[0] == '%') continue;
+        if (std::holds_alternative<IV>(varRange)) {
+            auto intVal = std::get<IV>(varRange);
+            bits_needed += CalculateRangeReduction(intVal);
+            total_vars++;
+        }
+    }
+
+    std::cerr << "Out of " << (total_vars * 64) << " bits only " << bits_needed
+              << " were required to represent the " << total_vars
+              << " Int64 values of this program." << std::endl;
+    double reduction =
+        total_vars > 0 ? 100 * (1.0 - bits_needed / (double)(total_vars * 64.0))
+                       : 0.0;
     std::cerr << "Reduction: " << reduction << "%" << std::endl;
+
+    std::fstream resultsFile;                        // Metric 1 csv file
+    resultsFile.open("results.csv", std::ios::app);  // Open file in append mode
+    if (resultsFile) {
+        resultsFile << total_vars << ',' << reduction << ',';
+        resultsFile.flush();
+    }
+    resultsFile.close();
 
     outputFile.close();
 }

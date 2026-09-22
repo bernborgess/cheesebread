@@ -14,6 +14,20 @@
             "cwd": "${workspaceFolder}/test/${input:testName}",
             "preLaunchTask": "source envsetup"
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "CangjieBench X Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/test/CangjieBench/${input:CangjieBenchId}.cj",
+                "-O2",
+                "-j1",
+                "--output-type=staticlib",
+            ],
+            "cwd": "${workspaceFolder}/test/CangjieBench",
+            "preLaunchTask": "source envsetup"
+        }
     ],
     "inputs": [
         {
@@ -33,6 +47,11 @@
                 "while10",
                 "x14",
             ]
+        },
+        {
+            "type": "promptString",
+            "id": "CangjieBenchId",
+            "description": "Number of the Cangjie Test case x.cj",
         }
     ]
 }

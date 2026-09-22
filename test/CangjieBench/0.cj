@@ -20,5 +20,3 @@ func hasCloseElements(numbers: ArrayList<Float64>, threshold: Float64): Bool {
     }
     return false
 }
-
-main() {}
