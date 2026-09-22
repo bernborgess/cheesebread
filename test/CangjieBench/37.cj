@@ -32,4 +32,3 @@ func sort_even(l: ArrayList<Int64>): ArrayList<Int64> {
     return ans
 }
 
-main() {}

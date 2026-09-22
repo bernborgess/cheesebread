@@ -20,4 +20,3 @@ func smallest_change(arr: ArrayList<Int64>): Int64 {
     return ans
 }
 
-main() {}

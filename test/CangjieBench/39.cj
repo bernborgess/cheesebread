@@ -40,4 +40,3 @@ func prime_fib(n: Int64): Int64 {
     return 0
 }
 
-main() {}

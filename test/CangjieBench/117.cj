@@ -31,4 +31,3 @@ func select_words(s: String, n: Int64): ArrayList<String> {
     return result
 }
 
-main() {}

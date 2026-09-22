@@ -25,4 +25,3 @@ func split_words(txt: String): ArrayList<String> {
     }
 }
 
-main() {}

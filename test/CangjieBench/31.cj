@@ -27,4 +27,3 @@ func is_prime(n: Int64): Bool {
     return true
 }
 
-main() {}

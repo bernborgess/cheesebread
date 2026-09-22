@@ -16,4 +16,3 @@ func count_upper(s: String): Int64 {
     return count
 }
 
-main() {}

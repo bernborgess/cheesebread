@@ -17,4 +17,3 @@ func max_element(l: ArrayList<Int64>): Int64 {
     return m
 }
 
-main() {}

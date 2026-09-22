@@ -32,4 +32,3 @@ func tri(n: Int64): ArrayList<Int64> {
     return my_tri
 }
 
-main() {}

@@ -29,4 +29,3 @@ func words_string(s: String): ArrayList<String> {
     return ArrayList<String>(s_string.split(" ", removeEmpty: true))
 }
 
-main() {}

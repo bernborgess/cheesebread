@@ -23,4 +23,3 @@ func next_smallest(lst: ArrayList<Int64>): Option<Int64> {
     }
 }
 
-main() {}

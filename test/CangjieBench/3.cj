@@ -21,4 +21,3 @@ func below_zero(operations: ArrayList<Int64>): Bool {
 
     return false
 }
-main() {}

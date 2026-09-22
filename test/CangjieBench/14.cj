@@ -14,4 +14,3 @@ func all_prefixes(string: String): ArrayList<String> {
     return result
 }
 
-main() {}

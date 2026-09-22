@@ -23,4 +23,3 @@ func mean_absolute_deviation(numbers: ArrayList<Float64>): Float64 {
     return md / Float64(numbers.size)
 }
 
-main() {}

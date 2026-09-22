@@ -42,4 +42,3 @@ func intersection(interval1: (Int64, Int64), interval2: (Int64, Int64)): String 
     return "NO"
 }
 
-main() {}

@@ -19,4 +19,3 @@ func sum_to_n(n: Int64): Int64 {
     return sum
 }
 
-main() {}

@@ -19,4 +19,3 @@ func x_or_y(n: Int64, x: Int64, y: Int64): Int64 {
     return x
 }
 
-main() {}

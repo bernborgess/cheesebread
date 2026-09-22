@@ -20,4 +20,3 @@ func special_factorial(n: Int64): Int64 {
     return special_fact
 }
 
-main() {}

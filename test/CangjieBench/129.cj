@@ -71,4 +71,3 @@ func minPath(grid: ArrayList<ArrayList<Int64>>, k: Int64): ArrayList<Int64> {
     return ans
 }
 
-main() {}

@@ -24,4 +24,3 @@ func sum_squares(lst: ArrayList<Int64>): Int64 {
     return result_sum
 }
 
-main() {}

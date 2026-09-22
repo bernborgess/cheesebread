@@ -23,4 +23,3 @@ func is_happy(s: String): Bool {
     return true
 }
 
-main() {}

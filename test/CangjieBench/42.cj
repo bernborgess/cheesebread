@@ -14,4 +14,3 @@ func incr_list(l: ArrayList<Int64>): ArrayList<Int64> {
     return l
 }
 
-main() {}

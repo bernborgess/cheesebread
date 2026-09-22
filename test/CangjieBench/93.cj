@@ -36,4 +36,3 @@ func encode(message: String): String {
     return message_
 }
 
-main() {}

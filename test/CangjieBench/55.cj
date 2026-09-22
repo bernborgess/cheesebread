@@ -17,4 +17,3 @@ func fib(n: Int64): Int64 {
     return fib(n - 1) + fib(n - 2)
 }
 
-main() {}

@@ -31,4 +31,3 @@ func total_match(lst1: ArrayList<String>, lst2: ArrayList<String>): ArrayList<St
     }
 }
 
-main() {}

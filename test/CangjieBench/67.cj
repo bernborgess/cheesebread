@@ -36,4 +36,3 @@ func fruit_distribution(s: String, n: Int64): Int64 {
     return n - lis
 }
 
-main() {}

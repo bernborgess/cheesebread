@@ -6,4 +6,3 @@ func triangle_area(a: Float64, h: Float64): Float64 {
     */
     return a * h / 2.0
 }
-main() {}

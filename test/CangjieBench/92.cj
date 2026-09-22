@@ -24,4 +24,3 @@ func any_int(x: Float64, y: Float64, z: Float64): Bool {
     return false
 }
 
-main() {}

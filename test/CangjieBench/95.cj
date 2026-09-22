@@ -60,4 +60,3 @@ func check_dict_case(dict: HashMap<String, String>): Bool {
     }
 }
 
-main() {}

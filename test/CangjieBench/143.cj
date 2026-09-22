@@ -45,4 +45,3 @@ func words_in_sentence(sentence: String): String {
     return new_str
 }
 
-main() {}

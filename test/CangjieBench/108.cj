@@ -37,4 +37,3 @@ func count_nums(arr: ArrayList<Int64>): Int64 {
     return size
 }
 
-main() {}

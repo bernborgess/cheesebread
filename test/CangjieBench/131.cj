@@ -25,4 +25,3 @@ func digits(n: Int64): Int64 {
     }
 }
 
-main() {}

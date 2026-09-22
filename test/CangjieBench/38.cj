@@ -28,4 +28,3 @@ func decode_cyclic(s: String): String {
     return encode_cyclic(encode_cyclic(s))
 }
 
-main() {}

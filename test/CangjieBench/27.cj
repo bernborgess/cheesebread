@@ -17,4 +17,3 @@ func flip_case(string: String): String {
     return result
 }
 
-main() {}

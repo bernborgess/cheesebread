@@ -42,4 +42,3 @@ func make_palindrome(string: String): String {
     return string + reverse_prefix
 }
 
-main() {}

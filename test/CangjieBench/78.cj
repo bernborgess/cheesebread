@@ -27,4 +27,3 @@ func hex_key(num: String): Int64 {
     return total
 }
 
-main() {}

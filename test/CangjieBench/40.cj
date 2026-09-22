@@ -29,4 +29,3 @@ func triples_sum_to_zero(l: ArrayList<Int64>): Bool {
     return false
 }
 
-main() {}

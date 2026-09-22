@@ -31,4 +31,3 @@ func compare_one(a: Any, b: Any): Any {
     }
 }
 
-main() {}

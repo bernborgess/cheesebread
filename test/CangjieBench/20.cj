@@ -40,4 +40,3 @@ func find_closest_elements(numbers: ArrayList<Float64>): (Float64, Float64) {
     return closest_pair ?? (0.0, 0.0)
 }
 
-main() {}

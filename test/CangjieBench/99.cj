@@ -47,4 +47,3 @@ func closest_integer(value: String): Int64 {
     return res
 }
 
-main() {}

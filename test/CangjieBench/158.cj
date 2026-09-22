@@ -31,4 +31,3 @@ func find_max(words: ArrayList<String>): String {
     return words[0]
 }
 
-main() {}

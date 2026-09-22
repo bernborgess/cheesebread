@@ -37,4 +37,3 @@ func fix_spaces(text: String): String {
     return new_text
 }
 
-main() {}

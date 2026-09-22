@@ -23,4 +23,3 @@ func check_if_last_char_is_a_letter(txt: String): Bool {
     }
 }
 
-main() {}

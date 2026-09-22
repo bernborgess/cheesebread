@@ -27,4 +27,3 @@ func fib4(n: Int64): Int64 {
     return results[results.size - 1]
 }
 
-main() {}

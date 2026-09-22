@@ -30,4 +30,3 @@ func factorize(n: Int64): ArrayList<Int64> {
     return fact
 }
 
-main() {}

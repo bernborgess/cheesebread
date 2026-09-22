@@ -22,4 +22,3 @@ func sort_numbers(numbers: String): String {
     return result
 }
 
-main() {}

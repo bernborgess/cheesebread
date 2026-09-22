@@ -16,4 +16,3 @@ func string_xor(a: String, b: String): String {
     return result
 }
 
-main() {}

@@ -22,4 +22,3 @@ func intersperse(numbers: ArrayList<Int64>, delimeter: Int64): ArrayList<Int64> 
     return result
 }
 
-main() {}

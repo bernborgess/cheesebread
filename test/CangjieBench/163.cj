@@ -21,4 +21,3 @@ func generate_integers(a: Int64, b: Int64): ArrayList<Int64> {
     return result
 }
 
-main() {}

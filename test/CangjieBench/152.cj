@@ -24,4 +24,3 @@ func compare(game: ArrayList<Int64>, guess: ArrayList<Int64>): ArrayList<Int64> 
     return result
 }
 
-main() {}

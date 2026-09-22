@@ -30,4 +30,3 @@ func simplify(x: String, n: String): Bool {
     return false
 }
 
-main() {}

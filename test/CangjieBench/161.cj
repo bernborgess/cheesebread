@@ -39,4 +39,3 @@ func solve(s: String): String {
     return new_s
 }
 
-main() {}

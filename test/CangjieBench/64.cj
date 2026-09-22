@@ -24,4 +24,3 @@ func vowels_count(s: String): Int64 {
     return n_vowels
 }
 
-main() {}

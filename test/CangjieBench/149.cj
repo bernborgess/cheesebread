@@ -28,4 +28,3 @@ func sorted_list_sum(lst: ArrayList<String>): ArrayList<String> {
     return new_lst
 }
 
-main() {}

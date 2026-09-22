@@ -23,4 +23,3 @@ func solve(N: Int64): String {
     return sum.format('b')
 }
 
-main() {}

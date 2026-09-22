@@ -62,4 +62,3 @@ func pluck(arr: ArrayList<Int64>): ArrayList<Int64> {
     return ArrayList<Int64>([min, min_index])
 }
 
-main() {}

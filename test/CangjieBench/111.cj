@@ -43,4 +43,3 @@ func histogram(test: String): HashMap<String, Int64> {
     return dict1
 }
 
-main() {}

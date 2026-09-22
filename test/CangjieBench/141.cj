@@ -39,4 +39,3 @@ func file_name_check(file_name: String): String {
     return 'Yes'
 }
 
-main() {}

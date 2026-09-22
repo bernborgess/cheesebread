@@ -17,4 +17,3 @@ func add(lst: ArrayList<Int64>): Int64 {
     return sum
 }
 
-main() {}

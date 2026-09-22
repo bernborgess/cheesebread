@@ -22,4 +22,3 @@ func decode_shift(s: String): String {
     return ret
 }
 
-main() {}

@@ -15,4 +15,3 @@ func string_sequence(n: Int64): String {
     }
     return result
 }
-main() {}

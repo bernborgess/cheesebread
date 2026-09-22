@@ -31,4 +31,3 @@ func get_closest_vowel(word: String): String {
     return ""
 }
 
-main() {}

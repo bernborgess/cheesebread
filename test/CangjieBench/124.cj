@@ -43,4 +43,3 @@ func valid_date(date: String): Bool {
     return true
 }
 
-main() {}

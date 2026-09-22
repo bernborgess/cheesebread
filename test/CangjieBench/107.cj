@@ -45,4 +45,3 @@ func even_odd_palindrome(n: Int64): (Int64, Int64) {
     return (even_palindrome_count, odd_palindrome_count)
 }
 
-main() {}

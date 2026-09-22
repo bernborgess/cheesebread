@@ -33,4 +33,3 @@ func largest_smallest_integers(lst: ArrayList<Int64>): (Option<Int64>, Option<In
     return (neg, pos)
 }
 
-main() {}

@@ -17,4 +17,3 @@ func derivative(xs: ArrayList<Int64>): ArrayList<Int64> {
     return result
 }
 
-main() {}

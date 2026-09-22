@@ -39,4 +39,3 @@ func is_sorted(lst: ArrayList<Int64>): Bool {
     return is_sorted
 }
 
-main() {}

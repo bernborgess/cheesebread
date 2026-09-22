@@ -17,4 +17,3 @@ func count_distinct_characters(string: String): Int64 {
     return char_set.size
 }
 
-main() {}

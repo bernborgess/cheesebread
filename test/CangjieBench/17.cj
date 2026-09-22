@@ -26,4 +26,3 @@ func parse_music(music_string: String): ArrayList<Int64> {
     return result
 }
 
-main() {}

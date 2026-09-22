@@ -13,4 +13,3 @@ func car_race_collision(n: Int64): Int64 {
     return n**2
 }
 
-main() {}

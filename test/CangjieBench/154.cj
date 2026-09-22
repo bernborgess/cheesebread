@@ -21,4 +21,3 @@ func cycpattern_check(a: String, b: String): Bool {
     return false
 }
 
-main() {}

@@ -27,4 +27,3 @@ func minSubArraySum(nums: ArrayList<Int64>): Int64 {
     return min_sum
 }
 
-main() {}

@@ -21,4 +21,3 @@ func monotonic(l: ArrayList<Int64>): Bool {
     return false
 }
 
-main() {}

@@ -29,4 +29,3 @@ func f(n: Int64): ArrayList<Int64> {
     return ret
 }
 
-main() {}

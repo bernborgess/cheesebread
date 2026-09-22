@@ -29,4 +29,3 @@ func encrypt(s: String): String {
     return out
 }
 
-main() {}

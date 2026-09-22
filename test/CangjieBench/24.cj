@@ -12,4 +12,3 @@ func largest_divisor(n: Int64): Int64 {
     return 1
 }
 
-main() {}

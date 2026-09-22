@@ -41,4 +41,3 @@ func match_parens(lst: ArrayList<String>): String {
     return "No"
 }
 
-main() {}

@@ -24,4 +24,3 @@ func remove_vowels(text: String): String {
     return ret
 }
 
-main() {}

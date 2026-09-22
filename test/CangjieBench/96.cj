@@ -28,4 +28,3 @@ func count_up_to(n: Int64): ArrayList<Int64> {
     return primes
 }
 
-main() {}

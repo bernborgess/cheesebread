@@ -17,4 +17,3 @@ func filter_by_prefix(strings: ArrayList<String>, prefix: String): ArrayList<Str
     return result
 }
 
-main() {}

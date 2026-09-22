@@ -18,4 +18,3 @@ func how_many_times(string: String, substring: String): Int64 {
     return times
 }
 
-main() {}

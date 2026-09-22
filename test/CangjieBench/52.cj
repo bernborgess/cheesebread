@@ -16,4 +16,3 @@ func below_threshold(l: ArrayList<Int64>, t: Int64): Bool {
     return true
 }
 
-main() {}

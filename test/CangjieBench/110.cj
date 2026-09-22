@@ -32,4 +32,3 @@ func exchange(lst1: ArrayList<Int64>, lst2: ArrayList<Int64>): String {
     return "NO"
 }
 
-main() {}

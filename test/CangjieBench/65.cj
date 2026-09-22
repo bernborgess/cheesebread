@@ -21,4 +21,3 @@ func circular_shift(x: Int64, shift: Int64): String {
     }
 }
 
-main() {}

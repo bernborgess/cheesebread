@@ -38,4 +38,3 @@ func will_it_fly(q: ArrayList<Int64>, w: Int64): Bool {
     return true
 }
 
-main() {}

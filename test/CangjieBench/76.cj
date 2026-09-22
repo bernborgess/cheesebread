@@ -21,4 +21,3 @@ func is_simple_power(x: Int64, n: Int64): Bool {
     return power == x
 }
 
-main() {}

@@ -10,4 +10,3 @@ func starts_one_ends(n: Int64): Int64 {
     return res
 }
 
-main() {}

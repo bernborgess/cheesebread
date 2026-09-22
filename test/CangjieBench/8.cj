@@ -20,4 +20,3 @@ func sum_product(numbers: ArrayList<Int64>): (Int64, Int64) {
     return (sum_value, prod_value)
 }
 
-main() {}

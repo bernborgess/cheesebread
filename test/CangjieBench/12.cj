@@ -23,4 +23,3 @@ func longest(strings: ArrayList<String>): Option<String> {
     return result
 }
 
-main() {}

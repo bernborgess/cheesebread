@@ -33,4 +33,3 @@ func separate_paren_groups(paren_string: String): ArrayList<String> {
     }
     return result
 }
-main() {}

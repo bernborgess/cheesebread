@@ -23,4 +23,3 @@ func is_bored(S: String): Int64 {
     return sum
 }
 
-main() {}

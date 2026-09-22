@@ -34,4 +34,3 @@ func strange_sort_list(lst: ArrayList<Int64>): ArrayList<Int64> {
     return res
 }
 
-main() {}

@@ -29,4 +29,3 @@ func fizz_buzz(n: Int64): Int64 {
     return ans
 }
 
-main() {}

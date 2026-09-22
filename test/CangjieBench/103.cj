@@ -24,4 +24,3 @@ func rounded_avg(n: Int64, m: Int64): String {
     return "0b" + average.format("b")
 }
 
-main() {}

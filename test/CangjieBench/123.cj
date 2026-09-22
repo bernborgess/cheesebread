@@ -39,4 +39,3 @@ func get_odd_collatz(n: Int64): ArrayList<Int64> {
     sort(odd_collatz)
     return odd_collatz
 }
-main() {}

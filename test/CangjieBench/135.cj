@@ -22,4 +22,3 @@ func can_arrange(arr: ArrayList<Int64>): Int64 {
     return ind
 }
 
-main() {}

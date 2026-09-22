@@ -30,4 +30,3 @@ func search(lst: ArrayList<Int64>): Int64 {
     return ans
 }
 
-main() {}

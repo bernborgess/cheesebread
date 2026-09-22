@@ -35,4 +35,3 @@ func is_nested(string: String): Bool {
     return cnt >= 2
 }
 
-main() {}

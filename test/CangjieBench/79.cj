@@ -16,4 +16,3 @@ func decimal_to_binary(decimal: Int64): String {
     return "db" + decimal.format("b") + "db"
 }
 
-main() {}

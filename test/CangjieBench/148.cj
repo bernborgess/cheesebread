@@ -37,4 +37,3 @@ func bf(planet1: String, planet2: String): ArrayList<String> {
     }
 }
 
-main() {}

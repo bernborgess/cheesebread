@@ -9,4 +9,3 @@ func is_equal_to_sum_even(n: Int64): Bool {
     return n%2 == 0 && n >= 8
 }
 
-main() {}

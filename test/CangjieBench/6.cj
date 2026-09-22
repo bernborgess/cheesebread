@@ -26,4 +26,3 @@ func parse_nested_parens(paren_string: String): ArrayList<Int64> {
     }
     return result
 }
-main() {}

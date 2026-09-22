@@ -36,4 +36,3 @@ func by_length(arr: ArrayList<Int64>): ArrayList<String> {
     return new_arr
 }
 
-main() {}

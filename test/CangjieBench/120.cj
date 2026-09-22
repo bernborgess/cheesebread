@@ -34,4 +34,3 @@ func maximum(arr: ArrayList<Int64>, k: Int64): ArrayList<Int64> {
     return ans
 }
 
-main() {}

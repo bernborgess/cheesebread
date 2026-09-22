@@ -16,4 +16,3 @@ func greatest_common_divisor(a: Int64, b: Int64): Int64 {
     return temp_a
 }
 
-main() {}

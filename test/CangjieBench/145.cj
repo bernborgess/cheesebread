@@ -35,4 +35,3 @@ func order_by_points(nums: ArrayList<Int64>): ArrayList<Int64> {
     return nums
 }
 
-main() {}

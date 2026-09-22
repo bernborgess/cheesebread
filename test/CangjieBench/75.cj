@@ -37,4 +37,3 @@ func is_multiply_prime(a: Int64): Bool {
     return false
 }
 
-main() {}

@@ -24,4 +24,3 @@ func common(l1: ArrayList<Int64>, l2: ArrayList<Int64>): ArrayList<Int64> {
     return ret_list
 }
 
-main() {}

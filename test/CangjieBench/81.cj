@@ -60,4 +60,3 @@ func numerical_letter_grade(grades: ArrayList<Float64>): ArrayList<String> {
     return letter_grade
 }
 
-main() {}

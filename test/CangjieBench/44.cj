@@ -20,4 +20,3 @@ func change_base(x: Int64, base: Int64): String {
     return ret
 }
 
-main() {}

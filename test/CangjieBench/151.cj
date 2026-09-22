@@ -21,4 +21,3 @@ func double_the_difference(lst: ArrayList<Float64>): Int64 {
     return sum
 }
 
-main() {}

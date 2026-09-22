@@ -26,4 +26,3 @@ func reverse_delete(s: String, c: String): (String, Bool) {
     return (str, is_palindrome)
 }
 
-main() {}

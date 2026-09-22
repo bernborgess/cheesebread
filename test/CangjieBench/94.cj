@@ -36,4 +36,3 @@ func skjkasdkd(lst: ArrayList<Int64>): Int64 {
     return result
 }
 
-main() {}

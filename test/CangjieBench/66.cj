@@ -24,4 +24,3 @@ func digitSum(s: String): Int64 {
     return result
 }
 
-main() {}

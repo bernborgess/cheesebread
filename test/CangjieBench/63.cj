@@ -25,4 +25,3 @@ func fibfib(n: Int64): Int64 {
     return fibfib(n - 1) + fibfib(n - 2) + fibfib(n - 3)
 }
 
-main() {}

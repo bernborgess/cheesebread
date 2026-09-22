@@ -18,4 +18,3 @@ func filter_integers(values: ArrayList<Any>): ArrayList<Int64> {
     return result
 }
 
-main() {}

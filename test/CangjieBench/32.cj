@@ -46,4 +46,3 @@ func find_zero(xs: ArrayList<Int64>): Float64 {
 }
 
 
-main() {}

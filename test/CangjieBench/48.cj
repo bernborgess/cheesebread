@@ -18,4 +18,3 @@ func is_palindrome(text: String): Bool {
     return true
 }
 
-main() {}

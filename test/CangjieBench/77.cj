@@ -18,4 +18,3 @@ func iscube(a: Int64): Bool {
     return Int64(round(Float64(a_) ** (1.0 / 3.0))) ** 3 == a_
 }
 
-main() {}

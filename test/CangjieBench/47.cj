@@ -17,4 +17,3 @@ func median(l: ArrayList<Int64>): Float64 {
     }
 }
 
-main() {}

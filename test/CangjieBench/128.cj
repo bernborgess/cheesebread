@@ -35,4 +35,3 @@ func prod_signs(arr: ArrayList<Int64>): Option<Int64> {
     return prod * sum_abs
 }
 
-main() {}

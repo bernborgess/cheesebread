@@ -93,4 +93,3 @@ func do_algebra(operators: ArrayList<String>, operand: ArrayList<Int64>): Int64 
     return operands[0]
 }
 
-main() {}

@@ -18,4 +18,3 @@ func sort_array(arr: ArrayList<Int64>): ArrayList<Int64> {
     return arr
 }
 
-main() {}

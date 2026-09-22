@@ -20,4 +20,3 @@ func prime_length(string: String): Bool {
     return true
 }
 
-main() {}

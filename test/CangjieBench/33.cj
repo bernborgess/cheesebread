@@ -23,4 +23,3 @@ func sort_third(l: ArrayList<Int64>): ArrayList<Int64> {
     return l
 }
 
-main() {}

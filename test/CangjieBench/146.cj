@@ -24,4 +24,3 @@ func specialFilter(nums: ArrayList<Int64>): Int64 {
     return count
 }
 
-main() {}

@@ -26,4 +26,3 @@ func largest_prime_factor(n: Int64): Int64 {
     return largest
 }
 
-main() {}

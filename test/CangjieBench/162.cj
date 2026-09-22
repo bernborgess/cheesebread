@@ -279,4 +279,3 @@ func string_to_md5(text: String): Option<String> {
     return md5.getHashCodeString()
 }
 
-main() {}

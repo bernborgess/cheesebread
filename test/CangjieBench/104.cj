@@ -31,4 +31,3 @@ func unique_digits(x: ArrayList<Int64>): ArrayList<Int64> {
     return odd_digit_elements
 }
 
-main() {}

@@ -21,4 +21,3 @@ func even_odd_count(num: Int64): (Int64, Int64) {
     return (even_count, odd_count)
 }
 
-main() {}

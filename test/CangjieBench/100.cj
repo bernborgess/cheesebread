@@ -21,4 +21,3 @@ func make_a_pile(n: Int64): ArrayList<Int64> {
     return result
 }
 
-main() {}

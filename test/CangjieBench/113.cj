@@ -26,4 +26,3 @@ func odd_count(lst: ArrayList<String>): ArrayList<String> {
     return res
 }
 
-main() {}

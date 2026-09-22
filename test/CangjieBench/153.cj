@@ -48,4 +48,3 @@ func Strongest_Extension(class_name: String, extensions: ArrayList<String>): Str
     return ans
 }
 
-main() {}

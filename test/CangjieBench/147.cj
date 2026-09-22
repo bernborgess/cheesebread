@@ -31,4 +31,3 @@ func get_max_triples(n: Int64): Int64 {
     return ans.size
 }
 
-main() {}

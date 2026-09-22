@@ -27,4 +27,3 @@ func sort_array(array: ArrayList<Int64>): ArrayList<Int64> {
     return array
 }
 
-main() {}

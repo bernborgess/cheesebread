@@ -26,4 +26,3 @@ func int_to_mini_roman(number: Int64): String {
     return res.toAsciiLower()
 }
 
-main() {}

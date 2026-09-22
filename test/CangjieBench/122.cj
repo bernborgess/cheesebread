@@ -23,4 +23,3 @@ func add_elements(arr: ArrayList<Int64>, k: Int64): Int64 {
     return sum
 }
 
-main() {}

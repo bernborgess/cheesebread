@@ -21,4 +21,3 @@ func same_chars(s0: String, s1: String): Bool {
     return s0_set == s1_set
 }
 
-main() {}

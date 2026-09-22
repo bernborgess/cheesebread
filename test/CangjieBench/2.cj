@@ -13,4 +13,3 @@ func truncate_number(number: Float64): Float64 {
     return fmod(number, 1.0)
 }
 
-main() {}

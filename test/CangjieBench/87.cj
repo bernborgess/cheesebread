@@ -35,4 +35,3 @@ func get_row(lst: ArrayList<ArrayList<Int>>, x: Int64): ArrayList<(Int64, Int64)
     return coords
 }
 
-main() {}

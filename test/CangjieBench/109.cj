@@ -53,4 +53,3 @@ func move_one_ball(arr: ArrayList<Int64>): Bool {
     return true
 }
 
-main() {}

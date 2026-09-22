@@ -17,4 +17,3 @@ func filter_by_substring(strings: ArrayList<String>, substring: String): ArrayLi
     return result
 }
 
-main() {}

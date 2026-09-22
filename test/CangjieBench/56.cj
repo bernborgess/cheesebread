@@ -26,4 +26,3 @@ func correct_bracketing(brackets: String): Bool {
     return depth == 0
 }
 
-main() {}

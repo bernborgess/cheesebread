@@ -9,4 +9,3 @@ func strlen(string: String): Int64 {
     return string.size
 }
 
-main() {}

@@ -28,4 +28,3 @@ func anti_shuffle(s: String): String {
     return result
 }
 
-main() {}

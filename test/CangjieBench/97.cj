@@ -14,4 +14,3 @@ func multiply(a: Int64, b: Int64): Int64 {
     return abs(a % 10) * abs(b % 10)
 }
 
-main() {}

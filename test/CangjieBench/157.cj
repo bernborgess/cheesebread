@@ -11,4 +11,3 @@ func right_angle_triangle(a: Int64, b: Int64, c: Int64): Bool {
     return a*a == b*b + c*c || b*b == a*a + c*c || c*c == a*a + b*b
 }
 
-main() {}

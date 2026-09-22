@@ -22,4 +22,3 @@ func rolling_max(numbers: ArrayList<Int64>): ArrayList<Int64> {
     return result
 }
 
-main() {}

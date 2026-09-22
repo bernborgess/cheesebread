@@ -18,4 +18,3 @@ func triangle_area(a: Int64, b: Int64, c: Int64): Float64 {
     return area
 }
 
-main() {}

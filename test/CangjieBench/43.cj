@@ -26,4 +26,3 @@ func pairs_sum_to_zero(l: ArrayList<Int64>): Bool {
     return false
 }
 
-main() {}

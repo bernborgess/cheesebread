@@ -18,4 +18,3 @@ func rescale_to_unit(numbers: ArrayList<Float64>): ArrayList<Float64> {
     return result
 }
 
-main() {}

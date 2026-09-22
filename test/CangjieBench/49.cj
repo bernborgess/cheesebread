@@ -19,4 +19,3 @@ func modp(n: Int64, p: Int64): Int64 {
     return ret
 }
 
-main() {}

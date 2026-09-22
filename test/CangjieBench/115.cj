@@ -46,4 +46,3 @@ func max_fill(grid: ArrayList<ArrayList<Int64>>, capacity: Int64): Int64 {
     return all_sum
 }
 
-main() {}

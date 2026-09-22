@@ -15,4 +15,3 @@ func concatenate(strings: ArrayList<String>): String {
     return result
 }
 
-main() {}
