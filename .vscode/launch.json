@@ -4,7 +4,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Cangjie Test",
+            "name": "Handmade Test",
             "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
             "args": [
                 "${workspaceFolder}/test/${input:testName}/code.cj",
@@ -17,7 +17,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "CangjieBench X Test",
+            "name": "CangjieBench Test",
             "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
             "args": [
                 "${workspaceFolder}/test/CangjieBench/${input:CangjieBenchId}.cj",
@@ -52,6 +52,7 @@
             "type": "promptString",
             "id": "CangjieBenchId",
             "description": "Number of the Cangjie Test case x.cj",
+            "default": "11"
         }
     ]
 }

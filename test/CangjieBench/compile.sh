@@ -5,6 +5,11 @@ cjc -v
 
 mkdir -p outs
 
+# Reset the results file
+cat << EOF > results.csv
+TestCase,Number of Variables,Bitwidth Reduction,Analysis Running Time
+EOF
+
 # Will attempt to compile each file, report errors if failed.
 #for testcase in *.cj; do
 for i in {0..163}; do

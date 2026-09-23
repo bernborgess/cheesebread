@@ -31,6 +31,7 @@ Bound valueLower(const IV& v) {
 
 Bound valueUpper(const IV& v) {
     if (v.getKind() == IV::Kind::Set) {
+        // Caller is expected to have already handled the empty (bottom) case.
         return Bound::constant(*v.getValues().rbegin());
     }
     return v.getUpper();
@@ -324,13 +325,14 @@ bool SubConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
+    // Nothing to do if one operand is empty
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
+
     // Exact evaluation: finite set x finite set.
     if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
-
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues()) consts.emplace_back(l - r);
