@@ -1136,7 +1136,9 @@ bool LogicalOrConstraint::eval(AbstractState& A) {
     A.try_emplace(def, BV());
 
     BV old_val = std::get<BV>(A[def]);
+    if (!A.count(op1)) A[op1] = BV();
     const BV& lhs = std::get<BV>(A[op1]);
+    if (!A.count(op2)) A[op2] = BV();
     const BV& rhs = std::get<BV>(A[op2]);
 
     std::vector<bool> vals;
@@ -1158,6 +1160,7 @@ bool LogicalNotConstraint::eval(AbstractState& A) {
     A.try_emplace(def, BV());
 
     BV old_val = std::get<BV>(A[def]);
+    if (!A.count(operand)) A[operand] = BV();
     const BV& src = std::get<BV>(A[operand]);
 
     std::vector<bool> vals;
