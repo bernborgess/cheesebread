@@ -102,6 +102,7 @@ bool PhiConstraint::eval(AbstractState& A) {
         BV accumulated_join;  // Starts at bottom element
 
         for (const auto& op : operands) {
+            if (!A.count(op)) A[op] = BV();  // Could also not have a value yet.
             accumulated_join.join(std::get<BV>(A[op]));
         }
 
@@ -954,7 +955,11 @@ bool LogicalAndConstraint::eval(AbstractState& A) {
     A.try_emplace(def, BV());
 
     BV old_val = std::get<BV>(A[def]);
-    const BV& lhs = std::get<BV>(A[op1]);
+
+    if (!A.count(op1)) A[op1] = BV();  // There's a chance no constraint will
+    const BV& lhs = std::get<BV>(A[op1]);  // initialize the lhs
+
+    if (!A.count(op2)) A[op2] = BV();
     const BV& rhs = std::get<BV>(A[op2]);
 
     std::vector<bool> vals;
