@@ -30,8 +30,8 @@ std::optional<VarParamOrConstant> GetLoadParamOrConstant(Value* value) {
         } else if (expr->IsConstant()) {
             Constant* constant = (Constant*)expr;
 
-            // ? Found the constant literal
-            return constant;
+            // We need this constant to be an integer (not a float)
+            if (constant->GetResultType()->IsInteger()) return constant;
         }
     } else if (value->IsParameter()) {
         Parameter* param = dynamic_cast<Parameter*>(value);
