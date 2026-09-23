@@ -336,10 +336,12 @@ void DominatorTree::Renaming() {
 
                 // Operands:
                 // * src
-                std::string op = interc->operand;
-                int newOpCounter = variableStack[op].top();
-                interc->operand =
-                    Alias(functionName, op, newOpCounter).to_string();
+                {
+                    std::string op = interc->operand;
+                    int newOpCounter = variableStack[op].top();
+                    interc->operand =
+                        Alias(functionName, op, newOpCounter).to_string();
+                }
 
                 // * low
                 if (auto fut = std::get_if<IntersectionConstraint::Future>(
@@ -537,7 +539,7 @@ void DominatorTree::Renaming() {
         // std::cout << "Popping variable stacks\n";
         for (size_t i = 0; i < node->phiFunctions.size(); i++) {
             std::string varName = node->phiFunctions[i].getVarDef();
-            variableStack[varName].pop();
+            if (!variableStack[varName].empty()) variableStack[varName].pop();
         }
 
         // For each definition of this block, we have to pop it from the stack,
@@ -555,14 +557,16 @@ void DominatorTree::Renaming() {
             }
 
             auto var = expr->GetResult();
-            variableStack[idToAlias[var->GetIdentifier()].def].pop();
+            auto varName = idToAlias[var->GetIdentifier()].def;
+            if (!variableStack[varName].empty()) variableStack[varName].pop();
         }
         // Also for those defined in IntersectionConstraints
         for (auto& constraint : node->nodeConstraints) {
             if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(
                     constraint)) {
-                auto var = Alias::from_string(interc->def).def;
-                variableStack[var].pop();
+                auto varName = Alias::from_string(interc->def).def;
+                if (!variableStack[varName].empty())
+                    variableStack[varName].pop();
             }
         }
     };

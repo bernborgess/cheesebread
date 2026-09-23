@@ -51,8 +51,7 @@
         {
             "type": "promptString",
             "id": "CangjieBenchId",
-            "description": "Number of the Cangjie Test case x.cj",
-            "default": "11"
+            "description": "Number of the Cangjie Test case `x.cj`"
         }
     ]
 }
