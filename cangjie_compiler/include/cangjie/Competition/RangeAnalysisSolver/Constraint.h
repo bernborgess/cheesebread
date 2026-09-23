@@ -238,7 +238,7 @@ class IntersectionConstraint : public Constraint {
     // @brief Replace symbolic bounds with concrete bounds.
     // @param state The table with abstract states that we will inspect to
     //   resolve symbolic bounds.
-    IntersectionConstraint resolveFutures(const AbstractState& state) const;
+    IntersectionConstraint resolveFutures(AbstractState& state) const;
 
     // Needed in renaming as well
     std::string operand;

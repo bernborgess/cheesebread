@@ -150,17 +150,14 @@ Bound IntersectionConstraint::resolveBound(const IntersectionBound& b,
 }
 
 IntersectionConstraint IntersectionConstraint::resolveFutures(
-    const AbstractState& state) const {
+    AbstractState& state) const {
     auto resolve = [&](const IntersectionBound& bound,
                        bool isLower) -> IntersectionBound {
         if (std::holds_alternative<Bound>(bound)) return bound;
 
         const Future& future = std::get<Future>(bound);
 
-        auto it = state.find(future.target_variable);
-        assert(it != state.end());
-
-        IV futureVariable = std::get<IV>(it->second);
+        IV futureVariable = std::get<IV>(state[future.target_variable]);
 
         Bound result =
             isLower ? futureVariable.getLower() : futureVariable.getUpper();
