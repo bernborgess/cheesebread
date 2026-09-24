@@ -31,7 +31,7 @@ class RangeAnalysis {
     std::set<Cangjie::CHIR::Function*> requestedFunctions;
     void GatherRequestedFunctions(Cangjie::CHIR::Package* package);
 
-    std::unordered_map<std::string, DominatorTree*> domTree_by_fnName;
+    std::unordered_map<std::string, DominatorTree*> domTree_by_fnRawMangledName;
     std::vector<std::optional<DominatorTree*>> queryToDomTree;
     void BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func);
     void BindArgumentsToParamsWithPhiConstraint();

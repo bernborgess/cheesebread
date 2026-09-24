@@ -78,8 +78,9 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
     // Create with new to store references by query, later needed to gather
     // correct identifiers
     auto funcName = func->GetSrcCodeIdentifier();
+    auto funcRawMangledName = func->GetRawMangledName();
     auto domTree = new DominatorTree(entry, params);
-    domTree_by_fnName[funcName] = domTree;
+    domTree_by_fnRawMangledName[funcRawMangledName] = domTree;
 
     domTree->Compute();
 
@@ -135,18 +136,19 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
 // to the target function parameters with phi functions.
 void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
     ApplyMap argumentsByFnName;
-    for (auto& [_, domTree] : domTree_by_fnName) {
+    for (auto& [_, domTree] : domTree_by_fnRawMangledName) {
         const auto applyMap = domTree->GetFnApplyMap();
         argumentsByFnName.insert(applyMap.begin(), applyMap.end());
     }
 
     for (auto& [callee, invocations] : argumentsByFnName) {
-        if (invocations.size() == 0 || domTree_by_fnName.count(callee) == 0) {
+        if (invocations.size() == 0 ||
+            domTree_by_fnRawMangledName.count(callee) == 0) {
             continue;
         }
 
         // Insert these as arguments to a phi function at the start of callee
-        auto domTree = domTree_by_fnName[callee];
+        auto domTree = domTree_by_fnRawMangledName[callee];
         auto params = domTree->GetParams();
         for (int i = 0; i < params.size(); i++) {
             std::vector<std::string> ops;
@@ -185,13 +187,13 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
 // For each return value in target function, bind it to the call result with a
 // phi function
 void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint() {
-    for (auto& [fnName, domTree] : domTree_by_fnName) {
+    for (auto& [fnName, domTree] : domTree_by_fnRawMangledName) {
         // Debugging the returnAliases
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
-            if (!domTree_by_fnName.count(callee)) continue;
+            if (!domTree_by_fnRawMangledName.count(callee)) continue;
 
             std::vector<std::string> ops;
-            auto& calleeTree = domTree_by_fnName[callee];
+            auto& calleeTree = domTree_by_fnRawMangledName[callee];
             for (auto rv : calleeTree->GetReturnValues()) {
                 ops.push_back(rv.to_string());
             }
@@ -443,7 +445,7 @@ void RangeAnalysis::RunOnPackage(Package* package) {
     OutputAnalysisToFile();
 
     // Free created domTrees
-    for (auto [_, ptr] : domTree_by_fnName) {
+    for (auto [_, ptr] : domTree_by_fnRawMangledName) {
         delete ptr;
     }
 

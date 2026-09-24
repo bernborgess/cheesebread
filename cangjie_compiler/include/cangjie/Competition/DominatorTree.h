@@ -115,20 +115,20 @@ class DominatorTree {
     void Compress(std::size_t v);
     std::size_t Eval(std::size_t v);
 
-    std::string functionName;
+    std::string functionRawMangledName;
     Cangjie::CHIR::Type* returnType;
     Block* entry_;
     std::vector<Parameter*> params_;
 
     // Store all function invocations in here, to create phi later
-    ApplyMap arguments_by_functionName;
+    ApplyMap arguments_by_functionRawMangledName;
 
     // Store aliases of possible return values
     std::vector<Competition::Alias> functionReturnValues;
 
     // Store invocations to bind their return values later.
     std::unordered_map<std::string, std::vector<Competition::Alias>>
-        returnAliases_by_functionName;
+        returnAliases_by_functionRawMangledName;
 
    private:
     std::size_t dfsCount_ = 0;
@@ -150,17 +150,21 @@ class DominatorTree {
 
    public:
     const std::vector<Parameter*>& GetParams() { return params_; };
-    const std::string GetFunctionName() { return functionName; };
+    const std::string GetFunctionRawMangledName() {
+        return functionRawMangledName;
+    };
     const Cangjie::CHIR::Type* GetReturnType() { return returnType; };
     const std::vector<Node*>& GetNodes() { return nodes_; }
     // Map of functions that are invoked and their arguments
-    const ApplyMap& GetFnApplyMap() { return arguments_by_functionName; }
+    const ApplyMap& GetFnApplyMap() {
+        return arguments_by_functionRawMangledName;
+    }
     // List of possible aliases returned by this function
     const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
     // Map of function names to aliases that are defined by their return value
     const std::unordered_map<std::string, std::vector<Competition::Alias>>&
     GetReturnAliasMap() {
-        return returnAliases_by_functionName;
+        return returnAliases_by_functionRawMangledName;
     };
 };
 }  // namespace Competition

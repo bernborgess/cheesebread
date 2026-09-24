@@ -12,7 +12,7 @@ namespace Competition {
 DominatorTree::DominatorTree(Block* entry, std::vector<Parameter*>& params)
     : entry_(entry), params_(params) {
     Function* func = entry->GetParentBlockGroup()->GetOwnerFunc();
-    this->functionName = func->GetSrcCodeIdentifier();
+    this->functionRawMangledName = func->GetRawMangledName();
     this->returnType = func->GetReturnType();
 }
 
@@ -205,11 +205,12 @@ static std::string getUncommented(std::string s) {
 void DominatorTree::ComputeAlphaNodes() {
     for (auto param : params_) {
         std::string id = param->GetIdentifier();
-        std::string funcName = param->GetOwnerFunc()->GetSrcCodeIdentifier();
+        std::string funcRawMangledName =
+            param->GetOwnerFunc()->GetRawMangledName();
         std::string aliasDef = param->GetSrcCodeIdentifier() == ""
                                    ? id
                                    : param->GetSrcCodeIdentifier();
-        idToAlias[id] = Alias(funcName, aliasDef);
+        idToAlias[id] = Alias(funcRawMangledName, aliasDef);
         idToAlias[id].setCounter(0);
         addVariable(idToAlias[id].def);
     }
@@ -221,9 +222,9 @@ void DominatorTree::ComputeAlphaNodes() {
         Block* block = node->block;
 
         for (auto expr : block->GetExpressions()) {
-            auto funcName = expr->GetParentBlockGroup()
-                                ->GetOwnerFunc()
-                                ->GetSrcCodeIdentifier();
+            auto funcRawMangledName = expr->GetParentBlockGroup()
+                                          ->GetOwnerFunc()
+                                          ->GetRawMangledName();
 
             if (expr->IsAllocate()) {
                 LocalVar* res = expr->GetResult();
@@ -232,17 +233,10 @@ void DominatorTree::ComputeAlphaNodes() {
                                            ? id
                                            : res->GetSrcCodeIdentifier();
 
-                idToAlias[id] = Alias(funcName, aliasDef);
+                idToAlias[id] = Alias(funcRawMangledName, aliasDef);
 
                 addVariable(idToAlias[id].def);
-                // alphaNodes[res->GetSrcCodeIdentifier()].emplace_back(block);
             }
-
-            // if (expr->IsLoad()) {
-            //     auto id = expr->GetResult()->GetIdentifier();
-            //     auto opId = expr->GetOperand(0)->GetIdentifier();
-            //     if (idToAlias[id].def == "") idToAlias[id] = idToAlias[opId];
-            // }
 
             if (expr->IsStore()) {
                 auto id = expr->GetOperand(0)->GetIdentifier();
@@ -254,11 +248,6 @@ void DominatorTree::ComputeAlphaNodes() {
             }
         }
     }
-
-    // for (auto [id, alias] : idToAlias) {
-    //     if (alias.def != "")
-    //         std::cout << id << ": " << alias << "\n";
-    // }
 }
 
 /// @brief As described in the paper
@@ -275,13 +264,13 @@ void DominatorTree::Renaming() {
         for (auto expr : block->GetExpressions()) {
             if (expr->GetResult() == nullptr) continue;
 
-            auto funcName = expr->GetParentBlockGroup()
-                                ->GetOwnerFunc()
-                                ->GetSrcCodeIdentifier();
+            auto funcRawMangledName = expr->GetParentBlockGroup()
+                                          ->GetOwnerFunc()
+                                          ->GetRawMangledName();
 
             std::string id = expr->GetResult()->GetIdentifier();
             if (idToAlias.count(id) == 0) {
-                idToAlias[id] = Alias(funcName, id);
+                idToAlias[id] = Alias(funcRawMangledName, id);
                 addVariable(id);
             }
         }
@@ -340,7 +329,8 @@ void DominatorTree::Renaming() {
                     std::string op = interc->operand;
                     int newOpCounter = variableStack[op].top();
                     interc->operand =
-                        Alias(functionName, op, newOpCounter).to_string();
+                        Alias(functionRawMangledName, op, newOpCounter)
+                            .to_string();
                 }
 
                 // * low
@@ -349,7 +339,8 @@ void DominatorTree::Renaming() {
                     std::string op = fut->target_variable;
                     int newOpCounter = variableStack[op].top();
                     fut->target_variable =
-                        Alias(functionName, op, newOpCounter).to_string();
+                        Alias(functionRawMangledName, op, newOpCounter)
+                            .to_string();
                 }
 
                 // * up
@@ -358,14 +349,15 @@ void DominatorTree::Renaming() {
                     std::string op = fut->target_variable;
                     int newOpCounter = variableStack[op].top();
                     fut->target_variable =
-                        Alias(functionName, op, newOpCounter).to_string();
+                        Alias(functionRawMangledName, op, newOpCounter)
+                            .to_string();
                 }
 
                 // Variable Definition
                 std::string var = interc->def;
                 int newVarCounter = variableCounter[var];
-                interc->def =
-                    Alias(functionName, var, newVarCounter).to_string();
+                interc->def = Alias(functionRawMangledName, var, newVarCounter)
+                                  .to_string();
 
                 variableStack[var].emplace(newVarCounter);
                 ++variableCounter[var];
@@ -433,15 +425,18 @@ void DominatorTree::Renaming() {
                     // Create the constraint here
                     if (type->IsInteger()) {
                         auto constraint = std::make_shared<AddConstraint>(
-                            Alias(functionName, id, 0).to_string(),
-                            Alias(functionName, var, count).to_string(),
+                            Alias(functionRawMangledName, id, 0).to_string(),
+                            Alias(functionRawMangledName, var, count)
+                                .to_string(),
                             "\%const_0");
                         node->pushConstraint(constraint);
                     } else if (type->IsBoolean()) {  // Boolean
                         auto constraint =
                             std::make_shared<LogicalAndConstraint>(
-                                Alias(functionName, id, 0).to_string(),
-                                Alias(functionName, var, count).to_string(),
+                                Alias(functionRawMangledName, id, 0)
+                                    .to_string(),
+                                Alias(functionRawMangledName, var, count)
+                                    .to_string(),
                                 "\%const_true");
                         node->pushConstraint(constraint);
                     }
@@ -695,11 +690,11 @@ void DominatorTree::ConvertToSSA() {
 
     for (auto [def, phiBlocks] : variablePhiNodes) {
         for (Block* block : phiBlocks) {
-            std::string funcName = block->GetParentBlockGroup()
-                                       ->GetOwnerFunc()
-                                       ->GetSrcCodeIdentifier();
-            Phi phiFunction =
-                Phi(Alias(funcName, def), block->GetPredecessors().size());
+            std::string funcRawMangledName = block->GetParentBlockGroup()
+                                                 ->GetOwnerFunc()
+                                                 ->GetRawMangledName();
+            Phi phiFunction = Phi(Alias(funcRawMangledName, def),
+                                  block->GetPredecessors().size());
             AddPhiFunction(block, phiFunction);
         }
     }
@@ -834,20 +829,25 @@ void DominatorTree::GenerateSSAConstraints() {
                 auto app = dynamic_cast<Apply*>(expr);
 
                 // ? Here an apply is performed. We have to identify what is the
-                // target function 'fnName' and what are the arguments[]
-                std::string fnName = app->GetCallee()->GetSrcCodeIdentifier();
+                // target function 'fnRawMangledName' and what are the
+                // arguments[]
+                auto calleeFn = dynamic_cast<Function*>(app->GetCallee());
+                std::string fnRawMangledName = calleeFn->GetRawMangledName();
 
                 std::vector<Competition::Alias> arguments;
                 for (auto& arg : app->GetArgs()) {
                     arguments.push_back(idToAlias.at(arg->GetIdentifier()));
                 }
 
-                // Register that `fnName` is called with `arguments`
-                arguments_by_functionName[fnName].push_back(arguments);
+                // Register that `fnRawMangledName` is called with `arguments`
+                arguments_by_functionRawMangledName[fnRawMangledName].push_back(
+                    arguments);
 
-                // Register that `fnName`'s return value is `returnAlias`
+                // Register that `fnRawMangledName`'s return value is
+                // `returnAlias`
                 auto returnAlias = idToAlias[app->GetResult()->GetIdentifier()];
-                returnAliases_by_functionName[fnName].push_back(returnAlias);
+                returnAliases_by_functionRawMangledName[fnRawMangledName]
+                    .push_back(returnAlias);
 
                 if (app->GetResultType()->IsInteger()) {
                     auto def = idToAlias[app->GetResult()->GetIdentifier()].def;
@@ -1091,7 +1091,7 @@ std::optional<Alias> DominatorTree::FindVarBeforeLine(std::string variableName,
     if (!variableAlias.has_value())
         for (Cangjie::CHIR::Parameter* param : params_) {
             if (param->GetSrcCodeIdentifier() == variableName) {
-                variableAlias = Alias(functionName, variableName, 0);
+                variableAlias = Alias(functionRawMangledName, variableName, 0);
             }
         }
 
