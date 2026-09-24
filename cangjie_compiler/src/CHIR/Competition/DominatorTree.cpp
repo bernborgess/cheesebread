@@ -830,6 +830,15 @@ void DominatorTree::GenerateSSAConstraints() {
             if (expr->IsApply()) {
                 auto app = dynamic_cast<Apply*>(expr);
 
+                auto callee = app->GetCallee();
+                if (callee->IsLocalVar() &&
+                    dynamic_cast<LocalVar*>(callee)->GetExpr()->IsLambda()) {
+                    // ? Should we handle the lambda call as well?
+                    continue;
+                }
+
+                assert(callee->IsFunc());
+
                 // ? Here an apply is performed. We have to identify what is the
                 // target function 'fnUniqueName' and what are the arguments[]
                 auto calleeFn = dynamic_cast<Function*>(app->GetCallee());
