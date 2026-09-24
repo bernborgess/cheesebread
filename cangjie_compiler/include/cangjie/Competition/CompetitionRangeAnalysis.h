@@ -1,6 +1,7 @@
 #ifndef COMPETITION_RANGE_ANALYSIS_H
 #define COMPETITION_RANGE_ANALYSIS_H
 
+#include <chrono>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -40,6 +41,9 @@ class RangeAnalysis {
     AbstractState solverState;
     ConstraintGraph constraintGraph;
     void CreateHelperConstraints();
+
+    // Recording the timestamp at the start of the code
+    std::chrono::_V2::system_clock::time_point time_point_begin;
 
     void OutputAnalysisToFile();
 };

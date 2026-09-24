@@ -19,6 +19,8 @@ using namespace Cangjie::CHIR;
 // #define DEBUG_PRINT_QUERIES
 // Define this to generate graphs for the dominator trees
 // #define DEBUG_GENERATE_GRAPH_DOMTREE
+// Define this to calculate the bitwidth reduction metric
+#define EVALUATE_CALCULATE_BITWIDTH_REDUCTION
 
 void RangeAnalysis::ReadCompetitionQueries() {
     // Open the "input.txt" file
@@ -374,6 +376,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
         }
     }
 
+#ifdef EVALUATE_CALCULATE_BITWIDTH_REDUCTION
     // For each variable in the solver, count its occurrence and the bits needed
     uint32_t bits_needed = 0;
     uint32_t total_vars = 0;
@@ -394,13 +397,19 @@ void RangeAnalysis::OutputAnalysisToFile() {
                        : 0.0;
     std::cerr << "Reduction: " << reduction << "%" << std::endl;
 
+    // Taking a timestamp after the code is ran
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+        end - time_point_begin);
+
     std::fstream resultsFile;                        // Metric 1 csv file
     resultsFile.open("results.csv", std::ios::app);  // Open file in append mode
     if (resultsFile) {
-        resultsFile << total_vars << ',' << reduction << ',';
-        resultsFile.flush();
+        resultsFile << total_vars << ',' << reduction << ',' << duration.count()
+                    << std::endl;
     }
     resultsFile.close();
+#endif
 
     outputFile.close();
 }
@@ -417,6 +426,11 @@ void RangeAnalysis::RunOnPackage(Package* package) {
 
 #ifdef DEBUG_PRINT_QUERIES
     std::cerr << "@@@@ COMPETITION ANALYSIS @@@@" << std::endl;
+#endif
+
+#ifdef EVALUATE_CALCULATE_BITWIDTH_REDUCTION
+    // Recording the timestamp at the start of the code
+    this->time_point_begin = std::chrono::high_resolution_clock::now();
 #endif
 
     GatherRequestedFunctions(package);
