@@ -36,14 +36,15 @@
             "description": "Test case to run:",
             "options": [
                 "array",
-                "wcet",
                 "call12",
+                "default-args",
                 "i-plus-j",
                 "i-plus-plus",
                 "official",
                 "readif",
                 "return-compare",
                 "return012",
+                "wcet",
                 "while10",
                 "x14",
             ]

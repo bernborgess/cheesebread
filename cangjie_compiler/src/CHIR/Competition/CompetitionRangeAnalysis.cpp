@@ -72,15 +72,11 @@ void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package) {
 }
 
 void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
-    Block* entry = func->GetEntryBlock();
-    std::vector<Parameter*> params = func->GetParams();
-
     // Create with new to store references by query, later needed to gather
     // correct identifiers
-    auto funcName = func->GetSrcCodeIdentifier();
-    auto funcRawMangledName = func->GetRawMangledName();
-    auto domTree = new DominatorTree(entry, params);
-    domTree_by_fnRawMangledName[funcRawMangledName] = domTree;
+    auto domTree = new DominatorTree(func);
+    auto funcName = domTree->GetFunctionUniqueName();
+    domTree_by_fnRawMangledName[funcName] = domTree;
 
     domTree->Compute();
 

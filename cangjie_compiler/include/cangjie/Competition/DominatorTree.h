@@ -25,7 +25,7 @@ typedef std::unordered_map<
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
    public:
-    explicit DominatorTree(Block* entry, std::vector<Parameter*>& params);
+    explicit DominatorTree(Function* func);
 
     /// Computes the dominator tree.
     void Compute();
@@ -115,20 +115,20 @@ class DominatorTree {
     void Compress(std::size_t v);
     std::size_t Eval(std::size_t v);
 
-    std::string functionRawMangledName;
+    std::string functionUniqueName;
     Cangjie::CHIR::Type* returnType;
     Block* entry_;
     std::vector<Parameter*> params_;
 
     // Store all function invocations in here, to create phi later
-    ApplyMap arguments_by_functionRawMangledName;
+    ApplyMap arguments_by_functionUniqueName;
 
     // Store aliases of possible return values
     std::vector<Competition::Alias> functionReturnValues;
 
     // Store invocations to bind their return values later.
     std::unordered_map<std::string, std::vector<Competition::Alias>>
-        returnAliases_by_functionRawMangledName;
+        returnAliases_by_functionUniqueName;
 
    private:
     std::size_t dfsCount_ = 0;
@@ -150,21 +150,17 @@ class DominatorTree {
 
    public:
     const std::vector<Parameter*>& GetParams() { return params_; };
-    const std::string GetFunctionRawMangledName() {
-        return functionRawMangledName;
-    };
+    const std::string GetFunctionUniqueName() { return functionUniqueName; };
     const Cangjie::CHIR::Type* GetReturnType() { return returnType; };
     const std::vector<Node*>& GetNodes() { return nodes_; }
     // Map of functions that are invoked and their arguments
-    const ApplyMap& GetFnApplyMap() {
-        return arguments_by_functionRawMangledName;
-    }
+    const ApplyMap& GetFnApplyMap() { return arguments_by_functionUniqueName; }
     // List of possible aliases returned by this function
     const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
     // Map of function names to aliases that are defined by their return value
     const std::unordered_map<std::string, std::vector<Competition::Alias>>&
     GetReturnAliasMap() {
-        return returnAliases_by_functionRawMangledName;
+        return returnAliases_by_functionUniqueName;
     };
 };
 }  // namespace Competition
