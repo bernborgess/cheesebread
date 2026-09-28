@@ -402,8 +402,13 @@ void RangeAnalysis::OutputAnalysisToFile() {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
         end - time_point_begin);
 
+#define EXPAND_STR(x) #x
+#define TO_STR(x) EXPAND_STR(x)
+    std::string resultsFileName = "results-" TO_STR(INT_VALUE_SET_SIZE) ".csv";
+#undef TO_STR
+#undef EXPAND_STR
     std::fstream resultsFile;                        // Metric 1 csv file
-    resultsFile.open("results.csv", std::ios::app);  // Open file in append mode
+    resultsFile.open(resultsFileName, std::ios::app);  // Open file in append mode
     if (resultsFile) {
         resultsFile << total_vars << ',' << reduction << ',' << duration.count()
                     << std::endl;
