@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Handmade Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/test/${input:testName}/code.cj",
+                "-O2",
+                "-j1",
+            ],
+            "cwd": "${workspaceFolder}/test/${input:testName}",
+            "preLaunchTask": "source envsetup"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "CangjieBench Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/test/CangjieBench/${input:CangjieBenchId}.cj",
+                "-O2",
+                "-j1",
+                "--output-type=staticlib",
+            ],
+            "cwd": "${workspaceFolder}/test/CangjieBench",
+            "preLaunchTask": "source envsetup"
+        }
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "testName",
+            "description": "Test case to run:",
+            "options": [
+                "array",
+                "call12",
+                "default-args",
+                "i-plus-j",
+                "i-plus-plus",
+                "official",
+                "readif",
+                "return-compare",
+                "return012",
+                "wcet",
+                "while10",
+                "x14",
+            ]
+        },
+        {
+            "type": "promptString",
+            "id": "CangjieBenchId",
+            "description": "Number of the Cangjie Test case `x.cj`"
+        }
+    ]
+}

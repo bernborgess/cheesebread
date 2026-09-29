@@ -31,6 +31,7 @@ Bound valueLower(const IV& v) {
 
 Bound valueUpper(const IV& v) {
     if (v.getKind() == IV::Kind::Set) {
+        // Caller is expected to have already handled the empty (bottom) case.
         return Bound::constant(*v.getValues().rbegin());
     }
     return v.getUpper();
@@ -102,6 +103,7 @@ bool PhiConstraint::eval(AbstractState& A) {
         BV accumulated_join;  // Starts at bottom element
 
         for (const auto& op : operands) {
+            if (!A.count(op)) A[op] = BV();  // Could also not have a value yet.
             accumulated_join.join(std::get<BV>(A[op]));
         }
 
@@ -148,17 +150,14 @@ Bound IntersectionConstraint::resolveBound(const IntersectionBound& b,
 }
 
 IntersectionConstraint IntersectionConstraint::resolveFutures(
-    const AbstractState& state) const {
+    AbstractState& state) const {
     auto resolve = [&](const IntersectionBound& bound,
                        bool isLower) -> IntersectionBound {
         if (std::holds_alternative<Bound>(bound)) return bound;
 
         const Future& future = std::get<Future>(bound);
 
-        auto it = state.find(future.target_variable);
-        assert(it != state.end());
-
-        IV futureVariable = std::get<IV>(it->second);
+        IV futureVariable = std::get<IV>(state[future.target_variable]);
 
         Bound result =
             isLower ? futureVariable.getLower() : futureVariable.getUpper();
@@ -323,13 +322,14 @@ bool SubConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
+    // Nothing to do if one operand is empty
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
+
     // Exact evaluation: finite set x finite set.
     if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
-
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues()) consts.emplace_back(l - r);
@@ -954,7 +954,11 @@ bool LogicalAndConstraint::eval(AbstractState& A) {
     A.try_emplace(def, BV());
 
     BV old_val = std::get<BV>(A[def]);
-    const BV& lhs = std::get<BV>(A[op1]);
+
+    if (!A.count(op1)) A[op1] = BV();  // There's a chance no constraint will
+    const BV& lhs = std::get<BV>(A[op1]);  // initialize the lhs
+
+    if (!A.count(op2)) A[op2] = BV();
     const BV& rhs = std::get<BV>(A[op2]);
 
     std::vector<bool> vals;
@@ -1129,7 +1133,9 @@ bool LogicalOrConstraint::eval(AbstractState& A) {
     A.try_emplace(def, BV());
 
     BV old_val = std::get<BV>(A[def]);
+    if (!A.count(op1)) A[op1] = BV();
     const BV& lhs = std::get<BV>(A[op1]);
+    if (!A.count(op2)) A[op2] = BV();
     const BV& rhs = std::get<BV>(A[op2]);
 
     std::vector<bool> vals;
@@ -1151,6 +1157,7 @@ bool LogicalNotConstraint::eval(AbstractState& A) {
     A.try_emplace(def, BV());
 
     BV old_val = std::get<BV>(A[def]);
+    if (!A.count(operand)) A[operand] = BV();
     const BV& src = std::get<BV>(A[operand]);
 
     std::vector<bool> vals;

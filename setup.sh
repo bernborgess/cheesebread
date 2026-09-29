@@ -1,6 +1,9 @@
 set -e # Stop on first error
 #set -v # Verbose
 
+# Needed packages (ubuntu):
+# sudo apt install clang-18 openssl-dev cmake ninja-build swig3.0 lua5.3 liblua5.3-dev python3-dev
+
 # Architecture name
 export ARCH=$(uname -m)
 #export ARCH=x86_64 or aarch64

@@ -14,6 +14,8 @@
 #include "BoolValue.h"
 #include "IntValue.h"
 
+#define INT_VALUE_SET_SIZE 64
+
 enum class EdgeType {
     Data,
     Future,
@@ -26,7 +28,7 @@ struct UseEdge {
 
 enum ValueType { IVType, BVType };
 
-using IV = IntValue<4>;
+using IV = IntValue<INT_VALUE_SET_SIZE>;
 using BV = BoolValue;
 using AnalyzedValue = std::variant<IV, BV>;
 // Define our global abstract state table using the alias
@@ -238,7 +240,7 @@ class IntersectionConstraint : public Constraint {
     // @brief Replace symbolic bounds with concrete bounds.
     // @param state The table with abstract states that we will inspect to
     //   resolve symbolic bounds.
-    IntersectionConstraint resolveFutures(const AbstractState& state) const;
+    IntersectionConstraint resolveFutures(AbstractState& state) const;
 
     // Needed in renaming as well
     std::string operand;
