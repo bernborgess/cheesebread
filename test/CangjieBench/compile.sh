@@ -1,5 +1,9 @@
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <set_size>"
+    exit 1
+fi
 
-INT_VALUE_SET_SIZE=64
+INT_VALUE_SET_SIZE=$1
 RESULTS_FILE_NAME="results-${INT_VALUE_SET_SIZE}.csv"
 
 source ../../cangjie_compiler/output/envsetup.sh
@@ -12,7 +16,7 @@ echo "Storing results at ${RESULTS_FILE_NAME}"
 
 # Reset the results file
 cat << EOF > $RESULTS_FILE_NAME
-TestCase,Number of Variables,Bitwidth Reduction,Analysis Running Time
+TestCase,Number of Variables,Number of Constraints,Bitwidth Reduction,Analysis Running Time
 EOF
 
 # Will attempt to compile each file, report errors if failed.

@@ -380,6 +380,7 @@ void RangeAnalysis::OutputAnalysisToFile() {
     // For each variable in the solver, count its occurrence and the bits needed
     uint32_t bits_needed = 0;
     uint32_t total_vars = 0;
+    size_t total_constraints = solverState.size();
     for (auto& [varName, varRange] : solverState) {
         if (varName.empty() or varName[0] == '%') continue;
         if (std::holds_alternative<IV>(varRange)) {
@@ -410,8 +411,8 @@ void RangeAnalysis::OutputAnalysisToFile() {
     std::fstream resultsFile;                        // Metric 1 csv file
     resultsFile.open(resultsFileName, std::ios::app);  // Open file in append mode
     if (resultsFile) {
-        resultsFile << total_vars << ',' << reduction << ',' << duration.count()
-                    << std::endl;
+        resultsFile << total_vars << ',' << total_constraints << ','
+                    << reduction << ',' << duration.count() << std::endl;
     }
     resultsFile.close();
 #endif
