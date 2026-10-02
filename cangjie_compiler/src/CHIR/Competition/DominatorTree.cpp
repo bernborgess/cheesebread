@@ -608,6 +608,12 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias) {
         fout << "<tr><td bgcolor='gray' align='center' colspan='1'>";
         fout << "Block" << block->GetIdentifier() << "</td></tr>";
 
+        auto escapeHtml = [](std::string& text) {
+            ReplaceAll(text, "&", "&amp;");
+            ReplaceAll(text, "<", "&lt;");
+            ReplaceAll(text, ">", "&gt;");
+        };
+
         // Show the constraints before the expressions
         for (auto& constraint : node->nodeConstraints) {
             std::ostringstream stream;
@@ -619,8 +625,10 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias) {
                            constraint)) {
                 stream << *phic.get();
             }
-            if (std::string info = stream.str(); info.length() > 0)
+            if (std::string info = stream.str(); info.length() > 0) {
+                escapeHtml(info);
                 fout << "<tr><td align='left'>" << info << "</td></tr>";
+            }
         }
 
         // Show the CHIR code inside this block!
@@ -632,9 +640,7 @@ void DominatorTree::PrintDominatorTree(const std::string& path, bool alias) {
                     "[" + idToAlias[res->GetIdentifier()].to_string() + "] ";
             }
             info += getUncommented(expr->ToString(0));
-            ReplaceAll(info, "&", "&amp;");
-            ReplaceAll(info, "<", "&lt;");
-            ReplaceAll(info, ">", "&gt;");
+            escapeHtml(info);
             fout << "<tr><td align='left'>" << info << "</td></tr>";
         }
         fout << "</table>>];" << std::endl;
