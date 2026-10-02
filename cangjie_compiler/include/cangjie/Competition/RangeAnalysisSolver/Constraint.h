@@ -14,7 +14,7 @@
 #include "BoolValue.h"
 #include "IntValue.h"
 
-#define INT_VALUE_SET_SIZE 64
+#define INT_VALUE_SET_SIZE 4
 
 enum class EdgeType {
     Data,

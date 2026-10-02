@@ -14,11 +14,14 @@ fi
 for i in {0..6}; do
     SET_SIZE=$((2**i))
     echo "Evaluating Set Size = ${SET_SIZE}"
+
     # Edit the macro
     vim $CONSTRAINT_H_PATH -s <(echo -e "/INT_VALUE_SET_SIZE/\nwcw${SET_SIZE}\e:wq")
+
     # Compile
     cd $ROOT_DIR
     FRESH=true ./setup.sh
+
     # Test
     cd test/CangjieBench
     ./compile.sh $SET_SIZE

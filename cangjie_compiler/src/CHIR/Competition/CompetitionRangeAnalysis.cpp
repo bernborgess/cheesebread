@@ -377,6 +377,18 @@ void RangeAnalysis::OutputAnalysisToFile() {
     }
 
 #ifdef EVALUATE_CALCULATE_BITWIDTH_REDUCTION
+
+#define EXPAND_STR(x) #x
+#define TO_STR(x) EXPAND_STR(x)
+    std::string resultsFileName = "results-" TO_STR(INT_VALUE_SET_SIZE) ".csv";
+    std::string resultsByVarName =
+        "resultsByVarName-" TO_STR(INT_VALUE_SET_SIZE) ".csv";
+#undef TO_STR
+#undef EXPAND_STR
+
+    std::fstream resultsByVarNameFile;                        
+    resultsByVarNameFile.open(resultsByVarName, std::ios::app);  // Open file in append mode
+
     // For each variable in the solver, count its occurrence and the bits needed
     uint32_t bits_needed = 0;
     uint32_t total_vars = 0;
@@ -385,10 +397,16 @@ void RangeAnalysis::OutputAnalysisToFile() {
         if (varName.empty() or varName[0] == '%') continue;
         if (std::holds_alternative<IV>(varRange)) {
             auto intVal = std::get<IV>(varRange);
-            bits_needed += CalculateRangeReduction(intVal);
+            auto reductionVar = CalculateRangeReduction(intVal);
+            bits_needed += reductionVar;
+            if (resultsByVarNameFile) {
+                resultsByVarNameFile << varName << ' ' << reductionVar
+                                     << std::endl;
+            }
             total_vars++;
         }
     }
+    resultsByVarNameFile.close();
 
     std::cerr << "Out of " << (total_vars * 64) << " bits only " << bits_needed
               << " were required to represent the " << total_vars
@@ -403,11 +421,6 @@ void RangeAnalysis::OutputAnalysisToFile() {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
         end - time_point_begin);
 
-#define EXPAND_STR(x) #x
-#define TO_STR(x) EXPAND_STR(x)
-    std::string resultsFileName = "results-" TO_STR(INT_VALUE_SET_SIZE) ".csv";
-#undef TO_STR
-#undef EXPAND_STR
     std::fstream resultsFile;                        // Metric 1 csv file
     resultsFile.open(resultsFileName, std::ios::app);  // Open file in append mode
     if (resultsFile) {
