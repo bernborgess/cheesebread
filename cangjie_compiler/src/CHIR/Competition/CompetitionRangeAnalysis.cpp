@@ -18,7 +18,7 @@ using namespace Cangjie::CHIR;
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
 // Define this to generate graphs for the dominator trees
-// #define DEBUG_GENERATE_GRAPH_DOMTREE
+#define DEBUG_GENERATE_GRAPH_DOMTREE
 // Define this to calculate the bitwidth reduction metric
 #define EVALUATE_CALCULATE_BITWIDTH_REDUCTION
 
