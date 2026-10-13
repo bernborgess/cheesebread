@@ -7,11 +7,11 @@
             "name": "Handmade Test",
             "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
             "args": [
-                "${workspaceFolder}/test/${input:testName}/code.cj",
+                "${workspaceFolder}/test/handmade/${input:testName}/code.cj",
                 "-O2",
                 "-j1",
             ],
-            "cwd": "${workspaceFolder}/test/${input:testName}",
+            "cwd": "${workspaceFolder}/test/handmade/${input:testName}",
             "preLaunchTask": "source envsetup"
         },
         {
