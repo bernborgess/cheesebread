@@ -18,7 +18,7 @@ for test in "${TESTS[@]}"; do
 EOF
 
     # Run the code
-    $CJC_PATH/cjc $test.cj -O2 -j1
+    $CJC_PATH/cjc $test.cj -O2 -j1 -Woff unused
 
     cd ..
 

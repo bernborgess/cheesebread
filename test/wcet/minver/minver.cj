@@ -50,8 +50,8 @@
 /*************************************************************************/
 
 
-func minver(row: Int64, col: Int64, eps: Float64): Int64
-func mmul(row_a: Int64, col_a: Int64, row_b: Int64, col_b: Int64): Int64
+// func minver(row: Int64, col: Int64, eps: Float64): Int64
+// func mmul(row_a: Int64, col_a: Int64, row_b: Int64, col_b: Int64): Int64
 
 let a: Array<Array<Float64>> = [
     [3.0, -6.0, 7.0],

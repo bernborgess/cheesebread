@@ -1,91 +1,87 @@
-/* MDH WCET BENCHMARK SUITE. Translated to Cangjie. */
+/*
+ * WCET benchmark "select": Cangjie translation of select.c.
+ *
+ * Selects the k-th largest number out of the n numbers stored in arr[].
+ * Translated from the MDH WCET Benchmark Suite (SNU-RT) version of the
+ * Numerical Recipes in C routine.
+ *
+ * The C SWAP(a, b) macro is expanded inline through the local `temp'
+ * variable, keeping the original statement order.
+ */
 
-let arr: [Float64; 20] = [
+var arr: Array<Float64> = [
     5.0, 4.0, 10.3, 1.1, 5.7, 100.0, 231.0, 111.0, 49.5, 99.0,
     10.0, 150.0, 222.22, 101.0, 77.0, 44.0, 35.0, 20.54, 99.99, 888.88
 ]
 
-func select(k: UInt64, n: UInt64): Float64 {
-    var i: UInt64 = 0
-    var ir: UInt64 = 0
-    var j: UInt64 = 0
-    var l: UInt64 = 0
-    var mid: UInt64 = 0
-    var a: Float64 = 0.0
-    var temp: Float64 = 0.0
-    var flag: Bool = false
-    var flag2: Bool = false
+func select(k: Int64, n: Int64): Float64 {
+    var i: Int64
+    var ir: Int64
+    var j: Int64
+    var l: Int64
+    var mid: Int64
+    var a: Float64
+    var temp: Float64
+    var flag: Bool
+    var flag2: Bool
 
     l = 0
     ir = n - 1
     flag = false
-
     while (!flag) {
         if (ir <= l + 1) {
             if (ir == l + 1) {
-                if (arr[Int64(ir).toInt()] < arr[Int64(l).toInt()]) {
-                    temp = arr[Int64(l).toInt()]
-                    arr[Int64(l).toInt()] = arr[Int64(ir).toInt()]
-                    arr[Int64(ir).toInt()] = temp
+                if (arr[ir] < arr[l]) {
+                    temp = arr[l]
+                    arr[l] = arr[ir]
+                    arr[ir] = temp
                 }
             }
             flag = true
-        } else {
+        } else if (!flag) {
             mid = (l + ir) >> 1
-            // SWAP(arr[mid], arr[l + 1])
-            temp = arr[Int64(mid).toInt()]
-            arr[Int64(mid).toInt()] = arr[Int64(l + 1).toInt()]
-            arr[Int64(l + 1).toInt()] = temp
-
-            if (arr[Int64(l + 1).toInt()] > arr[Int64(ir).toInt()]) {
-                // SWAP(arr[l + 1], arr[ir])
-                temp = arr[Int64(l + 1).toInt()]
-                arr[Int64(l + 1).toInt()] = arr[Int64(ir).toInt()]
-                arr[Int64(ir).toInt()] = temp
+            temp = arr[mid]
+            arr[mid] = arr[l + 1]
+            arr[l + 1] = temp
+            if (arr[l + 1] > arr[ir]) {
+                temp = arr[l + 1]
+                arr[l + 1] = arr[ir]
+                arr[ir] = temp
             }
-
-            if (arr[Int64(l).toInt()] > arr[Int64(ir).toInt()]) {
-                // SWAP(arr[l], arr[ir])
-                temp = arr[Int64(l).toInt()]
-                arr[Int64(l).toInt()] = arr[Int64(ir).toInt()]
-                arr[Int64(ir).toInt()] = temp
+            if (arr[l] > arr[ir]) {
+                temp = arr[l]
+                arr[l] = arr[ir]
+                arr[ir] = temp
             }
-
-            if (arr[Int64(l + 1).toInt()] > arr[Int64(l).toInt()]) {
-                // SWAP(arr[l + 1], arr[l])
-                temp = arr[Int64(l + 1).toInt()]
-                arr[Int64(l + 1).toInt()] = arr[Int64(l).toInt()]
-                arr[Int64(l).toInt()] = temp
+            if (arr[l + 1] > arr[l]) {
+                temp = arr[l + 1]
+                arr[l + 1] = arr[l]
+                arr[l] = temp
             }
-
             i = l + 1
             j = ir
-            a = arr[Int64(l).toInt()]
+            a = arr[l]
             flag2 = false
-
             while (!flag2) {
-                i = i + 1
-                while (arr[Int64(i).toInt()] < a) {
-                    i = i + 1
+                i++
+                while (arr[i] < a) {
+                    i++
                 }
-                j = j - 1
-                while (arr[Int64(j).toInt()] > a) {
-                    j = j - 1
+                j--
+                while (arr[j] > a) {
+                    j--
                 }
                 if (j < i) {
                     flag2 = true
                 }
                 if (!flag2) {
-                    // SWAP(arr[i], arr[j])
-                    temp = arr[Int64(i).toInt()]
-                    arr[Int64(i).toInt()] = arr[Int64(j).toInt()]
-                    arr[Int64(j).toInt()] = temp
+                    temp = arr[i]
+                    arr[i] = arr[j]
+                    arr[j] = temp
                 }
             }
-
-            arr[Int64(l).toInt()] = arr[Int64(j).toInt()]
-            arr[Int64(j).toInt()] = a
-
+            arr[l] = arr[j]
+            arr[j] = a
             if (j >= k) {
                 ir = j - 1
             }
@@ -94,10 +90,11 @@ func select(k: UInt64, n: UInt64): Float64 {
             }
         }
     }
-
-    return arr[Int64(k).toInt()]
+    return arr[k]
 }
 
-func main() {
+main(): Int64 {
     select(10, 20)
+
+    return 0
 }
