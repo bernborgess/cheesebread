@@ -195,6 +195,19 @@ func my_fabs(n: Int64): Int64 {
     return f
 }
 
+// The original C code uses `int` (32 bit) throughout. Its Taylor-series style
+// expansion in my_sin() deliberately lets intermediate products overflow 32
+// bits and wrap, which is what bounds the number of loop iterations. Emulate
+// that wraparound so the Cangjie version iterates the same number of times.
+func w32(x: Int64): Int64 {
+    let u: Int64 = x & 0xFFFFFFFF
+    if (u >= 0x80000000) {
+        u - 0x100000000
+    } else {
+        u
+    }
+}
+
 func my_sin(rad: Int64): Int64 {
     var r: Int64 = rad
     var diff: Int64 = 0
@@ -209,12 +222,12 @@ func my_sin(rad: Int64): Int64 {
     }
     diff = r
     app = diff
-    diff = (diff * (-(r * r))) / ((2 * inc) * (2 * inc + 1))
-    app = app + diff
+    diff = w32(diff * (-w32(r * r))) / w32(w32(2 * inc) * w32(2 * inc + 1))
+    app = w32(app + diff)
     inc = inc + 1
     while (my_fabs(diff) >= 1) {
-        diff = (diff * (-(r * r))) / ((2 * inc) * (2 * inc + 1))
-        app = app + diff
+        diff = w32(diff * (-w32(r * r))) / w32(w32(2 * inc) * w32(2 * inc + 1))
+        app = w32(app + diff)
         inc = inc + 1
     }
     return app
@@ -606,7 +619,7 @@ main(): Int64 {
 
     i = 0
     while (i < SIZE) {
-        test_data[i] = j * my_cos(f * PI * i)
+        test_data[i] = w32(j * my_cos(f * PI * i))
         i = i + 1
     }
 
