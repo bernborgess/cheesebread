@@ -10,7 +10,7 @@ for test in "${TESTS[@]}"; do
     DST="./$test/$test.cj"
     PROMPT="Translate the C code in file $SRC to Cangjie and store it to $DST"
 
-    # Skip exisiting file
+    # Skip existing file
     [ -f "$DST" ] && continue
 
     echo -e "Test case '$test' "

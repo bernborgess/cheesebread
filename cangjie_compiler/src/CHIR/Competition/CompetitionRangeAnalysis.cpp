@@ -18,7 +18,7 @@ using namespace Cangjie::CHIR;
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
 // Define this to generate graphs for the dominator trees
-#define DEBUG_GENERATE_GRAPH_DOMTREE
+// #define DEBUG_GENERATE_GRAPH_DOMTREE
 // Define this to calculate the bitwidth reduction metric
 #define EVALUATE_CALCULATE_BITWIDTH_REDUCTION
 
@@ -381,13 +381,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
 #define EXPAND_STR(x) #x
 #define TO_STR(x) EXPAND_STR(x)
     std::string resultsFileName = "results-" TO_STR(INT_VALUE_SET_SIZE) ".csv";
-    std::string resultsByVarName =
-        "resultsByVarName-" TO_STR(INT_VALUE_SET_SIZE) ".csv";
 #undef TO_STR
 #undef EXPAND_STR
 
-    std::fstream resultsByVarNameFile;                        
-    resultsByVarNameFile.open(resultsByVarName, std::ios::app);  // Open file in append mode
 
     // For each variable in the solver, count its occurrence and the bits needed
     uint32_t bits_needed = 0;
@@ -399,14 +395,9 @@ void RangeAnalysis::OutputAnalysisToFile() {
             auto intVal = std::get<IV>(varRange);
             auto reductionVar = CalculateRangeReduction(intVal);
             bits_needed += reductionVar;
-            if (resultsByVarNameFile) {
-                resultsByVarNameFile << varName << ' ' << reductionVar
-                                     << std::endl;
-            }
-            total_vars++;
+           total_vars++;
         }
     }
-    resultsByVarNameFile.close();
 
     std::cerr << "Out of " << (total_vars * 64) << " bits only " << bits_needed
               << " were required to represent the " << total_vars
@@ -421,13 +412,16 @@ void RangeAnalysis::OutputAnalysisToFile() {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
         end - time_point_begin);
 
-    std::fstream resultsFile;                        // Metric 1 csv file
-    resultsFile.open(resultsFileName, std::ios::app);  // Open file in append mode
-    if (resultsFile) {
-        resultsFile << total_vars << ',' << total_constraints << ','
-                    << reduction << ',' << duration.count() << std::endl;
-    }
-    resultsFile.close();
+    // std::fstream resultsFile;                        // Metric 1 csv file
+    // resultsFile.open(resultsFileName, std::ios::app);  // Open file in append
+    // mode if (resultsFile) {
+    //     resultsFile << total_vars << ',' << total_constraints << ','
+    //                 << reduction << ',' << duration.count() << std::endl;
+    std::cerr << total_vars << ',' << total_constraints << ',' << reduction
+              << ',' << duration.count() << std::endl;
+
+    // }
+    // resultsFile.close();
 #endif
 
     outputFile.close();
