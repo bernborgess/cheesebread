@@ -308,7 +308,8 @@ void RangeAnalysis::VerifyStaticAsserts() {
         switch (condKind) {
             // * x == k => abstract value of x is exactly {k}
             case ExprKind::EQUAL: {
-                // TODO
+                return intVal.isSet() && intVal.getValues().size() == 1 &&
+                       *intVal.getValues().begin() == k;
             }
             // * x != k => k may not occur in abstract value of x
             case ExprKind::NOTEQUAL: {
