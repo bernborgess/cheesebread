@@ -228,15 +228,177 @@ void RangeAnalysis::CreateHelperConstraints() {
 }
 
 void RangeAnalysis::VerifyStaticAsserts() {
-    // Iterate on the domTrees
-    // find a Apply(sassert, *expr) (identifier is "@_CNat7sassertHb")
-    // Pattern match on the *expr to get either (x is var, k is constant lit)
-    // x != k   => k may not occur in abstract value of x
-    // x > k    => lower of abstract value of x is greater than k
-    // x == k   => abstract value of x is exactly {k}
-    // x <= k   => upper of abstract value of x is less or equal to k
-    // ! If any such assert turns out false, we panic (?)
+    auto HandleSAssert = [&](Value* cond, DominatorTree* domTree) -> bool {
+        if (!cond->GetType()->IsBoolean()) return false;
+        if (!cond->IsLocalVar()) return false;
 
+        auto condLV = static_cast<LocalVar*>(cond);
+        auto condExpr = condLV->GetExpr();
+        if (condExpr->GetExprMajorKind() != ExprMajorKind::BINARY_EXPR)
+            return false;
+        auto condBinExpr = static_cast<BinaryExpression*>(condExpr);
+
+        auto lhsOp = condBinExpr->GetLHSOperand();  // ! MUST BE AN IDENTIFIER
+        if (!lhsOp->IsLocalVar()) return false;
+        auto lhsLV = static_cast<LocalVar*>(lhsOp);
+        if (!lhsLV->GetExpr()->IsLoad()) return false;
+        auto lhsLoad = static_cast<Load*>(lhsLV->GetExpr());
+        if (!lhsLoad->GetLocation()->IsLocalVar()) return false;
+        // OUR X
+        auto lhsVar = static_cast<LocalVar*>(lhsLoad->GetLocation());
+
+        auto rhsOp = condBinExpr->GetRHSOperand();  // ! MUST BE A CONSTANT!!
+        if (!rhsOp->IsLocalVar()) return false;
+        auto rhsLV = static_cast<LocalVar*>(rhsOp);
+        if (!rhsLV->GetExpr()->IsConstant()) return false;
+        auto rhsConstant = static_cast<Constant*>(rhsLV->GetExpr());
+        if (!rhsConstant->GetResultType()->IsInteger()) return false;
+        // OUR K
+        auto k = rhsConstant->GetSignedIntLitVal();
+
+        std::cerr << "cond: " << lhsVar->GetIdentifier() << "("
+                  << lhsVar->GetSrcCodeIdentifier() << ")"
+                  << " " << condBinExpr->GetExprKindName() << " " << k
+                  << std::endl;
+
+        auto varAlias = domTree->idToAlias[lhsVar->GetIdentifier()];
+        auto analyzedVal = solverState[varAlias.to_string()];
+        if (!std::holds_alternative<IV>(analyzedVal)) return false;
+        auto intVal = std::get<IV>(analyzedVal);
+
+#define debug(X) std::cerr << #X << " = " << (X) << std::endl
+
+        debug(intVal);
+
+        debug(intVal.getLower());
+        debug(intVal.getUpper());
+        debug((intVal.isSet()));
+        debug(intVal.getStride());
+        debug(intVal.getValues().size());
+        debug(intVal.isBottom());
+
+#undef debug
+
+        // Helper to get the lowest element, both in strided interval and set
+        auto getLeast = [](IV intVal) -> Bound {
+            if (intVal.isBottom())
+                return Bound::plusInfinity();  // ! YES, WEIRD
+            if (intVal.isSet()) { // ? Return the smallest value of this set.
+                return Bound::constant(*intVal.getValues().begin());
+            } else { // Just the lower bound of interval
+                return intVal.getLower();
+            }
+        };
+
+        // Helper to get the highest element, both in strided interval and set
+        auto getMost = [](IV intVal) -> Bound {
+            if (intVal.isBottom())
+                return Bound::minusInfinity();  // ! YES, WEIRD
+            if (intVal.isSet()) { // ? Return the greatest value of this set.
+                return Bound::constant(*std::prev(intVal.getValues().end()));
+            } else { // Just the upper bound of interval
+                return intVal.getUpper();
+            }
+        };
+
+        // Pattern match on the *cond to get either (x is var, k is const lit)
+        // if (condBinExpr->GetExprKind() != ExprKind::GE) return false;  // ?
+        // >= ?
+        auto condKind = condBinExpr->GetExprKind();
+        switch (condKind) {
+            // * x == k => abstract value of x is exactly {k}
+            case ExprKind::EQUAL: {
+                // TODO
+            }
+            // * x != k => k may not occur in abstract value of x
+            case ExprKind::NOTEQUAL: {
+                if (intVal.isBottom()) return true;
+                if (intVal.isSet()) {  // Will check if k occurs in the set.
+                    // ? Optimization: check the bounds first
+                    if (getLeast(intVal).getConstant() > k ||
+                        getMost(intVal).getConstant() < k)
+                        return true;
+
+                    for (auto& x : intVal.getValues()) {
+                        if (x == k) return false;
+                    }
+                    return true;
+
+                } else {
+                    // Will check if k occurs in the strided interval.
+                    // [l, u:s] ≡ {x | l <= x <= u, x ≡ l (mod s)}
+
+                    auto least = getLeast(intVal);
+                    if (least.isMinusInfinity()) {
+                        // Check if k is above the interval
+                        auto most = getMost(intVal);
+                        if (most.isPlusInfinity()) return false;  // could be x
+                        // ? Here we don't account for strided intervals that
+                        // start at -∞ and stride >1 e.g [-∞,10:2] will be read
+                        // as [-∞,10:1] and WILL contain a k=9.
+                        return most.getConstant() < k;
+                    } else {
+                        auto l = least.getConstant();
+                        if (k < l) return true;
+
+                        auto most = getMost(intVal);
+                        if (most.isConstant() && most.getConstant() < k)
+                            return true;
+
+                        // l <= k <= u holds.
+                        // Check if k ≡ l (mod s)
+                        auto s = intVal.getStride();
+
+// Because C++ handles negative mods wrong.
+#define MathMod(n, M) (((n % M) + M) % M)
+                        return MathMod(l, s) != MathMod(k, s);
+#undef MathMod
+                    }
+                }
+            }
+
+            // * x > k  => least of abstract value of x is greater than k
+            case ExprKind::GT:
+            // * x >= k => least of abstract value of x is greater or equal to k
+            case ExprKind::GE: {
+                auto least = getLeast(intVal);
+                if (least.isPlusInfinity()) return true;    // A bottom...
+                if (least.isMinusInfinity()) return false;  // Impossible
+                auto l = least.getConstant();
+                return condKind == ExprKind::GT ? (l > k) : (l >= k);
+            }
+
+            // * x < k  => most of abstract value of x is less than k
+            case ExprKind::LT:
+            // * x <= k => most of abstract value of x is less or equal to k
+            case ExprKind::LE: {
+                auto most = getMost(intVal);
+                if (most.isPlusInfinity()) return false;  // Impossible
+                if (most.isMinusInfinity()) return true;  // A bottom...
+                auto m = most.getConstant();
+                return condKind == ExprKind::LT ? (m < k) : (m <= k);
+            }
+        }
+
+        return true;
+    };
+
+    // Iterate on the domTrees, finds Apply(sassert, *cond)
+    for (auto& [fnName, domTree] : domTree_by_uniqueName) {
+        domTree->idToAlias;
+        for (auto& node : domTree->GetNodes()) {
+            if (node->block == nullptr) continue;
+            for (auto& expr : node->block->GetExpressions()) {
+                if (expr->IsApply()) {
+                    auto apply = dynamic_cast<Apply*>(expr);
+                    if (apply->GetCallee()->GetIdentifier() ==
+                        "@_CNat7sassertHb" /* unique identifier of sassert */) {
+                        HandleSAssert(apply->GetOperand(1), domTree);
+                    }
+                }
+            }
+        }
+    }
 }
 
 static uint32_t CalculateRangeReduction(IV iv) {

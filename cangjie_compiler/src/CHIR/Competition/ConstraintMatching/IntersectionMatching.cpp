@@ -16,19 +16,20 @@ using VarParamOrConstant = std::variant<LocalVar*, Parameter*, Constant*>;
 // Gets x from either a Load(x), Parameter(x) or Constant(x)
 std::optional<VarParamOrConstant> GetLoadParamOrConstant(Value* value) {
     if (value->IsLocalVar()) {
-        LocalVar* localVar = (LocalVar*)value;
+        LocalVar* localVar = dynamic_cast<LocalVar*>(value);
         Expression* expr = localVar->GetExpr();
         if (expr->IsLoad()) {
             Load* load = (Load*)expr;
             Value* locationValue = load->GetLocation();
             if (locationValue->IsLocalVar()) {
-                LocalVar* locationLocalVar = (LocalVar*)locationValue;
+                LocalVar* locationLocalVar =
+                    dynamic_cast<LocalVar*>(locationValue);
 
                 // ? Found the load variable
                 return locationLocalVar;
             }
         } else if (expr->IsConstant()) {
-            Constant* constant = (Constant*)expr;
+            Constant* constant = dynamic_cast<Constant*>(expr);
 
             // We need this constant to be an integer (not a float)
             if (constant->GetResultType()->IsInteger()) return constant;
@@ -46,10 +47,11 @@ std::optional<VarParamOrConstant> GetLoadParamOrConstant(Value* value) {
 std::pair<std::optional<VarParamOrConstant>, std::optional<VarParamOrConstant>>
 MatchBinExpr(Value* cond, ExprKind exprKind) {
     if (cond->IsLocalVar()) {
-        LocalVar* condLV = (LocalVar*)cond;
+        LocalVar* condLV = dynamic_cast<LocalVar*>(cond);
         Expression* condExpr = condLV->GetExpr();
         if (condExpr->GetExprMajorKind() == ExprMajorKind::BINARY_EXPR) {
-            BinaryExpression* condBinExpr = (BinaryExpression*)condExpr;
+            BinaryExpression* condBinExpr =
+                dynamic_cast<BinaryExpression*>(condExpr);
             if (condBinExpr->GetExprKind() == exprKind) {
                 return {GetLoadParamOrConstant(condBinExpr->GetLHSOperand()),
                         GetLoadParamOrConstant(condBinExpr->GetRHSOperand())};

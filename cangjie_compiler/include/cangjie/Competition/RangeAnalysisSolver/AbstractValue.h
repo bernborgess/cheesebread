@@ -84,6 +84,8 @@ class AbstractValue {
 
     bool isBottom() const { return kind == Kind::Set && values.empty(); }
 
+    bool isSet() const { return kind == Kind::Set; }
+
     /**
      * @brief Computes the least upper bound (join) of this value and another
      * value.
