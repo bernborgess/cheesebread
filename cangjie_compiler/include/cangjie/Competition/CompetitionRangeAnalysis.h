@@ -42,6 +42,8 @@ class RangeAnalysis {
     ConstraintGraph constraintGraph;
     void CreateHelperConstraints();
 
+    void VerifyStaticAsserts();
+
     // Recording the timestamp at the start of the code
     std::chrono::_V2::system_clock::time_point time_point_begin;
 

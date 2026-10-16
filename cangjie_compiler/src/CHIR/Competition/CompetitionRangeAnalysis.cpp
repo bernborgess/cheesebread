@@ -227,6 +227,18 @@ void RangeAnalysis::CreateHelperConstraints() {
     constraintGraph.addConstraint(cst_true);
 }
 
+void RangeAnalysis::VerifyStaticAsserts() {
+    // Iterate on the domTrees
+    // find a Apply(sassert, *expr) (identifier is "@_CNat7sassertHb")
+    // Pattern match on the *expr to get either (x is var, k is constant lit)
+    // x != k   => k may not occur in abstract value of x
+    // x > k    => lower of abstract value of x is greater than k
+    // x == k   => abstract value of x is exactly {k}
+    // x <= k   => upper of abstract value of x is less or equal to k
+    // ! If any such assert turns out false, we panic (?)
+
+}
+
 static uint32_t CalculateRangeReduction(IV iv) {
     const uint32_t FULL_RANGE = 64;
 
@@ -463,6 +475,9 @@ void RangeAnalysis::RunOnPackage(Package* package) {
     auto sccs = constraintGraph.getTopologicalSCCs();
     Solver solver(solverState);
     solver.solve(sccs);
+
+    // Check the `sassert` are all valid.
+    VerifyStaticAsserts();
 
     // Use the solver results to output the analysis
     OutputAnalysisToFile();

@@ -4,5 +4,7 @@ main() {
 
     if (arr[i] != 42) {
         println("dead");
+        i = i + 1;
     }
+    sassert(i >= 0)
 }
