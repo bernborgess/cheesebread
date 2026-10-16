@@ -248,15 +248,13 @@ bool AddConstraint::eval(AbstractState& A) {
     const IV& rhs = std::get<IV>(A[op2]);
 
     // AnalyzedValue result; // Starts at bottom (empty set)
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
     // Exact evaluation: finite set × finite set
     if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        // Bottom propagates.
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
-
         std::vector<int> consts;
 
         for (int l : lhs.getValues()) {
@@ -370,12 +368,12 @@ bool DivConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues())
@@ -427,12 +425,12 @@ bool ModConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues())
@@ -477,12 +475,12 @@ bool ShiftLeftConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues())
@@ -527,12 +525,13 @@ bool ShiftRightConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    // If either operator is bottom, there's no meaning to shift it
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues())
@@ -546,7 +545,7 @@ bool ShiftRightConstraint::eval(AbstractState& A) {
         return old_val != std::get<IV>(A[def]);
     }
 
-    Bound lLower = valueLower(lhs), lUpper = valueUpper(lhs);
+    Bound lLower = valueLower(lhs), lUpper = valueUpper(lhs); // lhs is empty set
     Bound rLower = valueLower(rhs), rUpper = valueUpper(rhs);
 
     // Arithmetic right shift is monotonic in the shifted value for a fixed,
@@ -575,12 +574,12 @@ bool BitwiseAndConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues()) consts.emplace_back(l & r);
@@ -613,12 +612,12 @@ bool BitwiseXorConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues()) consts.emplace_back(l ^ r);
@@ -652,12 +651,12 @@ bool BitwiseOrConstraint::eval(AbstractState& A) {
     const IV& lhs = std::get<IV>(A[op1]);
     const IV& rhs = std::get<IV>(A[op2]);
 
-    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]).setAsBottom();
-            return old_val != std::get<IV>(A[def]);
-        }
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
 
+    if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
         std::vector<int> consts;
         for (int l : lhs.getValues())
             for (int r : rhs.getValues()) consts.emplace_back(l | r);
@@ -786,19 +785,19 @@ bool BitwiseNotConstraint::eval(AbstractState& A) {
 }
 
 bool MultiplyConstraint::eval(AbstractState& A) {
-    IV old = std::get<IV>(A[this->def]);
+    IV old_val = std::get<IV>(A[this->def]);
 
     IV lhs = std::get<IV>(A[this->op1]);
     IV rhs = std::get<IV>(A[this->op2]);
 
+    if (lhs.isBottom() || rhs.isBottom()) {
+        std::get<IV>(A[def]).setAsBottom();
+        return old_val != std::get<IV>(A[def]);
+    }
+
     IV result;
 
     if (lhs.getKind() == IV::Kind::Set && rhs.getKind() == IV::Kind::Set) {
-        if (lhs.getValues().empty() || rhs.getValues().empty()) {
-            std::get<IV>(A[def]) = result;
-            return old != result;
-        }
-
         std::vector<int> consts;
         for (int l : lhs.getValues()) {
             for (int r : rhs.getValues()) {
@@ -875,7 +874,7 @@ bool MultiplyConstraint::eval(AbstractState& A) {
     }
 
     A[this->def] = result;
-    return old != result;
+    return old_val != result;
 }
 
 // --- InitializationConstraint (v = c) ---

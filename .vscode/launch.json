@@ -7,11 +7,24 @@
             "name": "Handmade Test",
             "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
             "args": [
-                "${workspaceFolder}/test/${input:testName}/code.cj",
+                "${workspaceFolder}/test/handmade/${input:HandmadeTestName}/code.cj",
                 "-O2",
                 "-j1",
             ],
-            "cwd": "${workspaceFolder}/test/${input:testName}",
+            "cwd": "${workspaceFolder}/test/handmade/${input:HandmadeTestName}",
+            "preLaunchTask": "source envsetup"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "WCET Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/test/wcet/${input:WcetTestName}/${input:WcetTestName}.cj",
+                "-O2",
+                "-j1",
+            ],
+            "cwd": "${workspaceFolder}/test/wcet/${input:WcetTestName}",
             "preLaunchTask": "source envsetup"
         },
         {
@@ -32,22 +45,23 @@
     "inputs": [
         {
             "type": "pickString",
-            "id": "testName",
-            "description": "Test case to run:",
-            "options": [
-                "array",
-                "call12",
-                "default-args",
-                "four",
-                "i-plus-j",
-                "i-plus-plus",
-                "official",
-                "readif",
-                "return-compare",
-                "return012",
-                "wcet",
-                "while10",
-                "x14",
+            "id": "HandmadeTestName",
+            "description": "Handmade Test case to run:",
+            "options": [ "array", "call12", "default-args", "four", "i-plus-j",
+                "i-plus-plus", "official", "readif", "return-compare",
+                "return012", "while10", "x14",
+            ]
+        },
+        {
+            "type": "pickString",
+            "id": "WcetTestName",
+            "description": "WCET Test case to run:",
+            "options": [ "adpcm", "bs", "bsort100", "cnt", "compress", "cover",
+                "crc", "duff", "edn", "expint", "fac", "fdct", "fft1",
+                "fibcall", "fir", "insertsort", "janne_complex", "jfdctint",
+                "lcdnum", "lms", "ludcmp", "matmult", "minver", "ndes", "ns",
+                "nsichneu", "prime", "qsort-exam", "qurt", "recursion",
+                "select", "sqrt", "st", "statemate", "ud"
             ]
         },
         {
