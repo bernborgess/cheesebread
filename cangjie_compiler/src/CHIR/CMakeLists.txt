@@ -11,6 +11,9 @@ add_subdirectory(IR)
 add_subdirectory(Utils)
 add_library(CangjieCHIRBase OBJECT ${CHIR_BASE_SRC})
 
+# Competition Work Directory
+add_subdirectory(Competition)
+
 add_subdirectory(Analysis)
 add_subdirectory(Optimization)
 add_subdirectory(Transformation)

@@ -78,9 +78,9 @@ public:
 
     // including:
     // 1. func declared in current package
-    // 2. func declared in imported pacakge but instantiated in current package
-    // 3. func declared in imported pacakge with `const`
-    // 4. func declared in imported pacakge with @Frozen and compiled with O2
+    // 2. func declared in imported package but instantiated in current package
+    // 3. func declared in imported package with `const`
+    // 4. func declared in imported package with @Frozen and compiled with O2
     bool IsFuncWithBody() const;
 
     // including:

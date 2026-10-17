@@ -76,6 +76,11 @@ Expression::Expression(
     }
 }
 
+bool Expression::IsAllocate() const
+{
+    return kind == ExprKind::ALLOCATE;
+}
+
 bool Expression::IsConstantNull() const
 {
     if (kind == ExprKind::CONSTANT) {
@@ -151,6 +156,11 @@ bool Expression::IsLoad() const
     return kind == ExprKind::LOAD;
 }
 
+bool Expression::IsStore() const
+{
+    return kind == ExprKind::STORE;
+}
+
 bool Expression::IsTypeCast() const
 {
     return kind == ExprKind::TYPECAST;
@@ -209,6 +219,11 @@ bool Expression::IsInvokeStaticBase() const
 bool Expression::IsDebug() const
 {
     return kind == ExprKind::DEBUGEXPR;
+}
+
+bool Expression::IsExit() const
+{
+    return kind == ExprKind::EXIT;
 }
 
 std::string Expression::GetExprKindName() const
@@ -867,7 +882,11 @@ std::string Apply::OperandsToString() const
     if (thisType != nullptr) {
         func += thisType->ToString() + "->";
     }
-    func += GetCallee()->GetIdentifier();
+    if (auto srcId = GetCallee()->GetSrcCodeIdentifier(); srcId != "")
+        func += srcId;
+    else
+        func += GetCallee()->GetIdentifier();
+
     func += TypeVecToString("<", instantiatedTypeArgs, ">");
     res.emplace_back(func);
     res.emplace_back(ValueIdVecToString("", GetArgs(), ""));
