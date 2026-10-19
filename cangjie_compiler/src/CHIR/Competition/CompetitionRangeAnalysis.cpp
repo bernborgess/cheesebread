@@ -14,11 +14,11 @@ namespace Competition {
 using namespace Cangjie::CHIR;
 
 // Define this to show all constraints added to the constraint graph
-// #define DEBUG_SHOW_INSERTED_CONSTRAINTS
+#define DEBUG_SHOW_INSERTED_CONSTRAINTS
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
 // Define this to generate graphs for the dominator trees
-// #define DEBUG_GENERATE_GRAPH_DOMTREE
+#define DEBUG_GENERATE_GRAPH_DOMTREE
 // Define this to calculate the bitwidth reduction metric
 #define EVALUATE_CALCULATE_BITWIDTH_REDUCTION
 
@@ -234,18 +234,54 @@ void RangeAnalysis::VerifyStaticAsserts() {
 
         auto condLV = static_cast<LocalVar*>(cond);
         auto condExpr = condLV->GetExpr();
-        if (condExpr->GetExprMajorKind() != ExprMajorKind::BINARY_EXPR)
-            return false;
+        if (condExpr->GetExprMajorKind() != ExprMajorKind::BINARY_EXPR) {
+            // It's possible cangjie already optimized to `sassert(true)`
+            if (!condExpr->IsConstantBool()) return false;
+            auto constant = static_cast<const Constant*>(condExpr);
+            return constant->GetBoolLitVal();
+        }
         auto condBinExpr = static_cast<BinaryExpression*>(condExpr);
 
+        // ? Could we handle a[50] ?
         auto lhsOp = condBinExpr->GetLHSOperand();  // ! MUST BE AN IDENTIFIER
-        if (!lhsOp->IsLocalVar()) return false;
-        auto lhsLV = static_cast<LocalVar*>(lhsOp);
-        if (!lhsLV->GetExpr()->IsLoad()) return false;
-        auto lhsLoad = static_cast<Load*>(lhsLV->GetExpr());
-        if (!lhsLoad->GetLocation()->IsLocalVar()) return false;
-        // OUR X
-        auto lhsVar = static_cast<LocalVar*>(lhsLoad->GetLocation());
+        if (!lhsOp->IsLocalVar() && !lhsOp->IsParameter()) return false;
+
+        auto identifier = lhsOp->GetIdentifier();
+        // I wonder if this is needed...
+        if (lhsOp->IsLocalVar()) {
+            auto lhsLV = static_cast<LocalVar*>(lhsOp);
+            if (!lhsLV->GetExpr()->IsLoad()) return false;
+            auto lhsLoad = static_cast<Load*>(lhsLV->GetExpr());
+            if (!lhsLoad->GetLocation()->IsLocalVar()) return false;
+            // OUR X
+            auto lhsVar = static_cast<LocalVar*>(lhsLoad->GetLocation());
+
+            // Checking if this is needed
+            std::cerr
+                << "Local var was " << identifier << "whose alias is "
+                << domTree->idToAlias[identifier].to_string()
+                << " and their load was" << lhsVar->GetIdentifier()
+                << " whose alias is "
+                << domTree->idToAlias[lhsVar->GetIdentifier()].to_string()
+                << std::endl;
+
+            identifier = lhsVar->GetIdentifier();
+        }
+
+        auto varAlias = domTree->idToAlias[identifier];
+        auto analyzedVal = solverState[varAlias.to_string()];
+        if (!std::holds_alternative<IV>(analyzedVal)) return false;
+        auto intVal = std::get<IV>(analyzedVal);
+
+#define debug(X) std::cerr << #X << " = " << (X) << std::endl
+        debug(intVal);
+        debug(intVal.getLower());
+        debug(intVal.getUpper());
+        debug((intVal.isSet()));
+        debug(intVal.getStride());
+        debug(intVal.getValues().size());
+        debug(intVal.isBottom());
+#undef debug
 
         auto rhsOp = condBinExpr->GetRHSOperand();  // ! MUST BE A CONSTANT!!
         if (!rhsOp->IsLocalVar()) return false;
@@ -256,28 +292,11 @@ void RangeAnalysis::VerifyStaticAsserts() {
         // OUR K
         auto k = rhsConstant->GetSignedIntLitVal();
 
-        std::cerr << "cond: " << lhsVar->GetIdentifier() << "("
-                  << lhsVar->GetSrcCodeIdentifier() << ")"
+        // ! DEBUG
+        std::cerr << "cond: " << identifier << "("
+                  << lhsOp->GetSrcCodeIdentifier() << ")"
                   << " " << condBinExpr->GetExprKindName() << " " << k
                   << std::endl;
-
-        auto varAlias = domTree->idToAlias[lhsVar->GetIdentifier()];
-        auto analyzedVal = solverState[varAlias.to_string()];
-        if (!std::holds_alternative<IV>(analyzedVal)) return false;
-        auto intVal = std::get<IV>(analyzedVal);
-
-#define debug(X) std::cerr << #X << " = " << (X) << std::endl
-
-        debug(intVal);
-
-        debug(intVal.getLower());
-        debug(intVal.getUpper());
-        debug((intVal.isSet()));
-        debug(intVal.getStride());
-        debug(intVal.getValues().size());
-        debug(intVal.isBottom());
-
-#undef debug
 
         // Helper to get the lowest element, both in strided interval and set
         auto getLeast = [](IV intVal) -> Bound {
@@ -306,10 +325,17 @@ void RangeAnalysis::VerifyStaticAsserts() {
         // >= ?
         auto condKind = condBinExpr->GetExprKind();
         switch (condKind) {
-            // * x == k => abstract value of x is exactly {k}
+            // * x == k => abstract value of x is exactly {k} (or [k,k:1])
             case ExprKind::EQUAL: {
-                return intVal.isSet() && intVal.getValues().size() == 1 &&
+                if (intVal.isSet()) return intVal.getValues().size() == 1 &&
                        *intVal.getValues().begin() == k;
+
+                // [k,k:1]
+                auto most = getMost(intVal);
+                auto least = getLeast(intVal);
+
+                return most.isConstant() && least.isConstant() &&
+                       least.getConstant() == k && k == most.getConstant();
             }
             // * x != k => k may not occur in abstract value of x
             case ExprKind::NOTEQUAL: {
@@ -392,9 +418,13 @@ void RangeAnalysis::VerifyStaticAsserts() {
             for (auto& expr : node->block->GetExpressions()) {
                 if (expr->IsApply()) {
                     auto apply = dynamic_cast<Apply*>(expr);
-                    if (apply->GetCallee()->GetIdentifier() ==
-                        "@_CNat7sassertHb" /* unique identifier of sassert */) {
-                        HandleSAssert(apply->GetOperand(1), domTree);
+                    if (apply->GetCallee()->GetSrcCodeIdentifier() ==
+                        "sassert" /* unique identifier of sassert */) {
+                        if (HandleSAssert(apply->GetOperand(1), domTree)) {
+                            std::cerr << "sassert pass" << std::endl;
+                        } else {
+                            std::cerr << "sassert fail" << std::endl;
+                        }
                     }
                 }
             }

@@ -40,6 +40,19 @@
             ],
             "cwd": "${workspaceFolder}/test/CangjieBench",
             "preLaunchTask": "source envsetup"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Flavors Test",
+            "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
+            "args": [
+                "${workspaceFolder}/test/flavors/${input:FlavorTestName}.cj",
+                "-O2",
+                "-j1",
+            ],
+            "cwd": "${workspaceFolder}/test/flavors",
+            "preLaunchTask": "source envsetup"
         }
     ],
     "inputs": [
@@ -68,6 +81,12 @@
             "type": "promptString",
             "id": "CangjieBenchId",
             "description": "Number of the Cangjie Test case `x.cj`"
+        },
+        {
+            "type": "pickString",
+            "id": "FlavorTestName",
+            "description": "Flavor Test case to run:",
+            "options": [ "vanilla", "fudge", "fiore", "coffee", "blackcurrant" ]
         }
     ]
 }
