@@ -128,6 +128,25 @@ elif $FRESH; then
   cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
 fi
 
+# We inject an extra file in std.core for Static Assert
+cat << EOF > "$WORKSPACE/cangjie_runtime/stdlib/libs/std/core/sassert.cj"
+/*
+ * This source file was created only to support Static Analysis research done by
+ * Compilers Lab - UFMG 2026
+ *
+ * Check our homepage for more information https://lac-dcc.github.io/
+ */
+
+package std.core
+
+// This implementation has no runtime meaning, it's only used to add static 
+// assertions to the code that will be checked after the range analysis has run
+@Frozen
+public func sassert(cond: Bool): Unit {
+}
+EOF
+
+
 # Build cangjie stdlib
 if [ ! -d "$WORKSPACE/cangjie_runtime/stdlib/output" ]; then
   cd $WORKSPACE/cangjie_runtime/stdlib;
