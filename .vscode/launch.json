@@ -1,4 +1,7 @@
 {
+    // Also add:
+    // "testMate.cpp.test.executables": "cangjie_compiler/build/build/bin/CompetitionSSATests"
+    // to .vscode/settings.json
     "configurations": [
         {
             "args": [

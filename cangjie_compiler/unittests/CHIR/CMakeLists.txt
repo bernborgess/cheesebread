@@ -28,4 +28,14 @@ if(CANGJIE_CODEGEN_CJNATIVE_BACKEND)
         GTest::gtest_main
     )
     add_test(NAME CHIROptTests COMMAND CHIROptTests)
+
+    add_executable(CompetitionSSATests CompetitionSSATest.cpp)
+    target_link_libraries(
+        CompetitionSSATests
+        cangjie-lsp
+        ${LINK_LIBS}
+        GTest::gtest
+        GTest::gtest_main
+    )
+    add_test(NAME CompetitionSSATests COMMAND CompetitionSSATests)
 endif()
