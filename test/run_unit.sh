@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+ARG="${1:-build-and-run}" # or just 'build'
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPILER_DIR="$ROOT_DIR/cangjie_compiler"
 BUILD_DIR="$COMPILER_DIR/build/build"
@@ -16,4 +18,8 @@ if [[ ! -f "$CACHE_FILE" ]] || \
 fi
 
 cmake --build "$BUILD_DIR" --target CompetitionSSATests
-ctest --test-dir "$BUILD_DIR" -R '^CompetitionSSATests$' --output-on-failure
+
+if [ "$ARG" != "build" ]
+then
+    ctest --test-dir "$BUILD_DIR" -R '^CompetitionSSATests$' --output-on-failure
+fi
