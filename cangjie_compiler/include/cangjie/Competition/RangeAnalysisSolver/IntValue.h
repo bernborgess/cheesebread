@@ -20,11 +20,13 @@ class IntValue : public AbstractValue<int, N> {
         }
         if (av.kind == AbstractValue<int, N>::Kind::Set) {
             bool first = true;
+            os << "{";
             for (int val : av.values) {
                 if (!first) os << ", ";
                 os << val;
                 first = false;
             }
+            os << "}";
         } else {  // Kind::StridedInterval
             os << "[" << av.lower << ", " << av.upper << ":" << av.stride
                << "]";

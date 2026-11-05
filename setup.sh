@@ -98,7 +98,7 @@ if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
     -v ${CANGJIE_VERSION} \
     --no-tests \
     --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
-    --build-cjdb;
+    --build-cjdb -j 8 --link-jobs 1;
   python3 build.py install;
 elif $FRESH; then
   cd $WORKSPACE/cangjie_compiler
@@ -107,7 +107,7 @@ elif $FRESH; then
   # Regenerate cmake files if needed
   cmake -B build/build .
   # Compile changes
-  cmake --build build/build
+  cmake --build build/build # --target cjc
   # Run install script to create output dir
   python3 build.py install
 fi
