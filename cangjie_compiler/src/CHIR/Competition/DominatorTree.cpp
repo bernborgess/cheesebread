@@ -256,6 +256,14 @@ void DominatorTree::ComputeAlphaNodes() {
                 alphaNodes[idToAlias[opId].def].emplace_back(block);
             }
         }
+
+        for (auto& constraint : node->nodeConstraints) {
+            if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(
+                    constraint)) {
+                // Branch refinements define versions that need merge phis.
+                alphaNodes[interc->def].emplace_back(block);
+            }
+        }
     }
 }
 
@@ -461,6 +469,10 @@ void DominatorTree::Renaming() {
                     }
 
                     auto stackCounter = variableStack[def].top();
+                    Alias operandAlias = idToAlias[id];
+                    operandAlias.setCounter(stackCounter);
+                    // Capture this use before another branch changes idToAlias.
+                    expressionOperandAliases[expr].emplace_back(operandAlias);
                     idToAlias[id].setCounter(stackCounter);
                 }
             }
@@ -894,7 +906,7 @@ void DominatorTree::GenerateSSAConstraints() {
                 }
             } else if (expr->IsUnaryExpr()) {
                 auto def = idToAlias[expr->GetResult()->GetIdentifier()];
-                auto op = idToAlias[expr->GetOperand(0)->GetIdentifier()];
+                auto op = expressionOperandAliases.at(expr).at(0);
                 if (intIdentifiers.count(op.def)) {
                     if (expr->GetExprKind() == ExprKind::NEG) {
                         auto constraint = std::make_shared<NegConstraint>(
@@ -922,8 +934,8 @@ void DominatorTree::GenerateSSAConstraints() {
                 }
             } else if (expr->IsBinaryExpr()) {
                 auto def = idToAlias[expr->GetResult()->GetIdentifier()];
-                auto lhs = idToAlias[expr->GetOperand(0)->GetIdentifier()];
-                auto rhs = idToAlias[expr->GetOperand(1)->GetIdentifier()];
+                auto lhs = expressionOperandAliases.at(expr).at(0);
+                auto rhs = expressionOperandAliases.at(expr).at(1);
 
 #define BINARY_CONSTRAINT_PUSH(CONSTRAINT_TYPE, IDENT_TYPE) \
     auto constraint = std::make_shared<CONSTRAINT_TYPE>(    \

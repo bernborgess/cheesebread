@@ -107,6 +107,9 @@ class DominatorTree {
     void addVariable(std::string variable);
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
     std::unordered_map<Block*, Node*> blockToNodeMap;
+    // Preserve each use's version because idToAlias changes during traversal.
+    std::unordered_map<const Expression*, std::vector<Alias>>
+        expressionOperandAliases;
 
    private:
     void DFS(Block* block);

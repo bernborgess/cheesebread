@@ -247,6 +247,7 @@ void RangeAnalysis::VerifyStaticAsserts() {
         if (!lhsOp->IsLocalVar() && !lhsOp->IsParameter()) return false;
 
         auto identifier = lhsOp->GetIdentifier();
+        auto variableName = lhsOp->GetSrcCodeIdentifier();
         // I wonder if this is needed...
         if (lhsOp->IsLocalVar()) {
             auto lhsLV = static_cast<LocalVar*>(lhsOp);
@@ -255,6 +256,8 @@ void RangeAnalysis::VerifyStaticAsserts() {
             if (!lhsLoad->GetLocation()->IsLocalVar()) return false;
             // OUR X
             auto lhsVar = static_cast<LocalVar*>(lhsLoad->GetLocation());
+            variableName = lhsVar->GetSrcCodeIdentifier();
+            if (variableName.empty()) variableName = lhsVar->GetIdentifier();
 
             // Checking if this is needed
             std::cerr
@@ -268,12 +271,18 @@ void RangeAnalysis::VerifyStaticAsserts() {
             identifier = lhsVar->GetIdentifier();
         }
 
-        auto varAlias = domTree->idToAlias[identifier];
+        if (variableName.empty()) variableName = identifier;
+        auto lineNumber = condExpr->GetDebugLocation().GetBeginPos().line;
+        // Resolve the reaching value, not the last visited branch's alias.
+        auto maybeVarAlias = domTree->FindVarBeforeLine(variableName, lineNumber);
+        if (!maybeVarAlias.has_value()) return false;
+        auto varAlias = maybeVarAlias.value();
         auto analyzedVal = solverState[varAlias.to_string()];
         if (!std::holds_alternative<IV>(analyzedVal)) return false;
         auto intVal = std::get<IV>(analyzedVal);
 
 #define debug(X) std::cerr << #X << " = " << (X) << std::endl
+        debug(varAlias);
         debug(intVal);
         debug(intVal.getLower());
         debug(intVal.getUpper());
