@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -132,6 +134,20 @@ TEST(CompetitionSSATest, AbstractValuesExposeKindsAndBounds)
     EXPECT_EQ(booleanValue.getValues(), (std::set<bool>{true}));
 }
 
+TEST(CompetitionSSATest, IntegerSetFormattingUsesBraces)
+{
+    // arrange
+    IV integerValue;
+    integerValue.addConstant({-2, 2});
+
+    // act
+    std::ostringstream output;
+    output << integerValue;
+
+    // assert
+    EXPECT_EQ(output.str(), "{-2, 2}");
+}
+
 TEST(CompetitionSSATest, DominatorsAndIDFOnDiamondCFG)
 {
     // A diamond has a single join point in the iterated frontier of its left arm.
@@ -223,10 +239,11 @@ TEST(CompetitionSSATest, FullBranchPipelineExtractsRenamedConstraints)
               dominators.GetFunctionUniqueName() + ":x:0");
     EXPECT_EQ(elseIntersection->operand,
               dominators.GetFunctionUniqueName() + ":x:0");
-    EXPECT_EQ(thenIntersection->get_def(),
-              dominators.GetFunctionUniqueName() + ":x:1");
-    EXPECT_EQ(elseIntersection->get_def(),
-              dominators.GetFunctionUniqueName() + ":x:2");
+    auto thenVersion = Alias::from_string(thenIntersection->get_def());
+    auto elseVersion = Alias::from_string(elseIntersection->get_def());
+    EXPECT_EQ(thenVersion.def, "x");
+    EXPECT_EQ(elseVersion.def, "x");
+    EXPECT_NE(thenVersion.counter, elseVersion.counter);
 
     bool foundInitialization = false;
     for (auto& constraint : dominators.GetBlockConstraints(entry)) {
@@ -236,6 +253,141 @@ TEST(CompetitionSSATest, FullBranchPipelineExtractsRenamedConstraints)
         }
     }
     EXPECT_TRUE(foundInitialization);
+}
+
+TEST(CompetitionSSATest, StoresCopyCurrentValueAndMergePhiIsFindable)
+{
+    // arrange
+    TestFunction test(true);
+    auto* entry = test.CreateBlock();
+    auto* thenBlock = test.CreateBlock();
+    auto* elseBlock = test.CreateBlock();
+    auto* merge = test.CreateBlock();
+    test.body->SetEntryBlock(entry);
+
+    auto* integerType = test.builder.GetInt64Ty();
+    auto* x = test.builder.CreateParameter(integerType, DebugLocation{},
+                                           *test.function);
+    x->SetSrcCodeIdentifier("x");
+    test.function->AddParam(*x);
+
+    auto* yAllocation = test.builder.CreateExpression<Allocate>(
+        test.builder.GetType<RefType>(integerType), integerType, entry);
+    auto* yLocation = yAllocation->GetResult();
+    yLocation->SetSrcCodeIdentifier("y");
+    entry->AppendExpression(yAllocation);
+
+    auto* initialValue = test.builder.CreateConstantExpression<IntLiteral>(
+        integerType, entry, 0);
+    entry->AppendExpression(initialValue);
+    entry->AppendExpression(test.builder.CreateExpression<Store>(
+        test.builder.GetUnitTy(), initialValue->GetResult(), yLocation, entry));
+
+    auto* branchZero = test.builder.CreateConstantExpression<IntLiteral>(
+        integerType, entry, 0);
+    entry->AppendExpression(branchZero);
+    auto* condition = test.builder.CreateExpression<BinaryExpression>(
+        test.builder.GetBoolTy(), ExprKind::GE, x, branchZero->GetResult(),
+        entry);
+    entry->AppendExpression(condition);
+    entry->AppendExpression(test.builder.CreateTerminator<Branch>(
+        condition->GetResult(), thenBlock, elseBlock, entry));
+
+    auto* thenStore = test.builder.CreateExpression<Store>(
+        test.builder.GetUnitTy(), x, yLocation, thenBlock);
+    thenBlock->AppendExpression(thenStore);
+    auto* one = test.builder.CreateConstantExpression<IntLiteral>(integerType,
+                                                                 thenBlock, 1);
+    thenBlock->AppendExpression(one);
+    auto* sum = test.builder.CreateExpression<BinaryExpression>(
+        integerType, ExprKind::ADD, x, one->GetResult(),
+        Cangjie::OverflowStrategy::NA, thenBlock);
+    thenBlock->AppendExpression(sum);
+    thenBlock->AppendExpression(
+        test.builder.CreateTerminator<GoTo>(merge, thenBlock));
+
+    auto* elseValue = test.builder.CreateConstantExpression<IntLiteral>(
+        integerType, elseBlock, 2);
+    elseBlock->AppendExpression(elseValue);
+    elseBlock->AppendExpression(test.builder.CreateExpression<Store>(
+        test.builder.GetUnitTy(), elseValue->GetResult(), yLocation, elseBlock));
+    elseBlock->AppendExpression(
+        test.builder.CreateTerminator<GoTo>(merge, elseBlock));
+
+    const std::string sourceFile = "ssa_test.cj";
+    DebugLocation queryLocation(sourceFile, 1, Position{42, 1},
+                                Position{42, 2});
+    auto* loadY = test.builder.CreateExpression<Load>(
+        queryLocation, integerType, yLocation, merge);
+    merge->AppendExpression(loadY);
+    merge->AppendExpression(test.builder.CreateTerminator<Exit>(merge));
+
+    // act
+    DominatorTree dominators(test.function);
+    dominators.Compute();
+    dominators.GenerateBranchConstraints();
+    dominators.ConvertToSSA();
+    dominators.GenerateSSAConstraints();
+
+    // assert
+    const auto functionName = dominators.GetFunctionUniqueName();
+    const auto& thenConstraints = dominators.GetBlockConstraints(thenBlock);
+    IntersectionConstraint* thenIntersection = nullptr;
+    for (const auto& constraint : thenConstraints) {
+        auto intersection =
+            std::dynamic_pointer_cast<IntersectionConstraint>(constraint);
+        if (intersection != nullptr) thenIntersection = intersection.get();
+    }
+    ASSERT_NE(thenIntersection, nullptr);
+    const auto thenXVersion = thenIntersection->get_def();
+
+    bool foundStoreCopy = false;
+    bool foundUseAtBranchVersion = false;
+    std::string thenYVersion;
+    for (const auto& constraint : thenConstraints) {
+        auto add = std::dynamic_pointer_cast<AddConstraint>(constraint);
+        if (add == nullptr) continue;
+
+        auto uses = add->get_uses();
+        if (uses[0].target_variable == thenXVersion &&
+            uses[1].target_variable == "%const_0" &&
+            Alias::from_string(add->get_def()).def == "y") {
+            ASSERT_EQ(uses.size(), 2);
+            thenYVersion = add->get_def();
+            foundStoreCopy = true;
+        }
+        if (add->get_def() == dominators.idToAlias.at(
+                                  sum->GetResult()->GetIdentifier())
+                                  .to_string()) {
+            ASSERT_EQ(uses.size(), 2);
+            foundUseAtBranchVersion =
+                uses[0].target_variable == thenXVersion;
+        }
+    }
+    EXPECT_TRUE(foundStoreCopy);
+    EXPECT_TRUE(foundUseAtBranchVersion);
+
+    Phi* yPhi = nullptr;
+    for (auto& phi : dominators.GetBlockPhiFunctions(merge)) {
+        if (phi.getVarDef() == "y") yPhi = &phi;
+    }
+    ASSERT_NE(yPhi, nullptr);
+    auto phiAliases = yPhi->getAliasesStrings();
+    auto predecessors = merge->GetPredecessors();
+    auto thenIndex = std::find(predecessors.begin(), predecessors.end(),
+                               thenBlock) - predecessors.begin();
+    auto elseIndex = std::find(predecessors.begin(), predecessors.end(),
+                               elseBlock) - predecessors.begin();
+    ASSERT_LT(thenIndex, phiAliases.size());
+    ASSERT_LT(elseIndex, phiAliases.size());
+    EXPECT_EQ(phiAliases[thenIndex], thenYVersion);
+    EXPECT_EQ(phiAliases[elseIndex],
+              dominators.idToAlias.at(elseValue->GetResult()->GetIdentifier())
+                  .to_string());
+
+    auto reachingY = dominators.FindVarBeforeLine("y", 42);
+    ASSERT_TRUE(reachingY.has_value());
+    EXPECT_EQ(reachingY->to_string(), yPhi->getVarString());
 }
 
 TEST(CompetitionSSATest, IntersectionMatchersCoverSixComparisons)
