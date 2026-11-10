@@ -3,7 +3,6 @@
 
 #include <chrono>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "cangjie/CHIR/IR/Package.h"
@@ -20,12 +19,14 @@ struct Query {
 };
 
 class RangeAnalysis {
-   public:
-    RangeAnalysis() {}
+public:
+    RangeAnalysis()
+    {
+    }
 
     void RunOnPackage(Cangjie::CHIR::Package* package);
 
-   private:
+private:
     std::vector<Competition::Query> queries;
     void ReadCompetitionQueries();
 
@@ -42,12 +43,14 @@ class RangeAnalysis {
     ConstraintGraph constraintGraph;
     void CreateHelperConstraints();
 
+    void VerifyStaticAsserts();
+
     // Recording the timestamp at the start of the code
     std::chrono::_V2::system_clock::time_point time_point_begin;
 
     void OutputAnalysisToFile();
 };
 
-}  // namespace Competition
+} // namespace Competition
 
 #endif

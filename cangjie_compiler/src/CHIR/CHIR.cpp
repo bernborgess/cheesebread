@@ -14,8 +14,8 @@
 #include "cangjie/CHIR/Analysis/CallGraphAnalysis.h"
 #include "cangjie/CHIR/Analysis/ConstAnalysisWrapper.h"
 #include "cangjie/CHIR/Analysis/DevirtualizationInfo.h"
-#include "cangjie/CHIR/Checker/CHIRChecker.h"
 #include "cangjie/CHIR/Checker/AnnotationChecker.h"
+#include "cangjie/CHIR/Checker/CHIRChecker.h"
 #include "cangjie/CHIR/Checker/UnreachableBranchCheck.h"
 #include "cangjie/CHIR/Checker/VarInitCheck.h"
 #include "cangjie/CHIR/Interpreter/ConstEval.h"
@@ -383,8 +383,7 @@ void ToCHIR::Devirtualization(DevirtualizationInfo& devirtInfo)
         }
         devirt.RunOnFuncs(frozenFuncs, builder, opts.chirDebugOptimizer);
 
-        auto pass = FunctionInline(
-            builder, opts.optimizationLevel, opts.chirDebugOptimizer);
+        auto pass = FunctionInline(builder, opts.optimizationLevel, opts.chirDebugOptimizer);
         for (auto& func : frozenFuncs) {
             pass.Run(*func);
         }
@@ -448,8 +447,7 @@ void ToCHIR::RunFunctionInline(DevirtualizationInfo& devirtInfo)
         }
         // 1. $toAny is a function needed by reflection, it's used by runtime and it mustn't be optimized
         // 2. annotation factory functions mustn't be optimized
-        if (func->GetSrcCodeIdentifier() == "$toAny" ||
-            func->GetFuncKind() == FuncKind::ANNOFACTORY_FUNC) {
+        if (func->GetSrcCodeIdentifier() == "$toAny" || func->GetFuncKind() == FuncKind::ANNOFACTORY_FUNC) {
             continue;
         }
         pass.Run(*func);
@@ -550,8 +548,8 @@ void ToCHIR::RunRangePropagation()
         std::vector<std::unique_ptr<CHIR::RangePropagation>> cpList;
         for (size_t idx = 0; idx < funcNum; ++idx) {
             auto func = globalFuncs.at(idx);
-            auto cp = std::make_unique<CHIR::RangePropagation>(
-                *builderList[idx], &vra, diag, opts.enIncrementalCompilation);
+            auto cp =
+                std::make_unique<CHIR::RangePropagation>(*builderList[idx], &vra, diag, opts.enIncrementalCompilation);
             taskQueue.AddTask<void>(
                 [rangePropagation = cp.get(), func, isDebug]() { return rangePropagation->RunOnFunc(func, isDebug); });
             cpList.emplace_back(std::move(cp));
@@ -644,7 +642,7 @@ void ToCHIR::RunOptimizationPass()
     for (auto func : chirPkg->GetGlobalFuncsWithBody()) {
         splitPass.Run(*func);
     }
-    
+
     // Run the Competition Analysis
     Competition::RangeAnalysis cra;
     cra.RunOnPackage(chirPkg);
@@ -664,7 +662,6 @@ void ToCHIR::RunOptimizationPass()
     RunArrayLambdaOpt();
     RunRedundantFutureOpt();
     RunGetRefToArrayElemOpt();
-
 }
 
 bool ToCHIR::RunConstantEvaluation()
@@ -959,8 +956,7 @@ void ToCHIR::CFFIFuncWrapper()
     DumpCHIRToFile("CFFIFuncWrapper");
 }
 
-template <typename T>
-std::pair<Value*, Apply*> ToCHIR::DoCFFIFuncWrapper(T& curFunc, bool isForeign, bool isExternal)
+template <typename T> std::pair<Value*, Apply*> ToCHIR::DoCFFIFuncWrapper(T& curFunc, bool isForeign, bool isExternal)
 {
     auto ident = curFunc.GetSrcCodeIdentifier();
     if (curFunc.IsLambda()) {
@@ -981,16 +977,13 @@ std::pair<Value*, Apply*> ToCHIR::DoCFFIFuncWrapper(T& curFunc, bool isForeign, 
         wrapperFunc->SetCFFIWrapper(true);
         return std::make_pair(wrapperFunc, nullptr);
     }
-    auto wrapperFunc =
-        builder.CreateFunction(curFunc.GetFuncType(), ident, ident, "", funcPkgName);
+    auto wrapperFunc = builder.CreateFunction(curFunc.GetFuncType(), ident, ident, "", funcPkgName);
     wrapperFunc->SetDebugLocation(curFunc.GetDebugLocation());
     wrapperFunc->SetFuncKind(curFunc.GetFuncKind());
     if (wrapperFunc->IsLambda()) {
-        auto originalLambdaInfo = FuncSigInfo {
-            .funcName = curFunc.GetSrcCodeIdentifier(),
+        auto originalLambdaInfo = FuncSigInfo{.funcName = curFunc.GetSrcCodeIdentifier(),
             .funcType = curFunc.GetOriginalLambdaType(),
-            .genericTypeParams = curFunc.GetGenericTypeParams()
-        };
+            .genericTypeParams = curFunc.GetGenericTypeParams()};
         wrapperFunc->SetOriginalLambdaInfo(originalLambdaInfo);
     }
     auto body = builder.CreateBlockGroup(*wrapperFunc);
@@ -1023,8 +1016,8 @@ std::pair<Value*, Apply*> ToCHIR::DoCFFIFuncWrapper(T& curFunc, bool isForeign, 
     wrapperFunc->SetReturnValue(*retAlloc->GetResult());
 
     // create exit
-    entry->AppendExpression(builder.CreateExpression<Store>(
-        builder.GetType<UnitType>(), res->GetResult(), retAlloc->GetResult(), entry));
+    entry->AppendExpression(
+        builder.CreateExpression<Store>(builder.GetType<UnitType>(), res->GetResult(), retAlloc->GetResult(), entry));
     entry->AppendExpression(builder.CreateTerminator<Exit>(entry));
     return std::make_pair(wrapperFunc, res);
 }
@@ -1193,8 +1186,7 @@ bool ToCHIR::Run()
     }
     // 9. replace source code imported functions and variables with imported symbols,
     //    this pass must be after `RunConstantEvaluation`, because we need to calculate const var from imported package
-    ReplaceSrcCodeImportedVal(*chirPkg).Run(
-        srcCodeImportedFuncs, srcCodeImportedVars, uselessClasses, uselessLambda);
+    ReplaceSrcCodeImportedVal(*chirPkg).Run(srcCodeImportedFuncs, srcCodeImportedVars, uselessClasses, uselessLambda);
 
     // 10. annotation check depends on const eval
     if (!AnnotationChecker(*chirPkg, diag).Run()) {
@@ -1385,7 +1377,7 @@ std::string PhaseToString(const ToCHIR::Phase phase)
         case ToCHIR::Phase::PLUGIN:
             return "plugin";
         case ToCHIR::Phase::ANALYSIS_FOR_CJLINT:
-            return  "analysis for cjlint";
+            return "analysis for cjlint";
 #endif
         default:
             CJC_ABORT();

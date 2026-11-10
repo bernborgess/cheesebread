@@ -35,36 +35,50 @@ struct Alias {
     std::string def;
     int counter;
 
-    Alias() : funcName(""), def(""), counter(0) {}
-    Alias(std::string funcName, std::string def)
-        : funcName(funcName), def(def), counter(-1) {}
-    Alias(std::string funcName, std::string def, int counter)
-        : funcName(funcName), def(def), counter(counter) {}
-
-    int getCounter() { return counter; }
-    void setCounter(int _counter) { counter = _counter; }
-
-    const bool operator<(const Alias& other) const {
-        return this->def < other.def ||
-               (this->def == other.def && this->counter < other.counter);
+    Alias() : funcName(""), def(""), counter(0)
+    {
+    }
+    Alias(std::string funcName, std::string def) : funcName(funcName), def(def), counter(-1)
+    {
+    }
+    Alias(std::string funcName, std::string def, int counter) : funcName(funcName), def(def), counter(counter)
+    {
     }
 
-    const bool operator==(const Alias& other) const {
+    int getCounter()
+    {
+        return counter;
+    }
+    void setCounter(int _counter)
+    {
+        counter = _counter;
+    }
+
+    const bool operator<(const Alias& other) const
+    {
+        return this->def < other.def || (this->def == other.def && this->counter < other.counter);
+    }
+
+    const bool operator==(const Alias& other) const
+    {
         return this->def == other.def && this->counter == other.counter;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const Alias& a) {
+    friend std::ostream& operator<<(std::ostream& os, const Alias& a)
+    {
         os << a.funcName << ":" << a.def << ":" << a.counter;
         return os;
     }
 
-    std::string to_string() {
+    std::string to_string()
+    {
         return funcName + ":" + def + ":" + std::to_string(counter);
     }
 
     /// @brief Creates Alias from stringified version
     /// @param ssaName "<funcName>:<def>:<counter>"
-    static Alias from_string(std::string ssaName) {
+    static Alias from_string(std::string ssaName)
+    {
         std::string funcName, def;
         int counter;
         std::stringstream ss(ssaName);
@@ -78,34 +92,58 @@ struct Alias {
 };
 
 class Phi {
-   private:
+private:
     Alias var;
     std::vector<Alias> aliases;
 
-   public:
-    Phi(Alias var, size_t arity) : var(var) {
+public:
+    Phi(Alias var, size_t arity) : var(var)
+    {
         aliases = std::vector<Alias>(arity, var);
     }
 
-    void addAlias(Alias other) { aliases.emplace_back(other); }
+    void addAlias(Alias other)
+    {
+        aliases.emplace_back(other);
+    }
 
-    void setAliasCounterByIdx(size_t idx, int counter) {
+    void setAliasCounterByIdx(size_t idx, int counter)
+    {
         aliases[idx].setCounter(counter);
     }
 
-    void setVarCounter(int counter) { var.setCounter(counter); }
+    void setVarCounter(int counter)
+    {
+        var.setCounter(counter);
+    }
 
-    Alias getVar() { return var; }
+    Alias getVar()
+    {
+        return var;
+    }
 
-    std::string getVarDef() { return var.def; }
+    std::string getVarDef()
+    {
+        return var.def;
+    }
 
-    int getVarCounter() { return var.counter; }
+    int getVarCounter()
+    {
+        return var.counter;
+    }
 
-    std::string getAliasDefByIdx(size_t idx) { return aliases[idx].def; }
+    std::string getAliasDefByIdx(size_t idx)
+    {
+        return aliases[idx].def;
+    }
 
-    std::string getVarString() { return var.to_string(); }
+    std::string getVarString()
+    {
+        return var.to_string();
+    }
 
-    std::vector<std::string> getAliasesStrings() {
+    std::vector<std::string> getAliasesStrings()
+    {
         std::vector<std::string> aliasesStrings;
         for (Alias a : aliases) {
             aliasesStrings.push_back(a.to_string());
@@ -113,10 +151,12 @@ class Phi {
         return aliasesStrings;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const Phi& a) {
+    friend std::ostream& operator<<(std::ostream& os, const Phi& a)
+    {
         os << a.var << " φ[";
         for (int i = 0; i < a.aliases.size(); i++) {
-            if (i) os << ", ";
+            if (i)
+                os << ", ";
             os << a.aliases[i];
         }
         os << "]";
@@ -124,6 +164,6 @@ class Phi {
     }
 };
 
-}  // namespace Competition
+} // namespace Competition
 
-#endif  // COMPETITION_PHI_H
+#endif // COMPETITION_PHI_H

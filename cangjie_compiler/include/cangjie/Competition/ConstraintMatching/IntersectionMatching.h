@@ -24,8 +24,7 @@ struct MatchedConstraints {
 // if (c < x)
 // if (x < y)
 MatchedConstraints MatchLessThanConstraints(
-    Value* cond,
-    const std::unordered_map<std::string, Competition::Alias>& idToAlias);
+    Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias);
 
 // x , y : Variables
 // c : Constant
@@ -34,8 +33,7 @@ MatchedConstraints MatchLessThanConstraints(
 // if (c > x)
 // if (x > y)
 MatchedConstraints MatchGreaterThanConstraints(
-    Value* cond,
-    const std::unordered_map<std::string, Competition::Alias>& idToAlias);
+    Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias);
 
 // x , y : Variables
 // c : Constant
@@ -44,8 +42,7 @@ MatchedConstraints MatchGreaterThanConstraints(
 // if (c == x)
 // if (x == y)
 MatchedConstraints MatchEqualConstraints(
-    Value* cond,
-    const std::unordered_map<std::string, Competition::Alias>& idToAlias);
+    Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias);
 
 // x , y : Variables
 // c : Constant
@@ -54,8 +51,7 @@ MatchedConstraints MatchEqualConstraints(
 // if (c != x)
 // if (x != y)
 MatchedConstraints MatchNotEqualConstraints(
-    Value* cond,
-    const std::unordered_map<std::string, Competition::Alias>& idToAlias);
+    Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias);
 
 // x , y : Variables
 // c : Constant
@@ -64,8 +60,7 @@ MatchedConstraints MatchNotEqualConstraints(
 // if (c <= x)
 // if (x <= y)
 MatchedConstraints MatchLessEqualConstraints(
-    Value* cond,
-    const std::unordered_map<std::string, Competition::Alias>& idToAlias);
+    Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias);
 
 // x , y : Variables
 // c : Constant
@@ -74,9 +69,8 @@ MatchedConstraints MatchLessEqualConstraints(
 // if (c >= x)
 // if (x >= y)
 MatchedConstraints MatchGreaterEqualConstraints(
-    Value* cond,
-    const std::unordered_map<std::string, Competition::Alias>& idToAlias);
+    Value* cond, const std::unordered_map<std::string, Competition::Alias>& idToAlias);
 
-}  // namespace Matching
+} // namespace Matching
 
 #endif

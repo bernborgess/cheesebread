@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <iostream>
 #include <iterator>
-#include <numeric>
 #include <set>
 #include <vector>
 
@@ -28,9 +27,8 @@
  * @tparam N The compile-time constant determining the maximum size of exact
  * sets.
  */
-template <typename T, unsigned N>
-class AbstractValue {
-   public:
+template <typename T, unsigned N> class AbstractValue {
+public:
     /**
      * @brief Maximum number of distinct constants tracked exactly by this
      * domain.
@@ -52,19 +50,15 @@ class AbstractValue {
         StridedInterval /**< The value collapses into a strided interval. */
     };
 
-   protected:
-    Kind kind = Kind::Set; /**< A Set or a StridedInterval. */
-    std::set<T>
-        values; /**< Constants when kind == Kind::Set. Unused otherwise. */
-    Bound lower = Bound::constant(
-        0); /**< Lower bound used when kind == Kind::StridedInterval. */
-    Bound upper = Bound::constant(
-        0); /**< Upper bound used when kind == Kind::StridedInterval. */
-    unsigned stride = 1; /**< Stride value ($s \ge 1$) for strided intervals. */
-    unsigned wideningCounter =
-        0; /**< How many operations have run without widening */
+protected:
+    Kind kind = Kind::Set;            /**< A Set or a StridedInterval. */
+    std::set<T> values;               /**< Constants when kind == Kind::Set. Unused otherwise. */
+    Bound lower = Bound::constant(0); /**< Lower bound used when kind == Kind::StridedInterval. */
+    Bound upper = Bound::constant(0); /**< Upper bound used when kind == Kind::StridedInterval. */
+    unsigned stride = 1;              /**< Stride value ($s \ge 1$) for strided intervals. */
+    unsigned wideningCounter = 0;     /**< How many operations have run without widening */
 
-   public:
+public:
     /**
      * @brief Default constructor initializing to an empty set (the bottom
      * element).
@@ -73,7 +67,8 @@ class AbstractValue {
 
     virtual ~AbstractValue() = default;
 
-    void setAsBottom() {
+    void setAsBottom()
+    {
         kind = Kind::Set;
         values.clear();
         lower = Bound::constant(0);
@@ -82,7 +77,15 @@ class AbstractValue {
         wideningCounter = 0;
     }
 
-    bool isBottom() const { return kind == Kind::Set && values.empty(); }
+    bool isBottom() const
+    {
+        return kind == Kind::Set && values.empty();
+    }
+
+    bool isSet() const
+    {
+        return kind == Kind::Set;
+    }
 
     /**
      * @brief Computes the least upper bound (join) of this value and another
@@ -102,24 +105,36 @@ class AbstractValue {
     /**
      * @brief Set counter to 0
      */
-    void resetCounter() { wideningCounter = 0; }
+    void resetCounter()
+    {
+        wideningCounter = 0;
+    }
 
     /**
      * @brief Change Kind from Set to StridedInterval
      */
-    void changeKind() { kind = Kind::StridedInterval; }
+    void changeKind()
+    {
+        kind = Kind::StridedInterval;
+    }
 
     /**
      * @brief Set a new stride of a StridedInterval
      * * @param val The integer value of the new stride.
      */
-    void setStride(unsigned _stride) { stride = _stride; }
+    void setStride(unsigned _stride)
+    {
+        stride = _stride;
+    }
 
     /**
      * @brief Get the current structural representation kind.
      * @return Kind The structural layout (Set or StridedInterval).
      */
-    Kind getKind() const { return kind; }
+    Kind getKind() const
+    {
+        return kind;
+    }
 
     /**
      * @brief Returns the set of tracked constants.
@@ -128,7 +143,10 @@ class AbstractValue {
      *
      * @return A constant reference to the internal set of values.
      */
-    const std::set<T>& getValues() const { return values; }
+    const std::set<T>& getValues() const
+    {
+        return values;
+    }
 
     /**
      * @brief Returns the lower bound of a strided interval.
@@ -138,7 +156,10 @@ class AbstractValue {
      *
      * @return A constant reference to the lower bound.
      */
-    const Bound& getLower() const { return lower; }
+    const Bound& getLower() const
+    {
+        return lower;
+    }
 
     /**
      * @brief Returns the upper bound of a strided interval.
@@ -148,7 +169,10 @@ class AbstractValue {
      *
      * @return A constant reference to the upper bound.
      */
-    const Bound& getUpper() const { return upper; }
+    const Bound& getUpper() const
+    {
+        return upper;
+    }
 
     /**
      * @brief Returns the stride of a strided interval.
@@ -158,7 +182,10 @@ class AbstractValue {
      *
      * @return The interval stride.
      */
-    unsigned getStride() const { return stride; }
+    unsigned getStride() const
+    {
+        return stride;
+    }
 
     /**
      * @brief Converts this abstract value into a strided interval.
@@ -169,8 +196,8 @@ class AbstractValue {
      * @param upperBound Upper bound of the interval.
      * @param intervalStride Stride of the interval (must be at least one).
      */
-    void setAsInterval(const Bound& lowerBound, const Bound& upperBound,
-                       unsigned intervalStride = 1) {
+    void setAsInterval(const Bound& lowerBound, const Bound& upperBound, unsigned intervalStride = 1)
+    {
         kind = Kind::StridedInterval;
 
         const Bound oldLower = lower;
@@ -199,7 +226,8 @@ class AbstractValue {
             upper = Bound::plusInfinity();
         }
 
-        if (incrementCounter) ++wideningCounter;
+        if (incrementCounter)
+            ++wideningCounter;
 
         stride = std::max(1u, intervalStride);
         values.clear();
@@ -212,7 +240,8 @@ class AbstractValue {
      * @return true if both states share the exact same abstract
      * representation, false otherwise.
      */
-    bool operator==(const AbstractValue& other) const {
+    bool operator==(const AbstractValue& other) const
+    {
         // 1. Structural kind must match
         if (this->kind != other.kind) {
             return false;
@@ -225,15 +254,15 @@ class AbstractValue {
             return this->values == other.values;
         } else {
             // Strided Interval parameters must be exactly identical
-            return (this->stride == other.stride) &&
-                   (this->lower == other.lower) && (this->upper == other.upper);
+            return (this->stride == other.stride) && (this->lower == other.lower) && (this->upper == other.upper);
         }
     }
 
     /**
      * @brief Inequality operator for AbstractValue.
      */
-    bool operator!=(const AbstractValue& other) const {
+    bool operator!=(const AbstractValue& other) const
+    {
         return !(*this == other);
     }
 
@@ -241,11 +270,11 @@ class AbstractValue {
      * @brief Checks if every possible value in 'this' is strictly less than
      * every value in 'other'.
      */
-    bool operator<(const AbstractValue& other) const {
+    bool operator<(const AbstractValue& other) const
+    {
         // If either abstract state is empty (bottom), comparison is trivially
         // false
-        if ((this->kind == Kind::Set && this->values.empty()) ||
-            (other.kind == Kind::Set && other.values.empty())) {
+        if ((this->kind == Kind::Set && this->values.empty()) || (other.kind == Kind::Set && other.values.empty())) {
             return false;
         }
 
@@ -273,19 +302,15 @@ class AbstractValue {
      * @brief Checks if every possible value in 'this' is less than or equal to
      * every value in 'other'.
      */
-    bool operator<=(const AbstractValue& other) const {
-        if ((this->kind == Kind::Set && this->values.empty()) ||
-            (other.kind == Kind::Set && other.values.empty())) {
+    bool operator<=(const AbstractValue& other) const
+    {
+        if ((this->kind == Kind::Set && this->values.empty()) || (other.kind == Kind::Set && other.values.empty())) {
             return false;
         }
 
-        Bound this_upper = (this->kind == Kind::Set)
-                               ? Bound::constant(*this->values.rbegin())
-                               : this->upper;
+        Bound this_upper = (this->kind == Kind::Set) ? Bound::constant(*this->values.rbegin()) : this->upper;
 
-        Bound other_lower = (other.kind == Kind::Set)
-                                ? Bound::constant(*other.values.begin())
-                                : other.lower;
+        Bound other_lower = (other.kind == Kind::Set) ? Bound::constant(*other.values.begin()) : other.lower;
 
         return this_upper <= other_lower;
     }
@@ -294,11 +319,17 @@ class AbstractValue {
      * @brief Checks if every possible value in 'this' is strictly greater
      * than every value in 'other'.
      */
-    bool operator>(const AbstractValue& other) const { return other < *this; }
+    bool operator>(const AbstractValue& other) const
+    {
+        return other < *this;
+    }
 
     /**
      * @brief Checks if every possible value in 'this' is greater than or
      * equal to every value in 'other'.
      */
-    bool operator>=(const AbstractValue& other) const { return other <= *this; }
+    bool operator>=(const AbstractValue& other) const
+    {
+        return other <= *this;
+    }
 };

@@ -10,6 +10,6 @@
 	ignore = dirty
 [submodule "cangjie_runtime"]
 	path = cangjie_runtime
-	url = https://gitcode.com/Cangjie/cangjie_runtime.git
+	url = https://github.com/bernborgess/cangjie_runtime.git
 	branch = main
 	ignore = dirty

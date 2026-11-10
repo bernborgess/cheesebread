@@ -17,14 +17,15 @@ using namespace Cangjie::CHIR;
 
 typedef std::unordered_map<
     /* fnName */ std::string,
-    /* each occurrence */ std::vector<
+    /* each occurrence */
+    std::vector<
         /* arguments */ std::vector<Competition::Alias>>>
     ApplyMap;
 
 /// Computes the dominator tree of a CFG using the
 /// Lengauer-Tarjan algorithm.
 class DominatorTree {
-   public:
+public:
     explicit DominatorTree(Function* func);
 
     /// Computes the dominator tree.
@@ -44,7 +45,10 @@ class DominatorTree {
     void PrintDominatorTree(const std::string& path, bool alias = false);
 
     /// Pass along the tree creating constraints on the branches
-    void GenerateBranchConstraints() { VisitBlockBranch(entry_); }
+    void GenerateBranchConstraints()
+    {
+        VisitBlockBranch(entry_);
+    }
 
     /// Perform all steps to create Phi functions and rename variables to SSA
     void ConvertToSSA();
@@ -52,16 +56,16 @@ class DominatorTree {
     /// Detects calls to Exit() and stores the variables that were returned
     void DetectReturnValues();
 
-   private:
+private:
     /// Get aliases for identifiers
     void ComputeAlphaNodes();
 
     void Renaming();
 
-   public:
+public:
     void GenerateSSAConstraints();
 
-   private:
+private:
     struct Node {
         std::vector<Phi> phiFunctions;
 
@@ -81,7 +85,8 @@ class DominatorTree {
         // Also keep the constraints here
         std::vector<std::shared_ptr<Constraint>> nodeConstraints;
 
-        void pushConstraint(std::shared_ptr<Constraint> constraint) {
+        void pushConstraint(std::shared_ptr<Constraint> constraint)
+        {
             nodeConstraints.push_back(constraint);
         }
     };
@@ -89,26 +94,27 @@ class DominatorTree {
     Node* ReverseMapBlockToNode(Block* block);
     void VisitBlockBranch(Block* block);
 
-   public:
+public:
     std::vector<std::shared_ptr<Constraint>>& GetBlockConstraints(Block* block);
     std::vector<Phi>& GetBlockPhiFunctions(Block* block);
 
-   private:
+private:
     void AddPhiFunction(Block* block, Phi phiFunction);
 
-   public:
-    std::optional<Alias> FindVarBeforeLine(std::string variableName,
-                                           int lineNumber);
+public:
+    std::optional<Alias> FindVarBeforeLine(std::string variableName, int lineNumber);
     std::unordered_map<std::string, Alias> idToAlias;
 
-   private:
+private:
     std::vector<std::string> variables;
     // All mutations of `variables` should be here.
     void addVariable(std::string variable);
     std::unordered_map<std::string, std::vector<Block*>> alphaNodes;
     std::unordered_map<Block*, Node*> blockToNodeMap;
+    // Preserve each use's version because idToAlias changes during traversal.
+    std::unordered_map<const Expression*, std::vector<Alias>> expressionOperandAliases;
 
-   private:
+private:
     void DFS(Block* block);
 
     void Link(std::size_t parent, std::size_t child);
@@ -127,10 +133,9 @@ class DominatorTree {
     std::vector<Competition::Alias> functionReturnValues;
 
     // Store invocations to bind their return values later.
-    std::unordered_map<std::string, std::vector<Competition::Alias>>
-        returnAliases_by_functionUniqueName;
+    std::unordered_map<std::string, std::vector<Competition::Alias>> returnAliases_by_functionUniqueName;
 
-   private:
+private:
     std::size_t dfsCount_ = 0;
 
     // Maps CFG block -> DFS number.
@@ -148,21 +153,39 @@ class DominatorTree {
     // Dominator tree.
     std::unordered_map<Block*, std::vector<Block*>> children_;
 
-   public:
-    const std::vector<Parameter*>& GetParams() { return params_; };
-    const std::string GetFunctionUniqueName() { return functionUniqueName; };
-    const Cangjie::CHIR::Type* GetReturnType() { return returnType; };
-    const std::vector<Node*>& GetNodes() { return nodes_; }
+public:
+    const std::vector<Parameter*>& GetParams()
+    {
+        return params_;
+    };
+    const std::string GetFunctionUniqueName()
+    {
+        return functionUniqueName;
+    };
+    const Cangjie::CHIR::Type* GetReturnType()
+    {
+        return returnType;
+    };
+    const std::vector<Node*>& GetNodes()
+    {
+        return nodes_;
+    }
     // Map of functions that are invoked and their arguments
-    const ApplyMap& GetFnApplyMap() { return arguments_by_functionUniqueName; }
+    const ApplyMap& GetFnApplyMap()
+    {
+        return arguments_by_functionUniqueName;
+    }
     // List of possible aliases returned by this function
-    const std::vector<Alias>& GetReturnValues() { return functionReturnValues; }
+    const std::vector<Alias>& GetReturnValues()
+    {
+        return functionReturnValues;
+    }
     // Map of function names to aliases that are defined by their return value
-    const std::unordered_map<std::string, std::vector<Competition::Alias>>&
-    GetReturnAliasMap() {
+    const std::unordered_map<std::string, std::vector<Competition::Alias>>& GetReturnAliasMap()
+    {
         return returnAliases_by_functionUniqueName;
     };
 };
-}  // namespace Competition
+} // namespace Competition
 
-#endif  // COMPETITION_DOMINATOR_TREE_H
+#endif // COMPETITION_DOMINATOR_TREE_H

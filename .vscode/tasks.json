@@ -5,6 +5,21 @@
             "label": "source envsetup",
             "type": "shell",
             "command": "source cangjie_compiler/output/envsetup.sh"
+        },
+        {
+            "label": "prepare Cangjie debug env",
+            "type": "shell",
+            "command": "source cangjie_compiler/output/envsetup.sh && printf 'CANGJIE_HOME=%s\\nPATH=%s\\nLD_LIBRARY_PATH=%s\\n' \"$CANGJIE_HOME\" \"$PATH\" \"$LD_LIBRARY_PATH\" > .vscode/cangjie.env"
+        },
+        {
+            "label": "Run all tests",
+            "type": "shell",
+            "command": "${workspaceFolder}/test/run_all.sh",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }

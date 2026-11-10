@@ -98,7 +98,7 @@ if [ ! -f "$WORKSPACE/cangjie_compiler/output/envsetup.sh" ]; then
     -v ${CANGJIE_VERSION} \
     --no-tests \
     --target-lib=$BUILD_ROOT/ncurses-6.5/usr/lib \
-    --build-cjdb;
+    --build-cjdb -j 8 --link-jobs 1;
   python3 build.py install;
 elif $FRESH; then
   cd $WORKSPACE/cangjie_compiler
@@ -107,7 +107,7 @@ elif $FRESH; then
   # Regenerate cmake files if needed
   cmake -B build/build .
   # Compile changes
-  cmake --build build/build
+  cmake --build build/build --target cjc
   # Run install script to create output dir
   python3 build.py install
 fi
@@ -127,6 +127,25 @@ elif $FRESH; then
   python3 build.py install;
   cp -R output/common/linux_debug_${ARCH}/{lib,runtime} $WORKSPACE/cangjie_compiler/output;
 fi
+
+# We inject an extra file in std.core for Static Assert
+cat << EOF > "$WORKSPACE/cangjie_runtime/stdlib/libs/std/core/sassert.cj"
+/*
+ * This source file was created only to support Static Analysis research done by
+ * Compilers Lab - UFMG 2026
+ *
+ * Check our homepage for more information https://lac-dcc.github.io/
+ */
+
+package std.core
+
+// This implementation has no runtime meaning, it's only used to add static 
+// assertions to the code that will be checked after the range analysis has run
+@Frozen
+public func sassert(cond: Bool): Unit {
+}
+EOF
+
 
 # Build cangjie stdlib
 if [ ! -d "$WORKSPACE/cangjie_runtime/stdlib/output" ]; then
