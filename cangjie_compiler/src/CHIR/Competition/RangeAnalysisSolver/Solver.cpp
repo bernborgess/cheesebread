@@ -10,15 +10,22 @@
 // Define this to show all steps the solver takes
 // #define DEBUG_SHOW_SOLVER_STEPS
 
-Solver::Solver(AbstractState& state) : state(state) {}
+Solver::Solver(AbstractState& state) : state(state)
+{
+}
 
-void Solver::addConstraint(std::shared_ptr<Constraint> constraint) {
+void Solver::addConstraint(std::shared_ptr<Constraint> constraint)
+{
     constraints.push_back(constraint);
 }
 
-void Solver::clear() { constraints.clear(); }
+void Solver::clear()
+{
+    constraints.clear();
+}
 
-void Solver::resolveSCC() {
+void Solver::resolveSCC()
+{
 #ifdef DEBUG_SHOW_SOLVER_CONSTRAINTS
     std::cout << "\nSolver called for the following constraints:\n";
     for (auto& constraint : this->constraints) {
@@ -95,8 +102,8 @@ void Solver::resolveSCC() {
     clear();
 }
 
-void Solver::solve(
-    std::vector<std::vector<std::shared_ptr<Constraint>>>& sccs) {
+void Solver::solve(std::vector<std::vector<std::shared_ptr<Constraint>>>& sccs)
+{
     for (auto& scc : sccs) {
         for (auto& constraint : scc) {
             addConstraint(constraint);
@@ -105,7 +112,8 @@ void Solver::solve(
     }
 }
 
-void Solver::growthAnalysis() {
+void Solver::growthAnalysis()
+{
     bool changed_evaluating = true;
     int iteration = 0;
 
@@ -121,7 +129,8 @@ void Solver::growthAnalysis() {
     }
 }
 
-void Solver::narrowingAnalysis() {
+void Solver::narrowingAnalysis()
+{
     bool changed_narrowing = true;
 
     while (changed_narrowing) {
@@ -135,14 +144,14 @@ void Solver::narrowingAnalysis() {
     }
 }
 
-void Solver::futureResolution() {
+void Solver::futureResolution()
+{
     for (auto& constraint : constraints) {
-        auto intersection =
-            std::dynamic_pointer_cast<IntersectionConstraint>(constraint);
+        auto intersection = std::dynamic_pointer_cast<IntersectionConstraint>(constraint);
 
-        if (!intersection) continue;
+        if (!intersection)
+            continue;
 
-        constraint = std::make_shared<IntersectionConstraint>(
-            intersection->resolveFutures(state));
+        constraint = std::make_shared<IntersectionConstraint>(intersection->resolveFutures(state));
     }
 }

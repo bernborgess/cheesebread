@@ -14,7 +14,7 @@ namespace Competition {
 using namespace Cangjie::CHIR;
 
 // Define this to show all constraints added to the constraint graph
-#define DEBUG_SHOW_INSERTED_CONSTRAINTS
+// #define DEBUG_SHOW_INSERTED_CONSTRAINTS
 // Define this to log the queries to stderr
 // #define DEBUG_PRINT_QUERIES
 // Define this to generate graphs for the dominator trees
@@ -22,11 +22,12 @@ using namespace Cangjie::CHIR;
 // Define this to calculate the bitwidth reduction metric
 // #define EVALUATE_CALCULATE_BITWIDTH_REDUCTION
 
-void RangeAnalysis::ReadCompetitionQueries() {
+void RangeAnalysis::ReadCompetitionQueries()
+{
     // Open the "input.txt" file
     std::ifstream inputFile;
     inputFile.open("input.txt", std::ifstream::in);
-    if (!inputFile.is_open()) {  //  No file 'input.txt'
+    if (!inputFile.is_open()) { //  No file 'input.txt'
         return;
     }
 
@@ -38,12 +39,12 @@ void RangeAnalysis::ReadCompetitionQueries() {
         std::string fileName, variableName;
 
         getline(ss, fileName, ',');
-        fileName.erase(fileName.begin());  // Remove heading [
+        fileName.erase(fileName.begin()); // Remove heading [
 
         unsigned int lineNumber;
         ss >> lineNumber;
 
-        getline(ss, variableName, ',');  // Remove comma
+        getline(ss, variableName, ','); // Remove comma
         getline(ss, variableName, ',');
 
         // Remove leading space
@@ -51,7 +52,7 @@ void RangeAnalysis::ReadCompetitionQueries() {
             variableName.erase(variableName.begin());
         }
 
-        variableName.erase(variableName.end() - 1);  // Remove last ]
+        variableName.erase(variableName.end() - 1); // Remove last ]
 
         queries.push_back({fileName, lineNumber, variableName});
     }
@@ -59,21 +60,23 @@ void RangeAnalysis::ReadCompetitionQueries() {
     inputFile.close();
 }
 
-void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package) {
+void RangeAnalysis::GatherRequestedFunctions(Cangjie::CHIR::Package* package)
+{
     for (auto func : package->GetGlobalFuncsWithBody()) {
         auto funcFileName = func->GetDebugLocation().GetFileName();
         for (auto [fileName, lineNumber, variableName] : queries) {
             if (funcFileName == fileName) {
                 auto funcSrcId = func->GetSrcCodeIdentifier();
                 if (funcSrcId.find('$') != std::string::npos)
-                    continue;  // Internal function
+                    continue; // Internal function
                 requestedFunctions.insert(func);
             }
         }
     }
 }
 
-void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
+void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func)
+{
     // Create with new to store references by query, later needed to gather
     // correct identifiers
     auto domTree = new DominatorTree(func);
@@ -110,8 +113,10 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
     // Store reference to domTree of each query
     for (int i = 0; i < queries.size(); i++) {
         auto& [fileName, lineNumber, variableName] = queries[i];
-        if (funcFileName != fileName) continue;
-        if (funcStartLine > lineNumber || funcEndLine < lineNumber) continue;
+        if (funcFileName != fileName)
+            continue;
+        if (funcStartLine > lineNumber || funcEndLine < lineNumber)
+            continue;
 
         // This query is solved on the dominator tree.
         // We still need to bind the interprocedural calls, only after that
@@ -132,7 +137,8 @@ void RangeAnalysis::BuildDomTreeWithConstraints(Cangjie::CHIR::Function* func) {
 
 // For each function Apply, bind the identifiers of the source function
 // to the target function parameters with phi functions.
-void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
+void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint()
+{
     ApplyMap argumentsByFnName;
     for (auto& [_, domTree] : domTree_by_uniqueName) {
         const auto applyMap = domTree->GetFnApplyMap();
@@ -140,8 +146,7 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
     }
 
     for (auto& [callee, invocations] : argumentsByFnName) {
-        if (invocations.size() == 0 ||
-            domTree_by_uniqueName.count(callee) == 0) {
+        if (invocations.size() == 0 || domTree_by_uniqueName.count(callee) == 0) {
             continue;
         }
 
@@ -168,11 +173,10 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
             } else if (paramType->IsBoolean()) {
                 valueType = ValueType::BVType;
             } else {
-                continue;  // Unit or unsupported type
+                continue; // Unit or unsupported type
             }
 
-            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops,
-                                                       valueType);
+            auto phi = std::make_shared<PhiConstraint>(alias.to_string(), ops, valueType);
             constraintGraph.addConstraint(phi);
 
 #ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
@@ -184,11 +188,13 @@ void RangeAnalysis::BindArgumentsToParamsWithPhiConstraint() {
 
 // For each return value in target function, bind it to the call result with a
 // phi function
-void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint() {
+void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint()
+{
     for (auto& [fnName, domTree] : domTree_by_uniqueName) {
         // Debugging the returnAliases
         for (auto [callee, vals] : domTree->GetReturnAliasMap()) {
-            if (!domTree_by_uniqueName.count(callee)) continue;
+            if (!domTree_by_uniqueName.count(callee))
+                continue;
 
             std::vector<std::string> ops;
             auto& calleeTree = domTree_by_uniqueName[callee];
@@ -204,11 +210,10 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint() {
                 } else if (retType->IsBoolean()) {
                     valueType = ValueType::BVType;
                 } else {
-                    continue;  // Unit or unsupported type
+                    continue; // Unit or unsupported type
                 }
 
-                auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops,
-                                                           valueType);
+                auto phi = std::make_shared<PhiConstraint>(val.to_string(), ops, valueType);
 
                 constraintGraph.addConstraint(phi);
 #ifdef DEBUG_SHOW_INSERTED_CONSTRAINTS
@@ -219,99 +224,87 @@ void RangeAnalysis::BindReturnValuesToCallResultsWithPhiConstraint() {
     }
 }
 
-void RangeAnalysis::CreateHelperConstraints() {
+void RangeAnalysis::CreateHelperConstraints()
+{
     auto cst_0 = std::make_shared<InitializationConstraint>("\%const_0", 0);
-    auto cst_true =
-        std::make_shared<InitializationBoolConstraint>("\%const_true", true);
+    auto cst_true = std::make_shared<InitializationBoolConstraint>("\%const_true", true);
     constraintGraph.addConstraint(cst_0);
     constraintGraph.addConstraint(cst_true);
 }
 
-void RangeAnalysis::VerifyStaticAsserts() {
+void RangeAnalysis::VerifyStaticAsserts()
+{
     auto HandleSAssert = [&](Value* cond, DominatorTree* domTree) -> bool {
-        if (!cond->GetType()->IsBoolean()) return false;
-        if (!cond->IsLocalVar()) return false;
+        if (!cond->GetType()->IsBoolean())
+            return false;
+        if (!cond->IsLocalVar())
+            return false;
 
         auto condLV = static_cast<LocalVar*>(cond);
         auto condExpr = condLV->GetExpr();
         if (condExpr->GetExprMajorKind() != ExprMajorKind::BINARY_EXPR) {
             // It's possible cangjie already optimized to `sassert(true)`
-            if (!condExpr->IsConstantBool()) return false;
+            if (!condExpr->IsConstantBool())
+                return false;
             auto constant = static_cast<const Constant*>(condExpr);
             return constant->GetBoolLitVal();
         }
         auto condBinExpr = static_cast<BinaryExpression*>(condExpr);
 
         // ? Could we handle a[50] ?
-        auto lhsOp = condBinExpr->GetLHSOperand();  // ! MUST BE AN IDENTIFIER
-        if (!lhsOp->IsLocalVar() && !lhsOp->IsParameter()) return false;
+        auto lhsOp = condBinExpr->GetLHSOperand(); // ! MUST BE AN IDENTIFIER
+        if (!lhsOp->IsLocalVar() && !lhsOp->IsParameter())
+            return false;
 
         auto identifier = lhsOp->GetIdentifier();
         auto variableName = lhsOp->GetSrcCodeIdentifier();
         // I wonder if this is needed...
         if (lhsOp->IsLocalVar()) {
             auto lhsLV = static_cast<LocalVar*>(lhsOp);
-            if (!lhsLV->GetExpr()->IsLoad()) return false;
+            if (!lhsLV->GetExpr()->IsLoad())
+                return false;
             auto lhsLoad = static_cast<Load*>(lhsLV->GetExpr());
-            if (!lhsLoad->GetLocation()->IsLocalVar()) return false;
+            if (!lhsLoad->GetLocation()->IsLocalVar())
+                return false;
             // OUR X
             auto lhsVar = static_cast<LocalVar*>(lhsLoad->GetLocation());
             variableName = lhsVar->GetSrcCodeIdentifier();
-            if (variableName.empty()) variableName = lhsVar->GetIdentifier();
-
-            // Checking if this is needed
-            std::cerr
-                << "Local var was " << identifier << "whose alias is "
-                << domTree->idToAlias[identifier].to_string()
-                << " and their load was" << lhsVar->GetIdentifier()
-                << " whose alias is "
-                << domTree->idToAlias[lhsVar->GetIdentifier()].to_string()
-                << std::endl;
+            if (variableName.empty())
+                variableName = lhsVar->GetIdentifier();
 
             identifier = lhsVar->GetIdentifier();
         }
 
-        if (variableName.empty()) variableName = identifier;
+        if (variableName.empty())
+            variableName = identifier;
         auto lineNumber = condExpr->GetDebugLocation().GetBeginPos().line;
         // Resolve the reaching value, not the last visited branch's alias.
         auto maybeVarAlias = domTree->FindVarBeforeLine(variableName, lineNumber);
-        if (!maybeVarAlias.has_value()) return false;
+        if (!maybeVarAlias.has_value())
+            return false;
         auto varAlias = maybeVarAlias.value();
         auto analyzedVal = solverState[varAlias.to_string()];
-        if (!std::holds_alternative<IV>(analyzedVal)) return false;
+        if (!std::holds_alternative<IV>(analyzedVal))
+            return false;
         auto intVal = std::get<IV>(analyzedVal);
 
-#define debug(X) std::cerr << #X << " = " << (X) << std::endl
-        debug(varAlias);
-        debug(intVal);
-        debug(intVal.getLower());
-        debug(intVal.getUpper());
-        debug((intVal.isSet()));
-        debug(intVal.getStride());
-        debug(intVal.getValues().size());
-        debug(intVal.isBottom());
-#undef debug
-
-        auto rhsOp = condBinExpr->GetRHSOperand();  // ! MUST BE A CONSTANT!!
-        if (!rhsOp->IsLocalVar()) return false;
+        auto rhsOp = condBinExpr->GetRHSOperand(); // ! MUST BE A CONSTANT!!
+        if (!rhsOp->IsLocalVar())
+            return false;
         auto rhsLV = static_cast<LocalVar*>(rhsOp);
-        if (!rhsLV->GetExpr()->IsConstant()) return false;
+        if (!rhsLV->GetExpr()->IsConstant())
+            return false;
         auto rhsConstant = static_cast<Constant*>(rhsLV->GetExpr());
-        if (!rhsConstant->GetResultType()->IsInteger()) return false;
+        if (!rhsConstant->GetResultType()->IsInteger())
+            return false;
         // OUR K
         auto k = rhsConstant->GetSignedIntLitVal();
-
-        // ! DEBUG
-        std::cerr << "cond: " << identifier << "("
-                  << lhsOp->GetSrcCodeIdentifier() << ")"
-                  << " " << condBinExpr->GetExprKindName() << " " << k
-                  << std::endl;
 
         // Helper to get the lowest element, both in strided interval and set
         auto getLeast = [](IV intVal) -> Bound {
             if (intVal.isBottom())
-                return Bound::plusInfinity();  // ! YES, WEIRD
-            if (intVal.isSet()) { // ? Return the smallest value of this set.
+                return Bound::plusInfinity(); // ! YES, WEIRD
+            if (intVal.isSet()) {             // ? Return the smallest value of this set.
                 return Bound::constant(*intVal.getValues().begin());
             } else { // Just the lower bound of interval
                 return intVal.getLower();
@@ -321,8 +314,8 @@ void RangeAnalysis::VerifyStaticAsserts() {
         // Helper to get the highest element, both in strided interval and set
         auto getMost = [](IV intVal) -> Bound {
             if (intVal.isBottom())
-                return Bound::minusInfinity();  // ! YES, WEIRD
-            if (intVal.isSet()) { // ? Return the greatest value of this set.
+                return Bound::minusInfinity(); // ! YES, WEIRD
+            if (intVal.isSet()) {              // ? Return the greatest value of this set.
                 return Bound::constant(*std::prev(intVal.getValues().end()));
             } else { // Just the upper bound of interval
                 return intVal.getUpper();
@@ -336,27 +329,27 @@ void RangeAnalysis::VerifyStaticAsserts() {
         switch (condKind) {
             // * x == k => abstract value of x is exactly {k} (or [k,k:1])
             case ExprKind::EQUAL: {
-                if (intVal.isSet()) return intVal.getValues().size() == 1 &&
-                       *intVal.getValues().begin() == k;
+                if (intVal.isSet())
+                    return intVal.getValues().size() == 1 && *intVal.getValues().begin() == k;
 
                 // [k,k:1]
                 auto most = getMost(intVal);
                 auto least = getLeast(intVal);
 
-                return most.isConstant() && least.isConstant() &&
-                       least.getConstant() == k && k == most.getConstant();
+                return most.isConstant() && least.isConstant() && least.getConstant() == k && k == most.getConstant();
             }
             // * x != k => k may not occur in abstract value of x
             case ExprKind::NOTEQUAL: {
-                if (intVal.isBottom()) return true;
-                if (intVal.isSet()) {  // Will check if k occurs in the set.
+                if (intVal.isBottom())
+                    return true;
+                if (intVal.isSet()) { // Will check if k occurs in the set.
                     // ? Optimization: check the bounds first
-                    if (getLeast(intVal).getConstant() > k ||
-                        getMost(intVal).getConstant() < k)
+                    if (getLeast(intVal).getConstant() > k || getMost(intVal).getConstant() < k)
                         return true;
 
                     for (auto& x : intVal.getValues()) {
-                        if (x == k) return false;
+                        if (x == k)
+                            return false;
                     }
                     return true;
 
@@ -368,14 +361,16 @@ void RangeAnalysis::VerifyStaticAsserts() {
                     if (least.isMinusInfinity()) {
                         // Check if k is above the interval
                         auto most = getMost(intVal);
-                        if (most.isPlusInfinity()) return false;  // could be x
+                        if (most.isPlusInfinity())
+                            return false; // could be x
                         // ? Here we don't account for strided intervals that
                         // start at -∞ and stride >1 e.g [-∞,10:2] will be read
                         // as [-∞,10:1] and WILL contain a k=9.
                         return most.getConstant() < k;
                     } else {
                         auto l = least.getConstant();
-                        if (k < l) return true;
+                        if (k < l)
+                            return true;
 
                         auto most = getMost(intVal);
                         if (most.isConstant() && most.getConstant() < k)
@@ -398,8 +393,10 @@ void RangeAnalysis::VerifyStaticAsserts() {
             // * x >= k => least of abstract value of x is greater or equal to k
             case ExprKind::GE: {
                 auto least = getLeast(intVal);
-                if (least.isPlusInfinity()) return true;    // A bottom...
-                if (least.isMinusInfinity()) return false;  // Impossible
+                if (least.isPlusInfinity())
+                    return true; // A bottom...
+                if (least.isMinusInfinity())
+                    return false; // Impossible
                 auto l = least.getConstant();
                 return condKind == ExprKind::GT ? (l > k) : (l >= k);
             }
@@ -409,8 +406,10 @@ void RangeAnalysis::VerifyStaticAsserts() {
             // * x <= k => most of abstract value of x is less or equal to k
             case ExprKind::LE: {
                 auto most = getMost(intVal);
-                if (most.isPlusInfinity()) return false;  // Impossible
-                if (most.isMinusInfinity()) return true;  // A bottom...
+                if (most.isPlusInfinity())
+                    return false; // Impossible
+                if (most.isMinusInfinity())
+                    return true; // A bottom...
                 auto m = most.getConstant();
                 return condKind == ExprKind::LT ? (m < k) : (m <= k);
             }
@@ -419,35 +418,46 @@ void RangeAnalysis::VerifyStaticAsserts() {
         return true;
     };
 
+    int total_asserts = 0;
+    int passed_asserts = 0;
+
     // Iterate on the domTrees, finds Apply(sassert, *cond)
     for (auto& [fnName, domTree] : domTree_by_uniqueName) {
         domTree->idToAlias;
         for (auto& node : domTree->GetNodes()) {
-            if (node->block == nullptr) continue;
+            if (node->block == nullptr)
+                continue;
             for (auto& expr : node->block->GetExpressions()) {
                 if (expr->IsApply()) {
                     auto apply = dynamic_cast<Apply*>(expr);
-                    if (apply->GetCallee()->GetSrcCodeIdentifier() ==
-                        "sassert" /* unique identifier of sassert */) {
+                    if (apply->GetCallee()->GetSrcCodeIdentifier() == "sassert") {
                         if (HandleSAssert(apply->GetOperand(1), domTree)) {
-                            std::cerr << "sassert pass" << std::endl;
+                            passed_asserts++;
                         } else {
                             std::cerr << "sassert fail" << std::endl;
                         }
+                        total_asserts++;
                     }
                 }
             }
         }
     }
+
+    std::cerr << "###### STATIC ASSERTS ######" << std::endl;
+    std::cerr << "- Passed " << passed_asserts << " out of " << total_asserts << std::endl;
+    std::cerr << " Ratio of " << (total_asserts ? (100.0 * passed_asserts) / total_asserts : 0) << "%" << std::endl;
+    std::cerr << "#### STATIC ASSERTS END ####" << std::endl;
 }
 
-static uint32_t CalculateRangeReduction(IV iv) {
+static uint32_t CalculateRangeReduction(IV iv)
+{
     const uint32_t FULL_RANGE = 64;
 
     // Required number of bits to represent n values.
     auto ceil_log2 = [](std::size_t n) -> uint32_t {
         uint32_t result = 0;
-        if (n == 0) return result;
+        if (n == 0)
+            return result;
         n--;
         while (n > 0) {
             result++;
@@ -456,7 +466,7 @@ static uint32_t CalculateRangeReduction(IV iv) {
         return result;
     };
 
-    if (iv.isBottom()) {  // Full range [-inf, +inf]
+    if (iv.isBottom()) { // Full range [-inf, +inf]
         return FULL_RANGE;
     }
 
@@ -470,18 +480,18 @@ static uint32_t CalculateRangeReduction(IV iv) {
     auto low = iv.getLower();
     auto up = iv.getUpper();
 
-    if (low.isConstant() && up.isConstant()) {  // [c1, c2]
+    if (low.isConstant() && up.isConstant()) { // [c1, c2]
         auto c1 = low.getConstant();
         auto c2 = up.getConstant();
         return ceil_log2(c2 - c1 + 1);
     }
 
-    if (low.isConstant()) {  // [c,+inf]
+    if (low.isConstant()) { // [c,+inf]
         auto c = low.getConstant();
         return ceil_log2(LONG_MAX - c + 1);
     }
 
-    if (up.isConstant()) {  // [-inf, c]
+    if (up.isConstant()) { // [-inf, c]
         auto c = up.getConstant();
         return ceil_log2(c - LONG_MIN + 1);
     }
@@ -490,39 +500,36 @@ static uint32_t CalculateRangeReduction(IV iv) {
     return FULL_RANGE;
 }
 
-static void RunRangeReductionUnitTests() {
-#define TEST_CASE_MK(INIT_CODE, EXPECT)                                   \
-    {                                                                     \
-        IV iv;                                                            \
-        INIT_CODE;                                                        \
-        auto actual = CalculateRangeReduction(iv);                        \
-        auto passed = actual == EXPECT;                                   \
-        if (passed) {                                                     \
-            std::cerr << "Test " << test_id << " Passed" << std::endl;    \
-        } else {                                                          \
-            std::cerr << "Test " << test_id << " Failed" << std::endl;    \
-            std::cerr << "\tExpected " << EXPECT << " but got " << actual \
-                      << std::endl;                                       \
-        }                                                                 \
-        test_id++;                                                        \
+static void RunRangeReductionUnitTests()
+{
+#define TEST_CASE_MK(INIT_CODE, EXPECT)                                                                                \
+    {                                                                                                                  \
+        IV iv;                                                                                                         \
+        INIT_CODE;                                                                                                     \
+        auto actual = CalculateRangeReduction(iv);                                                                     \
+        auto passed = actual == EXPECT;                                                                                \
+        if (passed) {                                                                                                  \
+            std::cerr << "Test " << test_id << " Passed" << std::endl;                                                 \
+        } else {                                                                                                       \
+            std::cerr << "Test " << test_id << " Failed" << std::endl;                                                 \
+            std::cerr << "\tExpected " << EXPECT << " but got " << actual << std::endl;                                \
+        }                                                                                                              \
+        test_id++;                                                                                                     \
     }
 
     int test_id = 1;
     TEST_CASE_MK(iv.setAsBottom(), 64);
     TEST_CASE_MK(auto b = Bound::constant(0); iv.setAsInterval(b, b), 0);
-    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1023);
-                 iv.setAsInterval(l, r), 10);
-    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1024);
-                 iv.setAsInterval(l, r), 11);
-    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::plusInfinity();
-                 iv.setAsInterval(l, r), 63);
-    TEST_CASE_MK(auto l = Bound::minusInfinity(); auto r = Bound::constant(-1);
-                 iv.setAsInterval(l, r), 63);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1023); iv.setAsInterval(l, r), 10);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::constant(1024); iv.setAsInterval(l, r), 11);
+    TEST_CASE_MK(auto l = Bound::constant(0); auto r = Bound::plusInfinity(); iv.setAsInterval(l, r), 63);
+    TEST_CASE_MK(auto l = Bound::minusInfinity(); auto r = Bound::constant(-1); iv.setAsInterval(l, r), 63);
 
 #undef TEST_CASE_MK
 }
 
-void RangeAnalysis::OutputAnalysisToFile() {
+void RangeAnalysis::OutputAnalysisToFile()
+{
     std::fstream outputFile;
     outputFile.open("output.txt", std::ios::out);
     if (!outputFile.is_open()) {
@@ -545,17 +552,14 @@ void RangeAnalysis::OutputAnalysisToFile() {
         auto& [fileName, lineNumber, variableName] = queries[i];
 
 #ifdef DEBUG_PRINT_QUERIES
-        std::cerr << "Find the range of variable " << variableName
-                  << " at line " << lineNumber << " of file " << fileName
-                  << std::endl;
+        std::cerr << "Find the range of variable " << variableName << " at line " << lineNumber << " of file "
+                  << fileName << std::endl;
 #endif
 
-        auto maybeVariableAlias =
-            domTree->FindVarBeforeLine(variableName, lineNumber);
+        auto maybeVariableAlias = domTree->FindVarBeforeLine(variableName, lineNumber);
         if (!maybeVariableAlias.has_value()) {
-            std::cerr << "No alias for variable \"" << variableName
-                      << "\" was found for query before line " << lineNumber
-                      << "!" << std::endl;
+            std::cerr << "No alias for variable \"" << variableName << "\" was found for query before line "
+                      << lineNumber << "!" << std::endl;
             // ? Output bottom range here.
             IV iv;
             iv.setAsBottom();
@@ -598,41 +602,36 @@ void RangeAnalysis::OutputAnalysisToFile() {
 #undef TO_STR
 #undef EXPAND_STR
 
-
     // For each variable in the solver, count its occurrence and the bits needed
     uint32_t bits_needed = 0;
     uint32_t total_vars = 0;
     size_t total_constraints = solverState.size();
     for (auto& [varName, varRange] : solverState) {
-        if (varName.empty() or varName[0] == '%') continue;
+        if (varName.empty() or varName[0] == '%')
+            continue;
         if (std::holds_alternative<IV>(varRange)) {
             auto intVal = std::get<IV>(varRange);
             auto reductionVar = CalculateRangeReduction(intVal);
             bits_needed += reductionVar;
-           total_vars++;
+            total_vars++;
         }
     }
 
-    std::cerr << "Out of " << (total_vars * 64) << " bits only " << bits_needed
-              << " were required to represent the " << total_vars
-              << " Int64 values of this program." << std::endl;
-    double reduction =
-        total_vars > 0 ? 100 * (1.0 - bits_needed / (double)(total_vars * 64.0))
-                       : 0.0;
+    std::cerr << "Out of " << (total_vars * 64) << " bits only " << bits_needed << " were required to represent the "
+              << total_vars << " Int64 values of this program." << std::endl;
+    double reduction = total_vars > 0 ? 100 * (1.0 - bits_needed / (double)(total_vars * 64.0)) : 0.0;
     std::cerr << "Reduction: " << reduction << "%" << std::endl;
 
     // Taking a timestamp after the code is ran
     auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-        end - time_point_begin);
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - time_point_begin);
 
     // std::fstream resultsFile;                        // Metric 1 csv file
     // resultsFile.open(resultsFileName, std::ios::app);  // Open file in append
     // mode if (resultsFile) {
     //     resultsFile << total_vars << ',' << total_constraints << ','
     //                 << reduction << ',' << duration.count() << std::endl;
-    std::cerr << total_vars << ',' << total_constraints << ',' << reduction
-              << ',' << duration.count() << std::endl;
+    std::cerr << total_vars << ',' << total_constraints << ',' << reduction << ',' << duration.count() << std::endl;
 
     // }
     // resultsFile.close();
@@ -641,13 +640,16 @@ void RangeAnalysis::OutputAnalysisToFile() {
     outputFile.close();
 }
 
-void RangeAnalysis::RunOnPackage(Package* package) {
+void RangeAnalysis::RunOnPackage(Package* package)
+{
     // Filter out the builtin cangjie code
-    if (package->GetName() == "std.core") return;
+    if (package->GetName() == "std.core")
+        return;
 
     // Reads input file for value range queries
     ReadCompetitionQueries();
-    if (queries.size() < 1) return;
+    if (queries.size() < 1)
+        return;
 
     queryToDomTree.resize(queries.size());
 
@@ -664,7 +666,8 @@ void RangeAnalysis::RunOnPackage(Package* package) {
 
     // Compute dominator tree for each function, insert the intraprocedural
     // constraints
-    for (auto func : requestedFunctions) BuildDomTreeWithConstraints(func);
+    for (auto func : requestedFunctions)
+        BuildDomTreeWithConstraints(func);
 
     // Interprocedural
     BindArgumentsToParamsWithPhiConstraint();
@@ -695,4 +698,4 @@ void RangeAnalysis::RunOnPackage(Package* package) {
     return;
 }
 
-}  // namespace Competition
+} // namespace Competition

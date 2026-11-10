@@ -39,7 +39,7 @@ using AbstractState = std::unordered_map<std::string, AnalyzedValue>;
  * @brief Abstract base class for all dataflow equations.
  */
 class Constraint {
-   public:
+public:
     std::string def;
 
     explicit Constraint(std::string name);
@@ -60,7 +60,8 @@ class Constraint {
      * @return true if the abstract value was successfully narrowed (shrunk),
      * false if the domain remained unchanged (indicating a fixed point).
      */
-    bool narrow(AbstractState& A) {
+    bool narrow(AbstractState& A)
+    {
         if (std::holds_alternative<BV>(A[def])) {
             // BoolValue doesn't need narrowing
             return false;
@@ -70,7 +71,7 @@ class Constraint {
 
         // force eval()'s bottom-case branch
         std::get<IV>(A[def]).setAsBottom();
-        eval(A);  // e(Y)
+        eval(A); // e(Y)
         IV eY = std::get<IV>(A[def]);
 
         if (oldY.getKind() == IV::Kind::Set && eY.getKind() == IV::Kind::Set) {
@@ -89,8 +90,7 @@ class Constraint {
 
         // 1. Guard 1: I[Y] is -Infinity, and e(Y) has recovered to a finite
         // bound
-        if (oldY.getLower().isMinusInfinity() &&
-            !eY.getLower().isMinusInfinity()) {
+        if (oldY.getLower().isMinusInfinity() && !eY.getLower().isMinusInfinity()) {
             lo = eY.getLower();
         }
         // 3. Guard 3: e(Y) lower bound is greater (tighter) than oldY lower
@@ -101,8 +101,7 @@ class Constraint {
 
         // 2. Guard 2: I[Y] is +Infinity, and e(Y) has recovered to a finite
         // bound
-        if (oldY.getUpper().isPlusInfinity() &&
-            !eY.getUpper().isPlusInfinity()) {
+        if (oldY.getUpper().isPlusInfinity() && !eY.getUpper().isPlusInfinity()) {
             hi = eY.getUpper();
         }
         // 4. Guard 4: e(Y) upper bound is smaller (tighter) than oldY upper
@@ -119,9 +118,13 @@ class Constraint {
     }
 
     virtual std::vector<UseEdge> get_uses() const = 0;
-    std::string get_def() { return def; }
+    std::string get_def()
+    {
+        return def;
+    }
 
-    friend std::ostream& operator<<(std::ostream& os, const Constraint& c) {
+    friend std::ostream& operator<<(std::ostream& os, const Constraint& c)
+    {
         os << c.def;
         return os;
     }
@@ -132,37 +135,39 @@ class Constraint {
  * @brief Models literal assignments: v = c
  */
 class InitializationConstraint : public Constraint {
-   private:
+private:
     int constant;
 
-   public:
+public:
     InitializationConstraint(std::string var, int c);
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> ret = {};
         return ret;
     }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const InitializationConstraint& c) {
+    friend std::ostream& operator<<(std::ostream& os, const InitializationConstraint& c)
+    {
         os << c.def << ": " << c.constant;
         return os;
     }
 };
 
 class InitializationIntegerTop : public Constraint {
-   public:
+public:
     InitializationIntegerTop(std::string var);
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> ret = {};
         return ret;
     }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const InitializationIntegerTop& c) {
+    friend std::ostream& operator<<(std::ostream& os, const InitializationIntegerTop& c)
+    {
         os << c.def << ": [-2147483648, 2147483647:1]";
         return os;
     }
@@ -173,16 +178,16 @@ class InitializationIntegerTop : public Constraint {
  * @brief Models SSA control-flow merges: v0 = phi(v1, v2, ..., vk)
  */
 class PhiConstraint : public Constraint {
-   private:
+private:
     std::vector<std::string> operands;
     ValueType type;
 
-   public:
-    PhiConstraint(std::string var, std::vector<std::string> ops,
-                  ValueType type);
+public:
+    PhiConstraint(std::string var, std::vector<std::string> ops, ValueType type);
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> edges;
         edges.reserve(operands.size());
 
@@ -193,10 +198,12 @@ class PhiConstraint : public Constraint {
         return edges;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const PhiConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const PhiConstraint c)
+    {
         os << c.def << " φ(";
         for (int i = 0; i < c.operands.size(); i++) {
-            if (i > 0) os << ", ";
+            if (i > 0)
+                os << ", ";
             os << c.operands[i];
         }
         os << ")";
@@ -211,19 +218,19 @@ class PhiConstraint : public Constraint {
  * or a "Future" referencing another variable.
  */
 class IntersectionConstraint : public Constraint {
-   public:
+public:
     // A Future represents a symbolic reference to another variable's state
     struct Future {
         std::string target_variable;
-        int offset;  // Handles relations like Future(y) - 1 or Future(x) + 1
+        int offset; // Handles relations like Future(y) - 1 or Future(x) + 1
     };
 
     // An intersection boundary can be a literal Constant, an Infinity, or a
     // Future
     using IntersectionBound = std::variant<Bound, Future>;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const IntersectionBound b) {
+    friend std::ostream& operator<<(std::ostream& os, const IntersectionBound b)
+    {
         if (std::holds_alternative<Bound>(b)) {
             os << std::get<Bound>(b);
         } else {
@@ -247,36 +254,33 @@ class IntersectionConstraint : public Constraint {
     IntersectionBound lower_bound;
     IntersectionBound upper_bound;
 
-   private:
+private:
     // Helper to resolve a variant bound into a concrete Bound
     // at runtime
-    Bound resolveBound(const IntersectionBound& b, const bool isLower,
-                       const AbstractState& A) const;
+    Bound resolveBound(const IntersectionBound& b, const bool isLower, const AbstractState& A) const;
 
-   public:
-    IntersectionConstraint(std::string dest, std::string src,
-                           IntersectionBound low, IntersectionBound up);
+public:
+    IntersectionConstraint(std::string dest, std::string src, IntersectionBound low, IntersectionBound up);
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> uses;
         uses.push_back({operand, EdgeType::Data});
 
         if (std::holds_alternative<Future>(lower_bound)) {
-            uses.push_back({std::get<Future>(lower_bound).target_variable,
-                            EdgeType::Future});
+            uses.push_back({std::get<Future>(lower_bound).target_variable, EdgeType::Future});
         }
 
         if (std::holds_alternative<Future>(upper_bound)) {
-            uses.push_back({std::get<Future>(upper_bound).target_variable,
-                            EdgeType::Future});
+            uses.push_back({std::get<Future>(upper_bound).target_variable, EdgeType::Future});
         }
 
         return uses;
     }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const IntersectionConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const IntersectionConstraint c)
+    {
         os << c.def << " = σ(" << c.operand << " ∩ "
            << "[" << c.lower_bound << "," << c.upper_bound << "])";
         return os;
@@ -294,47 +298,45 @@ class IntersectionConstraint : public Constraint {
  * another variable's current bound, exactly like intersection narrowing.
  */
 class RangeConstraint : public Constraint {
-   public:
+public:
     using RangeBound = IntersectionConstraint::IntersectionBound;
     using Future = IntersectionConstraint::Future;
 
-   private:
+private:
     RangeBound low_bound;
     RangeBound high_bound;
-    bool
-        inclusive;  // false: low..high (right-open) | true: low..=high (closed)
+    bool inclusive; // false: low..high (right-open) | true: low..=high (closed)
     unsigned step;  // step specification (low..high : step); defaults to 1
 
-    Bound resolveBound(const RangeBound& b, bool isLower,
-                       const AbstractState& A) const;
+    Bound resolveBound(const RangeBound& b, bool isLower, const AbstractState& A) const;
 
-   public:
-    RangeConstraint(std::string dest, RangeBound low, RangeBound high,
-                    bool inclusive, unsigned step = 1)
+public:
+    RangeConstraint(std::string dest, RangeBound low, RangeBound high, bool inclusive, unsigned step = 1)
         : Constraint(std::move(dest)),
           low_bound(std::move(low)),
           high_bound(std::move(high)),
           inclusive(inclusive),
-          step(step) {}
+          step(step)
+    {
+    }
 
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> uses;
         if (std::holds_alternative<Future>(low_bound))
-            uses.push_back({std::get<Future>(low_bound).target_variable,
-                            EdgeType::Future});
+            uses.push_back({std::get<Future>(low_bound).target_variable, EdgeType::Future});
         if (std::holds_alternative<Future>(high_bound))
-            uses.push_back({std::get<Future>(high_bound).target_variable,
-                            EdgeType::Future});
+            uses.push_back({std::get<Future>(high_bound).target_variable, EdgeType::Future});
         return uses;
     }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const RangeConstraint& c) {
-        os << c.def << ": " << c.low_bound << (c.inclusive ? " ..= " : " .. ")
-           << c.high_bound;
-        if (c.step != 1) os << " : " << c.step;
+    friend std::ostream& operator<<(std::ostream& os, const RangeConstraint& c)
+    {
+        os << c.def << ": " << c.low_bound << (c.inclusive ? " ..= " : " .. ") << c.high_bound;
+        if (c.step != 1)
+            os << " : " << c.step;
         return os;
     }
 };
@@ -348,13 +350,14 @@ class RangeConstraint : public Constraint {
  * constraints below.
  */
 class UnaryConstraint : public Constraint {
-   protected:
+protected:
     std::string operand;
 
-   public:
+public:
     UnaryConstraint(std::string dest, std::string src);
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         return {{operand, EdgeType::Data}};
     }
 };
@@ -364,14 +367,15 @@ class UnaryConstraint : public Constraint {
  * @brief Base class for binary arithmetic constraints tracking two operands.
  */
 class ArithmeticConstraint : public Constraint {
-   protected:
+protected:
     std::string op1;
     std::string op2;
 
-   public:
+public:
     ArithmeticConstraint(std::string dest, std::string lhs, std::string rhs);
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         return {{op1, EdgeType::Data}, {op2, EdgeType::Data}};
     }
 };
@@ -381,11 +385,12 @@ class ArithmeticConstraint : public Constraint {
  * @brief Models abstract addition: v0 = v1 + v2
  */
 class AddConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const AddConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const AddConstraint c)
+    {
         os << c.def << ": " << c.op1 << " + " << c.op2;
         return os;
     }
@@ -396,11 +401,12 @@ class AddConstraint : public ArithmeticConstraint {
  * @brief Models abstract subtraction: v0 = v1 - v2
  */
 class SubConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const SubConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const SubConstraint c)
+    {
         os << c.def << ": " << c.op1 << " - " << c.op2;
         return os;
     }
@@ -411,11 +417,12 @@ class SubConstraint : public ArithmeticConstraint {
  * @brief Models abstract integer (truncating) division: v0 = v1 / v2
  */
 class DivConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const DivConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const DivConstraint c)
+    {
         os << c.def << ": " << c.op1 << " / " << c.op2;
         return os;
     }
@@ -426,11 +433,12 @@ class DivConstraint : public ArithmeticConstraint {
  * @brief Models abstract remainder (C++ truncating semantics): v0 = v1 % v2
  */
 class ModConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const ModConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const ModConstraint c)
+    {
         os << c.def << ": " << c.op1 << " % " << c.op2;
         return os;
     }
@@ -441,12 +449,12 @@ class ModConstraint : public ArithmeticConstraint {
  * @brief Models abstract left shift: v0 = v1 << v2
  */
 class ShiftLeftConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const ShiftLeftConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const ShiftLeftConstraint c)
+    {
         os << c.def << ": " << c.op1 << " << " << c.op2;
         return os;
     }
@@ -457,12 +465,12 @@ class ShiftLeftConstraint : public ArithmeticConstraint {
  * @brief Models abstract (arithmetic) right shift: v0 = v1 >> v2
  */
 class ShiftRightConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const ShiftRightConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const ShiftRightConstraint c)
+    {
         os << c.def << ": " << c.op1 << " >> " << c.op2;
         return os;
     }
@@ -473,12 +481,12 @@ class ShiftRightConstraint : public ArithmeticConstraint {
  * @brief Models abstract bitwise AND: v0 = v1 & v2
  */
 class BitwiseAndConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const BitwiseAndConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const BitwiseAndConstraint c)
+    {
         os << c.def << ": " << c.op1 << " & " << c.op2;
         return os;
     }
@@ -489,12 +497,12 @@ class BitwiseAndConstraint : public ArithmeticConstraint {
  * @brief Models abstract bitwise XOR: v0 = v1 ^ v2
  */
 class BitwiseXorConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const BitwiseXorConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const BitwiseXorConstraint c)
+    {
         os << c.def << ": " << c.op1 << " ^ " << c.op2;
         return os;
     }
@@ -505,12 +513,12 @@ class BitwiseXorConstraint : public ArithmeticConstraint {
  * @brief Models abstract bitwise OR: v0 = v1 | v2
  */
 class BitwiseOrConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const BitwiseOrConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const BitwiseOrConstraint c)
+    {
         os << c.def << ": " << c.op1 << " | " << c.op2;
         return os;
     }
@@ -521,11 +529,12 @@ class BitwiseOrConstraint : public ArithmeticConstraint {
  * @brief Models unary negation: v0 = -v1
  */
 class NegConstraint : public UnaryConstraint {
-   public:
+public:
     using UnaryConstraint::UnaryConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const NegConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const NegConstraint c)
+    {
         os << c.def << ": -" << c.operand;
         return os;
     }
@@ -536,11 +545,12 @@ class NegConstraint : public UnaryConstraint {
  * @brief Models increment: v0 = v1 + 1
  */
 class IncConstraint : public UnaryConstraint {
-   public:
+public:
     using UnaryConstraint::UnaryConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const IncConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const IncConstraint c)
+    {
         os << c.def << ": " << c.operand << "++";
         return os;
     }
@@ -551,11 +561,12 @@ class IncConstraint : public UnaryConstraint {
  * @brief Models decrement: v0 = v1 - 1
  */
 class DecConstraint : public UnaryConstraint {
-   public:
+public:
     using UnaryConstraint::UnaryConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const DecConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const DecConstraint c)
+    {
         os << c.def << ": " << c.operand << "--";
         return os;
     }
@@ -566,12 +577,12 @@ class DecConstraint : public UnaryConstraint {
  * @brief Models bitwise complement: v0 = ~v1
  */
 class BitwiseNotConstraint : public UnaryConstraint {
-   public:
+public:
     using UnaryConstraint::UnaryConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const BitwiseNotConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const BitwiseNotConstraint c)
+    {
         os << c.def << ": ~" << c.operand;
         return os;
     }
@@ -582,12 +593,12 @@ class BitwiseNotConstraint : public UnaryConstraint {
  * @brief Models abstract multiplication: v0 = v1 * v2
  */
 class MultiplyConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const MultiplyConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const MultiplyConstraint c)
+    {
         os << c.def << ": " << c.op1 << " * " << c.op2;
         return os;
     }
@@ -598,20 +609,21 @@ class MultiplyConstraint : public ArithmeticConstraint {
  * @brief Models literal assignments: v = c
  */
 class InitializationBoolConstraint : public Constraint {
-   private:
+private:
     bool constant;
 
-   public:
+public:
     InitializationBoolConstraint(std::string var, bool c);
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> ret = {};
         return ret;
     }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const InitializationBoolConstraint& c) {
+    friend std::ostream& operator<<(std::ostream& os, const InitializationBoolConstraint& c)
+    {
         os << c.def << ": " << c.constant;
         return os;
     }
@@ -622,17 +634,18 @@ class InitializationBoolConstraint : public Constraint {
  * @brief Models literal assignments: v = c
  */
 class InitializationBoolTop : public Constraint {
-   public:
+public:
     InitializationBoolTop(std::string var);
     bool eval(AbstractState& A) override;
 
-    std::vector<UseEdge> get_uses() const override {
+    std::vector<UseEdge> get_uses() const override
+    {
         std::vector<UseEdge> ret = {};
         return ret;
     }
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const InitializationBoolTop& c) {
+    friend std::ostream& operator<<(std::ostream& os, const InitializationBoolTop& c)
+    {
         os << c.def << ": [false, true]";
         return os;
     }
@@ -643,11 +656,12 @@ class InitializationBoolTop : public Constraint {
  * @brief Models v0 = (v1 == v2)
  */
 class EqualConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os, const EqualConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const EqualConstraint c)
+    {
         os << c.def << ": " << c.op1 << " == " << c.op2;
         return os;
     }
@@ -658,12 +672,12 @@ class EqualConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 != v2)
  */
 class NotEqualConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const NotEqualConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const NotEqualConstraint c)
+    {
         os << c.def << ": " << c.op1 << " != " << c.op2;
         return os;
     }
@@ -674,12 +688,12 @@ class NotEqualConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 < v2)
  */
 class LessThanConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const LessThanConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const LessThanConstraint c)
+    {
         os << c.def << ": " << c.op1 << " < " << c.op2;
         return os;
     }
@@ -690,12 +704,12 @@ class LessThanConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 > v2)
  */
 class GreaterThanConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const GreaterThanConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const GreaterThanConstraint c)
+    {
         os << c.def << ": " << c.op1 << " > " << c.op2;
         return os;
     }
@@ -706,12 +720,12 @@ class GreaterThanConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 <= v2)
  */
 class LessEqualConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const LessEqualConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const LessEqualConstraint c)
+    {
         os << c.def << ": " << c.op1 << " <= " << c.op2;
         return os;
     }
@@ -722,12 +736,12 @@ class LessEqualConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 >= v2)
  */
 class GreaterEqualConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const GreaterEqualConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const GreaterEqualConstraint c)
+    {
         os << c.def << ": " << c.op1 << " >= " << c.op2;
         return os;
     }
@@ -738,12 +752,12 @@ class GreaterEqualConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 && v2).
  */
 class LogicalAndConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const LogicalAndConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const LogicalAndConstraint c)
+    {
         os << c.def << ": " << c.op1 << " && " << c.op2;
         return os;
     }
@@ -754,12 +768,12 @@ class LogicalAndConstraint : public ArithmeticConstraint {
  * @brief Models v0 = (v1 || v2).
  */
 class LogicalOrConstraint : public ArithmeticConstraint {
-   public:
+public:
     using ArithmeticConstraint::ArithmeticConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const LogicalOrConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const LogicalOrConstraint c)
+    {
         os << c.def << ": " << c.op1 << " || " << c.op2;
         return os;
     }
@@ -770,27 +784,26 @@ class LogicalOrConstraint : public ArithmeticConstraint {
  * @brief Models v0 = !v1, treating BoolValue's "true"/"false" the usual way.
  */
 class LogicalNotConstraint : public UnaryConstraint {
-   public:
+public:
     using UnaryConstraint::UnaryConstraint;
     bool eval(AbstractState& A) override;
 
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const LogicalNotConstraint c) {
+    friend std::ostream& operator<<(std::ostream& os, const LogicalNotConstraint c)
+    {
         os << c.def << ": !" << c.operand;
         return os;
     }
 };
 
-inline std::ostream& operator<<(std::ostream& os,
-                                const std::shared_ptr<Constraint>& c) {
+inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<Constraint>& c)
+{
     if (auto initc = std::dynamic_pointer_cast<InitializationConstraint>(c)) {
         os << *initc;
     } else if (auto phic = std::dynamic_pointer_cast<PhiConstraint>(c)) {
         os << *phic;
     } else if (auto addc = std::dynamic_pointer_cast<AddConstraint>(c)) {
         os << *addc;
-    } else if (auto interc =
-                   std::dynamic_pointer_cast<IntersectionConstraint>(c)) {
+    } else if (auto interc = std::dynamic_pointer_cast<IntersectionConstraint>(c)) {
         os << *interc;
     } else if (auto mulc = std::dynamic_pointer_cast<MultiplyConstraint>(c)) {
         os << *mulc;
@@ -800,20 +813,15 @@ inline std::ostream& operator<<(std::ostream& os,
         os << *divc;
     } else if (auto modc = std::dynamic_pointer_cast<ModConstraint>(c)) {
         os << *modc;
-    } else if (auto shiftlc =
-                   std::dynamic_pointer_cast<ShiftLeftConstraint>(c)) {
+    } else if (auto shiftlc = std::dynamic_pointer_cast<ShiftLeftConstraint>(c)) {
         os << *shiftlc;
-    } else if (auto shiftrc =
-                   std::dynamic_pointer_cast<ShiftRightConstraint>(c)) {
+    } else if (auto shiftrc = std::dynamic_pointer_cast<ShiftRightConstraint>(c)) {
         os << *shiftrc;
-    } else if (auto bitandc =
-                   std::dynamic_pointer_cast<BitwiseAndConstraint>(c)) {
+    } else if (auto bitandc = std::dynamic_pointer_cast<BitwiseAndConstraint>(c)) {
         os << *bitandc;
-    } else if (auto bitxorc =
-                   std::dynamic_pointer_cast<BitwiseXorConstraint>(c)) {
+    } else if (auto bitxorc = std::dynamic_pointer_cast<BitwiseXorConstraint>(c)) {
         os << *bitxorc;
-    } else if (auto bitorc =
-                   std::dynamic_pointer_cast<BitwiseOrConstraint>(c)) {
+    } else if (auto bitorc = std::dynamic_pointer_cast<BitwiseOrConstraint>(c)) {
         os << *bitorc;
     } else if (auto negc = std::dynamic_pointer_cast<NegConstraint>(c)) {
         os << *negc;
@@ -821,8 +829,7 @@ inline std::ostream& operator<<(std::ostream& os,
         os << *incc;
     } else if (auto decc = std::dynamic_pointer_cast<DecConstraint>(c)) {
         os << *decc;
-    } else if (auto bitnotc =
-                   std::dynamic_pointer_cast<BitwiseNotConstraint>(c)) {
+    } else if (auto bitnotc = std::dynamic_pointer_cast<BitwiseNotConstraint>(c)) {
         os << *bitnotc;
     } else if (auto eqc = std::dynamic_pointer_cast<EqualConstraint>(c)) {
         os << *eqc;
@@ -834,8 +841,7 @@ inline std::ostream& operator<<(std::ostream& os,
         os << *gtc;
     } else if (auto lec = std::dynamic_pointer_cast<LessEqualConstraint>(c)) {
         os << *lec;
-    } else if (auto gec =
-                   std::dynamic_pointer_cast<GreaterEqualConstraint>(c)) {
+    } else if (auto gec = std::dynamic_pointer_cast<GreaterEqualConstraint>(c)) {
         os << *gec;
     } else if (auto lac = std::dynamic_pointer_cast<LogicalAndConstraint>(c)) {
         os << *lac;

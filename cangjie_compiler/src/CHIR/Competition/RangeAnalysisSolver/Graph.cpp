@@ -1,6 +1,9 @@
 #include "cangjie/Competition/RangeAnalysisSolver/Graph.h"
 
-VariableVertex* ConstraintGraph::getOrCreateVar(const std::string& name) {
+#include <stack>
+
+VariableVertex* ConstraintGraph::getOrCreateVar(const std::string& name)
+{
     auto it = data_vertices.find(name);
     if (it == data_vertices.end()) {
         auto v = std::make_shared<VariableVertex>();
@@ -11,7 +14,8 @@ VariableVertex* ConstraintGraph::getOrCreateVar(const std::string& name) {
     return it->second.get();
 }
 
-void ConstraintGraph::addConstraint(std::shared_ptr<Constraint> c) {
+void ConstraintGraph::addConstraint(std::shared_ptr<Constraint> c)
+{
     // 1. Register the variable definition
     VariableVertex* def_var = getOrCreateVar(c->def);
     def_var->defined_by = c;
@@ -25,8 +29,8 @@ void ConstraintGraph::addConstraint(std::shared_ptr<Constraint> c) {
     operation_vertices.push_back(std::move(c));
 }
 
-std::vector<std::vector<std::shared_ptr<Constraint>>>
-ConstraintGraph::getTopologicalSCCs() const {
+std::vector<std::vector<std::shared_ptr<Constraint>>> ConstraintGraph::getTopologicalSCCs() const
+{
     int timer = 0;
     std::unordered_map<std::shared_ptr<Constraint>, int> index;
     std::unordered_map<std::shared_ptr<Constraint>, int> lowlink;
@@ -46,7 +50,8 @@ ConstraintGraph::getTopologicalSCCs() const {
             for (const auto& edge : it->second->used_by) {
                 std::shared_ptr<Constraint> v = edge.target.lock();
 
-                if (!v) continue;
+                if (!v)
+                    continue;
 
                 if (index.find(v) == index.end()) {
                     self(self, v);

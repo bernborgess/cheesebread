@@ -107,7 +107,7 @@ elif $FRESH; then
   # Regenerate cmake files if needed
   cmake -B build/build .
   # Compile changes
-  cmake --build build/build # --target cjc
+  cmake --build build/build --target cjc
   # Run install script to create output dir
   python3 build.py install
 fi

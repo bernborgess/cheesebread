@@ -7,12 +7,7 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
-#include <memory>
-#include <vector>
-
-#include "cangjie/Competition/RangeAnalysisSolver/BoolValue.h"
 #include "cangjie/Competition/RangeAnalysisSolver/Constraint.h"
-#include "cangjie/Competition/RangeAnalysisSolver/IntValue.h"
 
 /**
  * @class Solver
@@ -24,7 +19,7 @@
  * fixed point.
  */
 class Solver {
-   private:
+private:
     /** @brief Reference to the global abstract state table mapping variables to
      * domains. */
     AbstractState& state;
@@ -32,7 +27,7 @@ class Solver {
     /** @brief Collection of dataflow/SSA constraint equations to execute. */
     std::vector<std::shared_ptr<Constraint>> constraints;
 
-   public:
+public:
     /**
      * @brief Constructs a new Solver instance bound to a given abstract state.
      * @param state A reference to the global variable-to-value map tracking the
@@ -84,4 +79,4 @@ class Solver {
     void narrowingAnalysis();
 };
 
-#endif  // SOLVER_H
+#endif // SOLVER_H

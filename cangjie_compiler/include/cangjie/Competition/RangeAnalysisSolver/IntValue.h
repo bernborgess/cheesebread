@@ -2,9 +2,10 @@
 
 #include "cangjie/Competition/RangeAnalysisSolver/AbstractValue.h"
 
-template <unsigned N>
-class IntValue : public AbstractValue<int, N> {
-   public:
+#include <numeric>
+
+template <unsigned N> class IntValue : public AbstractValue<int, N> {
+public:
     void join(const IntValue<N>& other);
     void addConstant(const std::vector<int>& vals) override;
     void setAsTop();
@@ -13,7 +14,8 @@ class IntValue : public AbstractValue<int, N> {
      * @brief Overload for printing the entire AbstractValue state.
      * @attention Using the output format expected by the competition
      */
-    friend std::ostream& operator<<(std::ostream& os, const IntValue& av) {
+    friend std::ostream& operator<<(std::ostream& os, const IntValue& av)
+    {
         if (av.isBottom()) {
             os << "[-2147483648, 2147483647:1]";
             return os;
@@ -22,29 +24,31 @@ class IntValue : public AbstractValue<int, N> {
             bool first = true;
             os << "{";
             for (int val : av.values) {
-                if (!first) os << ", ";
+                if (!first)
+                    os << ", ";
                 os << val;
                 first = false;
             }
             os << "}";
-        } else {  // Kind::StridedInterval
-            os << "[" << av.lower << ", " << av.upper << ":" << av.stride
-               << "]";
+        } else { // Kind::StridedInterval
+            os << "[" << av.lower << ", " << av.upper << ":" << av.stride << "]";
         }
         return os;
     }
 };
 
-template <unsigned N>
-void IntValue<N>::addConstant(const std::vector<int>& vals) {
+template <unsigned N> void IntValue<N>::addConstant(const std::vector<int>& vals)
+{
     // If there's no constant to add, we can ignore it
-    if (vals.empty()) return;
+    if (vals.empty())
+        return;
 
     bool incrementCounter = false;
 
     if (this->kind == AbstractValue<int, N>::Kind::Set) {
         for (int val : vals)
-            if (this->values.emplace(val).second) incrementCounter = true;
+            if (this->values.emplace(val).second)
+                incrementCounter = true;
 
         // Assign bounds based on the captured set bounds
         this->lower = Bound::constant(*this->values.begin());
@@ -58,7 +62,8 @@ void IntValue<N>::addConstant(const std::vector<int>& vals) {
             int base = *this->values.begin();
             int g = 0;
             for (int v : this->values)
-                if (v != base) g = std::gcd(g, v - base);
+                if (v != base)
+                    g = std::gcd(g, v - base);
 
             this->stride = (g == 0) ? 1 : static_cast<unsigned>(g);
 
@@ -73,10 +78,8 @@ void IntValue<N>::addConstant(const std::vector<int>& vals) {
                 // Case 2: Constant is smaller than the minimum
                 if (this->wideningCounter < this->WideningDelay) {
                     if (this->upper.isConstant()) {
-                        this->stride = std::gcd(
-                            this->stride,
-                            static_cast<unsigned>(
-                                std::abs(val - this->upper.getConstant())));
+                        this->stride =
+                            std::gcd(this->stride, static_cast<unsigned>(std::abs(val - this->upper.getConstant())));
                     } else {
                         this->stride = 1;
                     }
@@ -86,15 +89,12 @@ void IntValue<N>::addConstant(const std::vector<int>& vals) {
                     this->lower = Bound::minusInfinity();
                     this->stride = 1;
                 }
-            } else if (this->upper.isConstant() &&
-                       val > this->upper.getConstant()) {
+            } else if (this->upper.isConstant() && val > this->upper.getConstant()) {
                 // Case 3: Constant is larger than the maximum
                 if (this->wideningCounter < this->WideningDelay) {
                     if (this->lower.isConstant()) {
-                        this->stride = std::gcd(
-                            this->stride,
-                            static_cast<unsigned>(
-                                std::abs(val - this->lower.getConstant())));
+                        this->stride =
+                            std::gcd(this->stride, static_cast<unsigned>(std::abs(val - this->lower.getConstant())));
                     } else {
                         this->stride = 1;
                     }
@@ -107,29 +107,27 @@ void IntValue<N>::addConstant(const std::vector<int>& vals) {
             } else {
                 // Case 1: Inside the current hull bounds
                 if (this->lower.isConstant()) {
-                    this->stride = std::gcd(
-                        this->stride, static_cast<unsigned>(std::abs(
-                                          val - this->lower.getConstant())));
+                    this->stride =
+                        std::gcd(this->stride, static_cast<unsigned>(std::abs(val - this->lower.getConstant())));
                 } else {
                     this->stride = 1;
                 }
             }
         }
     }
-    if (incrementCounter) ++this->wideningCounter;
+    if (incrementCounter)
+        ++this->wideningCounter;
 }
 
-template <unsigned N>
-void IntValue<N>::join(const IntValue<N>& other) {
+template <unsigned N> void IntValue<N>::join(const IntValue<N>& other)
+{
     // 1. Both are Sets
-    if (this->kind == AbstractValue<int, N>::Kind::Set &&
-        other.getKind() == AbstractValue<int, N>::Kind::Set) {
+    if (this->kind == AbstractValue<int, N>::Kind::Set && other.getKind() == AbstractValue<int, N>::Kind::Set) {
         std::set<int> merged;
 
         // Take the sorted union of both sets
-        std::set_union(this->values.begin(), this->values.end(),
-                       other.getValues().begin(), other.getValues().end(),
-                       std::inserter(merged, merged.begin()));
+        std::set_union(this->values.begin(), this->values.end(), other.getValues().begin(), other.getValues().end(),
+            std::inserter(merged, merged.begin()));
 
         bool incrementCounter = false;
         if (merged.size() <= N) {
@@ -181,7 +179,8 @@ void IntValue<N>::join(const IntValue<N>& other) {
 
             this->values.clear();
         }
-        if (incrementCounter) ++this->wideningCounter;
+        if (incrementCounter)
+            ++this->wideningCounter;
         return;
     }
 
@@ -206,8 +205,7 @@ void IntValue<N>::join(const IntValue<N>& other) {
         }
         this->lower = Bound::constant(*this->values.begin());
         this->upper = Bound::constant(*this->values.rbegin());
-        this->stride =
-            (current_gcd == 0) ? 1 : static_cast<unsigned>(current_gcd);
+        this->stride = (current_gcd == 0) ? 1 : static_cast<unsigned>(current_gcd);
         this->kind = AbstractValue<int, N>::Kind::StridedInterval;
         this->values.clear();
     }
@@ -229,8 +227,7 @@ void IntValue<N>::join(const IntValue<N>& other) {
         } else if (this->lower.isConstant()) {
             auto thisLowerValue = this->lower.getConstant();
             auto otherLowerValue = other.getLower().getConstant();
-            this->lower =
-                Bound::constant(std::min(thisLowerValue, otherLowerValue));
+            this->lower = Bound::constant(std::min(thisLowerValue, otherLowerValue));
         }
 
         // Compute Upper Bound
@@ -239,26 +236,23 @@ void IntValue<N>::join(const IntValue<N>& other) {
         } else if (this->upper.isConstant()) {
             auto thisUpperValue = this->upper.getConstant();
             auto otherUpperValue = other.getUpper().getConstant();
-            this->upper =
-                Bound::constant(std::max(thisUpperValue, otherUpperValue));
+            this->upper = Bound::constant(std::max(thisUpperValue, otherUpperValue));
         }
 
         // The stride must decrease to capture the strides of both intervals,
         // as well as the alignment offset between their starting
         // configurations.
         if (this->lower.isConstant() && other.getLower().isConstant()) {
-            int offset = std::abs(this->lower.getConstant() -
-                                  other.getLower().getConstant());
-            this->stride = std::gcd(std::gcd(this->stride, other.getStride()),
-                                    static_cast<unsigned>(offset));
+            int offset = std::abs(this->lower.getConstant() - other.getLower().getConstant());
+            this->stride = std::gcd(std::gcd(this->stride, other.getStride()), static_cast<unsigned>(offset));
         } else {
             this->stride = std::gcd(this->stride, other.getStride());
         }
     }
 }
 
-template <unsigned N>
-void IntValue<N>::setAsTop() {
+template <unsigned N> void IntValue<N>::setAsTop()
+{
     this->changeKind();
     this->lower = Bound::minusInfinity();
     this->upper = Bound::plusInfinity();
