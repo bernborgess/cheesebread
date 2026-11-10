@@ -313,6 +313,7 @@ void DominatorTree::Renaming() {
                                                            Node* node) -> void {
         Block* block = node->block;
         if (block == nullptr) return;
+        std::vector<std::string> storeDefinitions;
 
         // The visit to a node processes the statements associated with the node
         // in sequential order, starting with any φ-functions that may have been
@@ -379,6 +380,49 @@ void DominatorTree::Renaming() {
 
         // For each expression that's not a phi
         for (auto expr : block->GetExpressions()) {
+            if (expr->IsStore()) {
+                auto store = dynamic_cast<Store*>(expr);
+                std::string sourceId = store->GetValue()->GetIdentifier();
+                std::string destinationId =
+                    store->GetLocation()->GetIdentifier();
+                Alias sourceAlias = idToAlias[sourceId];
+                Alias destinationAlias = idToAlias[destinationId];
+
+                if (sourceAlias.def != destinationAlias.def) {
+                    auto sourceName = sourceAlias.def;
+                    if (variableStack[sourceName].empty()) {
+                        int counter = variableCounter[sourceName];
+                        variableStack[sourceName].emplace(counter);
+                        ++variableCounter[sourceName];
+                    }
+                    sourceAlias.setCounter(variableStack[sourceName].top());
+
+                    auto destinationName = destinationAlias.def;
+                    int destinationCounter = variableCounter[destinationName];
+                    destinationAlias.setCounter(destinationCounter);
+
+                    if (store->GetValue()->GetType()->IsInteger()) {
+                        auto constraint = std::make_shared<AddConstraint>(
+                            destinationAlias.to_string(),
+                            sourceAlias.to_string(), "%const_0");
+                        node->pushConstraint(constraint);
+                    } else if (store->GetValue()->GetType()->IsBoolean()) {
+                        auto constraint =
+                            std::make_shared<LogicalAndConstraint>(
+                                destinationAlias.to_string(),
+                                sourceAlias.to_string(), "%const_true");
+                        node->pushConstraint(constraint);
+                    }
+
+                    idToAlias[destinationId].setCounter(destinationCounter);
+                    variableStack[destinationName].emplace(
+                        destinationCounter);
+                    ++variableCounter[destinationName];
+                    storeDefinitions.emplace_back(destinationName);
+                }
+                continue;
+            }
+
             if (expr->GetResult() == nullptr) continue;
             // std::cout << "Original: ";
             // expr->Dump();
@@ -452,8 +496,7 @@ void DominatorTree::Renaming() {
                         node->pushConstraint(constraint);
                     }
                 }
-            } else if (expr->IsAllocate() || expr->IsDebug() ||
-                       expr->IsStore()) {
+              } else if (expr->IsAllocate() || expr->IsDebug()) {
                 continue;
             } else {
                 for (auto op : expr->GetOperands()) {
@@ -568,6 +611,9 @@ void DominatorTree::Renaming() {
 
             auto var = expr->GetResult();
             auto varName = idToAlias[var->GetIdentifier()].def;
+            if (!variableStack[varName].empty()) variableStack[varName].pop();
+        }
+        for (const auto& varName : storeDefinitions) {
             if (!variableStack[varName].empty()) variableStack[varName].pop();
         }
         // Also for those defined in IntersectionConstraints

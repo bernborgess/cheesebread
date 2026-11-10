@@ -62,8 +62,9 @@
             "env": {
                 "CANGJIE_HOME": "${workspaceFolder}/cangjie_compiler/output"
             },
+            "envFile": "${workspaceFolder}/.vscode/cangjie.env",
             "name": "Flavors Test",
-            "preLaunchTask": "source envsetup",
+            "preLaunchTask": "prepare Cangjie debug env",
             "program": "${workspaceFolder}/cangjie_compiler/output/bin/cjc",
             "request": "launch",
             "type": "lldb"
