@@ -6,6 +6,8 @@ let ORDER: Int64 = 50
 func vec_mpy1(y: Array<Int64>, x: Array<Int64>, scaler: Int64): Unit {
     var i: Int64 = 0
     while (i < 150) {
+        // @range-cat: loop-bound - vec_mpy1 loop counter stays below 150
+        sassert(i <= 149)
         y[i] = toShort(y[i] + ((scaler * x[i]) >> 15))
         i = i + 1
     }
@@ -29,9 +31,13 @@ func fir(array1: Array<Int64>, coeff: Array<Int64>, output: Array<Int64>): Unit 
     var j: Int64 = 0
     var sum: Int64 = 0
     while (i < N - ORDER) {
+        // @range-cat: loop-bound - fir outer index bounded by N - ORDER = 50
+        sassert(i <= 49)
         sum = 0
         j = 0
         while (j < ORDER) {
+            // @range-cat: loop-bound - fir inner index bounded by ORDER = 50
+            sassert(j <= 49)
             sum = sum + array1[i + j] * coeff[j]
             j = j + 1
         }
@@ -56,6 +62,8 @@ func fir_no_red_ld(x: Array<Int64>, h: Array<Int64>, y: Array<Int64>): Unit {
         x0 = x[j]
         i = 0
         while (i < 32) {
+            // @range-cat: array-bound - i indexes h[i+1] within the 200 element buffer
+            sassert(i <= 31)
             x1 = x[j + i + 1]
             h0 = h[i]
             sum0 = sum0 + x0 * h0
@@ -78,6 +86,8 @@ func latsynth(bArr: Array<Int64>, kArr: Array<Int64>, n: Int64, f: Int64): Int64
     fVar = fVar - bArr[n - 1] * kArr[n - 1]
     i = n - 2
     while (i >= 0) {
+        // @range-cat: branch-bound - loop guard i >= 0 keeps the index non-negative
+        sassert(i >= 0)
         fVar = fVar - bArr[i] * kArr[i]
         bArr[i + 1] = toShort(bArr[i] + ((kArr[i] * (fVar >> 16)) >> 16))
         i = i - 1
@@ -117,6 +127,10 @@ func codebook(mask: Int64, bitchanged: Int64, numbasis: Int64, codeword: Int64, 
 
 func toShort(v: Int64): Int64 {
     var u: Int64 = v & 0xFFFF
+    // @range-cat: arith-bound - 16 bit mask caps u at 65535
+    sassert(u <= 65535)
+    // @range-cat: arith-bound - bitwise mask keeps u non-negative
+    sassert(u >= 0)
     if (u >= 0x8000) {
         u = u - 0x10000
     }
@@ -137,6 +151,8 @@ func jpegdct(d: Array<Int64>, r: Array<Int64>): Unit {
         while (i < 8) {
             j = 0
             while (j < 4) {
+                // @range-cat: array-bound - j indexes t[j] and t[7-j] within the 12 element buffer
+                sassert(j <= 3)
                 t[j] = d[di + k * j] + d[di + k * (7 - j)]
                 t[7 - j] = d[di + k * j] - d[di + k * (7 - j)]
                 j = j + 1

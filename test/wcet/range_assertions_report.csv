@@ -1,0 +1,73 @@
+benchmark,file_path,line_number,category,assertion_expr,reasoning
+bs,bs/bs.cj,37,branch-bound,x == 8,only call site binarySearch(8) fixes x to 8 for every iteration
+bs,bs/bs.cj,51,arith-bound,fvalue >= -1,fvalue is initialised to -1 and only ever overwritten by a table value
+bs,bs/bs.cj,53,arith-bound,fvalue <= 1500,the largest constant stored in the table is 1500
+bs,bs/bs.cj,55,loop-bound,up <= 14,up only decreases in the code
+bs,bs/bs.cj,57,loop-bound,low >= 0,low only increases in the code
+bsort100,bsort100/bsort100.cj,22,array-bound,Index <= 100,Index stays within the MAXDIM = 101 element buffer
+bsort100,bsort100/bsort100.cj,24,arith-bound,fact <= 0,"factor is the constant -1, so every generated value is <= 0"
+bsort100,bsort100/bsort100.cj,39,loop-bound,i <= 99,outer bubble-sort pass index never exceeds NUMELEMS - 1
+bsort100,bsort100/bsort100.cj,41,arith-bound,Sorted <= 1,Sorted is a 0/1 flag initialised to TRUE
+bsort100,bsort100/bsort100.cj,46,loop-bound,Index <= 99,inner scan index is bounded by NUMELEMS - 1
+bsort100,bsort100/bsort100.cj,51,array-bound,Index <= 100,index plus one still fits inside the 101 element buffer
+duff,duff/duff.cj,18,arith-bound,rem <= 8,"remainder of count % 8 is at most 7, bumped to 8 for exact multiples"
+duff,duff/duff.cj,28,arith-bound,ti <= 43,copy offset after the prologue is bounded by the remainder
+duff,duff/duff.cj,33,array-bound,j <= 7,Duff's inner counter is bounded by the unrolled factor 8
+duff,duff/duff.cj,47,array-bound,i <= 99,index is bounded by the array length before the store
+duff,duff/duff.cj,49,branch-bound,length <= 100,length is the constant ARRAYSIZE = 100 at every call site
+fac,fac/fac.cj,12,loop-bound,n <= 5,"recursion only descends while the argument stays within [0,5]"
+fac,fac/fac.cj,24,loop-bound,i <= 5,"loop guard i <= n with n fixed at 5 keeps i within [0,5]"
+fac,fac/fac.cj,26,branch-bound,n <= 5,n is initialised to the constant 5 and never modified
+fac,fac/fac.cj,32,loop-bound,i <= 6,the loop can only exit once i has passed the constant n
+fibcall,fibcall/fibcall.cj,15,loop-bound,i <= 30,guard i <= n with n bound to 30 by the unique call fib(30)
+fibcall,fibcall/fibcall.cj,17,branch-bound,n == 30,"n is the parameter of the only call site, fixed to 30"
+fibcall,fibcall/fibcall.cj,19,arith-bound,Fnew >= 1,Fibonacci values are non-decreasing and start at 1
+fibcall,fibcall/fibcall.cj,21,arith-bound,Fold >= 0,previous Fibonacci value is always non-negative
+fibcall,fibcall/fibcall.cj,28,loop-bound,i <= 31,after the loop i has advanced one past n = 30
+fibcall,fibcall/fibcall.cj,31,arith-bound,ans <= 2000000,fib(30) = 832040 is well below the two-million cap
+janne_complex,janne_complex/janne_complex.cj,9,loop-bound,a <= 29,outer guard keeps the induction variable below 30
+janne_complex,janne_complex/janne_complex.cj,12,loop-bound,b <= 29,inner guard b < a <= 29 keeps b below 30
+janne_complex,janne_complex/janne_complex.cj,15,branch-bound,b >= 6,true branch of b > 5 raises the lower bound to 6
+janne_complex,janne_complex/janne_complex.cj,19,branch-bound,b <= 5,false branch of b > 5 caps b at 5
+janne_complex,janne_complex/janne_complex.cj,31,loop-bound,a >= 1,a only ever grows from its initial value 1
+recursion,recursion/recursion.cj,15,branch-bound,i >= 2,"reaching here means i != 0 and i != 1, hence i >= 2"
+recursion,recursion/recursion.cj,17,branch-bound,i != 0,"the i == 0 case returned earlier, so zero is excluded"
+recursion,recursion/recursion.cj,19,loop-bound,i <= 10,recursion depth stays bounded by the initial argument 10
+recursion,recursion/recursion.cj,29,branch-bound,j >= 1,the false branch of j <= 0 constrains j to be positive
+recursion,recursion/recursion.cj,39,branch-bound,k >= 1,the false branch of k <= 0 constrains k to be positive
+jfdctint,jfdctint/jfdctint.cj,114,loop-bound,ctr <= 7,the row pass walks a fixed 8-sample block and never advances past 7
+jfdctint,jfdctint/jfdctint.cj,116,array-bound,base <= 56,the row base index stays inside the 64-slot data array
+jfdctint,jfdctint/jfdctint.cj,185,loop-bound,ctr <= 7,the column pass also walks at most 8 positions
+jfdctint,jfdctint/jfdctint.cj,187,array-bound,base <= 7,column offsets remain inside one 8x8 block row
+lms,lms/lms.cj,221,loop-bound,ll <= 20,the filter tap index is bounded by the configured order
+lms,lms/lms.cj,237,array-bound,ll <= 20,coefficient updates stay within the 21-entry filter buffer
+ludcmp,ludcmp/ludcmp.cj,105,loop-bound,i <= 5,the matrix setup loop stays within the 5x5 system size
+ludcmp,ludcmp/ludcmp.cj,110,array-bound,j <= 5,the inner fill index matches the bounded system size
+ludcmp,ludcmp/ludcmp.cj,142,loop-bound,i <= 4,LU pivot rows stay below the active system dimension
+matmult,matmult/matmult.cj,94,loop-bound,Outer <= 19,matrix row indices stay in the 20x20 domain
+matmult,matmult/matmult.cj,97,loop-bound,Inner <= 19,matrix column indices stay in the 20x20 domain
+matmult,matmult/matmult.cj,101,array-bound,Index <= 19,reduction indices remain within the matrix edge
+minver,minver/minver.cj,167,loop-bound,i <= 2,the pivot work array uses the fixed 3x3 dimension
+minver,minver/minver.cj,174,loop-bound,k <= 2,the elimination pass stays within the 3x3 matrix
+ndes,ndes/ndes.cj,226,branch-bound,bitno <= 32,the selected bit index always stays within the first 32-bit slice
+ndes,ndes/ndes.cj,230,branch-bound,bitno <= 64,the upper-halfword access stays within the same 64-bit structure
+ns,ns/ns.cj,505,loop-bound,i <= 4,the first key index remains in the 5x5x5x5 search space
+ns,ns/ns.cj,508,loop-bound,j <= 4,the second key index also stays within the fixed array bounds
+ns,ns/ns.cj,511,branch-bound,k <= 4,the third dimension is bounded by the 5-element inner tuple
+ns,ns/ns.cj,514,array-bound,l <= 4,the last key coordinate stays inside the 5-slot table
+nsichneu,nsichneu/nsichneu.cj,44,branch-bound,dummy_i <= 2,the loop counter is initialized to 2 and only decrements from there
+nsichneu,nsichneu/nsichneu.cj,55,branch-bound,P1_is_marked <= 3,the P1 token count stays within its 3-slot marking capacity
+qsort-exam,qsort-exam/qsort-exam.cj,78,loop-bound,ir <= 19,the partition window stays inside the 20-element array
+qsort-exam,qsort-exam/qsort-exam.cj,79,loop-bound,l <= 19,the left partition stays inside the same array bounds
+qurt,qurt/qurt.cj,153,arith-bound,w1 >= 2.0,"the leading coefficient is 2 * a[0], and the benchmark sets a[0] to 1"
+qurt,qurt/qurt.cj,158,branch-bound,flag <= 1,the positive discriminant case only sets the sign flag to 1
+select,select/select.cj,33,loop-bound,ir <= 19,the active partition window never exceeds the fixed array length
+select,select/select.cj,96,branch-bound,k <= 19,the selected index stays within the fixed array domain
+sqrt,sqrt/sqrt.cj,78,loop-bound,i <= 19,the Newton iteration count never exceeds 19
+sqrt,sqrt/sqrt.cj,93,arith-bound,x >= 0.0,the square-root approximation remains non-negative for the benchmark input
+st,st/st.cj,59,loop-bound,i <= 999,the initialization loop stays under the 1000-value array bound
+st,st/st.cj,74,loop-bound,i <= 999,the sum pass iterates across the full 1000-element vector
+statemate,statemate/statemate.cj,198,array-bound,entered_WIEDERHOLSPERRE_FH_TUERMODUL_CTRL_IDX <= 63,the generated bitlist index is within the 64-slot control vector
+statemate,statemate/statemate.cj,200,array-bound,exited_BEREIT_FH_TUERMODUL_CTRL_IDX <= 63,the other generated state index also stays in the 64-bit array
+ud,ud/ud.cj,84,loop-bound,i <= 4,the LU sweep stays within the active dimension
+ud,ud/ud.cj,89,array-bound,j <= 5,the triangular update index stays within the bounded matrix

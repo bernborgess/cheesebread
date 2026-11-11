@@ -33,6 +33,8 @@ func binarySearch(x: Int64): Int64 {
     var low: Int64 = 0
 
     while (low <= up) {
+        // @range-cat: branch-bound - only call site binarySearch(8) fixes x to 8 for every iteration
+        sassert(x == 8)
         mid = (low + up) >> 1
 
         if (data[mid].key == x) {
@@ -45,6 +47,15 @@ func binarySearch(x: Int64): Int64 {
         }
     }
 
+    // @range-cat: arith-bound - fvalue is initialised to -1 and only ever overwritten by a table value
+    sassert(fvalue >= -1)
+    // @range-cat: arith-bound - the largest constant stored in the table is 1500
+    sassert(fvalue <= 1500)
+    // @range-cat: loop-bound - up only decreases in the code
+    sassert(up <= 14)
+     // @range-cat: loop-bound - low only increases in the code
+    sassert(low >= 0)
+    
     return fvalue
 }
 

@@ -22,7 +22,13 @@ func expint(n: Int64, x: Int64): Int64 {
   var psi: Int64 = 0
   var ans: Int64 = 0
 
+  // @range-cat: branch-bound - expint is only invoked as expint(50, 1)
+  sassert(n == 50)
+  // @range-cat: branch-bound - the second argument of the unique call is 1
+  sassert(x == 1)
   nm1 = n - 1
+  // @range-cat: arith-bound - nm1 is n - 1 with n fixed at 50
+  sassert(nm1 == 49)
 
   if (x > 1) {
     b = x + n
@@ -47,17 +53,25 @@ func expint(n: Int64, x: Int64): Int64 {
   } else {
     if (nm1 != 0) {
       ans = 2
+      // @range-cat: branch-bound - nm1 = 49 is non-zero, so this branch sets ans to 2
+      sassert(ans == 2)
     } else {
       ans = 1000
     }
     fact = 1
     i = 1
     while (i <= 100) {
+      // @range-cat: loop-bound - the loop guard keeps the counter at or below 100
+      sassert(i <= 100)
       fact = fact * ((-x) / i)
       if (i != nm1) {
         del = (-fact) / (i - nm1)
       } else {
         psi = 0x00FF
+        // @range-cat: arith-bound - psi is assigned the constant 0x00FF = 255
+        sassert(psi == 255)
+        // @range-cat: arith-bound - the 0x00FF constant caps psi at 255
+        sassert(psi <= 255)
         ii = 1
         while (ii <= nm1) {
           psi = psi + ii + nm1

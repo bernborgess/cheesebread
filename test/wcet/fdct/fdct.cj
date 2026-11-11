@@ -38,10 +38,17 @@ func fdct(blk: Array<Int64>, lx: Int64) {
     var constant: Int64 = 0
     var row: Int64 = 0
 
+    // @range-cat: arith-bound - row stride fixed to 8 by the only call site
+    sassert(lx == 8)
+
     /* Pass 1: process rows. */
     i = 0
     while (i < 8) {
+        // @range-cat: loop-bound - pass-1 row loop guard bounds i
+        sassert(i <= 7)
         row = i * lx
+        // @range-cat: array-bound - base index into the 8x8 block before lookups
+        sassert(row <= 56)
         tmp0 = blk[row + 0] + blk[row + 7]
         tmp7 = blk[row + 0] - blk[row + 7]
         tmp1 = blk[row + 1] + blk[row + 6]
@@ -101,10 +108,17 @@ func fdct(blk: Array<Int64>, lx: Int64) {
         i = i + 1
     }
 
+    // @range-cat: loop-bound - pass-1 loop exits only when i reaches 8
+    sassert(i <= 8)
+
     /* Pass 2: process columns. */
     i = 0
     while (i < 8) {
+        // @range-cat: loop-bound - pass-2 column loop guard bounds i
+        sassert(i <= 7)
         var col: Int64 = i
+        // @range-cat: array-bound - column index within block row
+        sassert(col <= 7)
         tmp0 = blk[col + 0 * lx] + blk[col + 7 * lx]
         tmp7 = blk[col + 0 * lx] - blk[col + 7 * lx]
         tmp1 = blk[col + 1 * lx] + blk[col + 6 * lx]
@@ -163,6 +177,9 @@ func fdct(blk: Array<Int64>, lx: Int64) {
 
         i = i + 1
     }
+
+    // @range-cat: loop-bound - pass-2 loop exits only when i reaches 8
+    sassert(i <= 8)
 }
 
 main(): Int64 {

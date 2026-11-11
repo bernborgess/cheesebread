@@ -217,6 +217,8 @@ func lms(x: Float64, d: Float64, b: Array<Float64>, l: Int64,
     y = b[0] * lms_px[0]
     ll = 1
     while (ll <= l) {
+        // @range-cat: loop-bound - the filter tap index is bounded by the configured order
+        sassert(ll <= 20)
         y = y + b[ll] * lms_px[ll]
         ll = ll + 1
     }
@@ -231,6 +233,8 @@ func lms(x: Float64, d: Float64, b: Array<Float64>, l: Int64,
     /* update coefficients */
     ll = 0
     while (ll <= l) {
+        // @range-cat: array-bound - coefficient updates stay within the 21-entry filter buffer
+        sassert(ll <= 20)
         b[ll] = b[ll] + mu_e * lms_px[ll]
         ll = ll + 1
     }

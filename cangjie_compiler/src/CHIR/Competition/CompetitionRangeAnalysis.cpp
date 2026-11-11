@@ -443,10 +443,7 @@ void RangeAnalysis::VerifyStaticAsserts()
         }
     }
 
-    std::cerr << "###### STATIC ASSERTS ######" << std::endl;
-    std::cerr << "- Passed " << passed_asserts << " out of " << total_asserts << std::endl;
-    std::cerr << " Ratio of " << (total_asserts ? (100.0 * passed_asserts) / total_asserts : 0) << "%" << std::endl;
-    std::cerr << "#### STATIC ASSERTS END ####" << std::endl;
+    std::cerr << "Passed " << passed_asserts << " out of " << total_asserts << std::endl;
 }
 
 static uint32_t CalculateRangeReduction(IV iv)

@@ -55,6 +55,8 @@ func Initialize(Array: Array<Float64>) {
 
     i = 0
     while (i < MAX) {
+        // @range-cat: loop-bound - the initialization loop stays under the 1000-value array bound
+        sassert(i <= 999)
         Array[i] = Float64(i) + Float64(RandomInteger()) / 8095.0
         i = i + 1
     }
@@ -68,6 +70,8 @@ func Calc_Sum_Mean(Array: Array<Float64>): (Float64, Float64) {
     Sum = 0.0
     i = 0
     while (i < MAX) {
+        // @range-cat: loop-bound - the accumulator iterates across the full 1000-element vector
+        sassert(i <= 999)
         Sum = Sum + Array[i]
         i = i + 1
     }

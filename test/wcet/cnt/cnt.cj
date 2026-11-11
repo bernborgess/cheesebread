@@ -33,7 +33,7 @@ func Test(array: Array<Array<Int64>>): Int64 {
     return 0
 }
 
-/* Intializes the given array with random integers. */
+/* Initializes the given array with random integers. */
 func Initialize(array: Array<Array<Int64>>): Int64 {
     for (OuterIndex in 0..MAXSIZE) {
         for (InnerIndex in 0..MAXSIZE) {
@@ -68,6 +68,20 @@ func Sum(array: Array<Array<Int64>>) {
         }
     }
 
+    // @range-cat: branch-bound - the array[..] < 0 branch only ever adds negative values
+    sassert(Ptotal <= 0)
+    // @range-cat: branch-bound - the else branch only ever adds non-negative values
+    sassert(Ntotal >= 0)
+    // @range-cat: arith-bound - RandomInteger only yields values in [0,8094], so no entry is negative
+    sassert(Ptotal == 0)
+    // @range-cat: arith-bound - at most 100 entries of at most 8094 bound the positive total
+    sassert(Ntotal <= 809400)
+    // @range-cat: arith-bound - the negative total cannot fall below 100 * (-8094)
+    sassert(Ptotal >= -809400)
+    // @range-cat: loop-bound - the counter is only bumped inside the 100 iteration double loop
+    sassert(Pcnt >= 0)
+    // @range-cat: loop-bound - the counter is only bumped inside the 100 iteration double loop
+    sassert(Ncnt >= 0)
     Postotal = Ptotal
     Poscnt = Pcnt
     Negtotal = Ntotal

@@ -222,8 +222,12 @@ func des(inp: immense, key: immense, newkey: Array<Int64>, isw: Int64, out: imme
 
 func getbit(source: immense, bitno: Int64, nbits: Int64): UInt32 {
     if (bitno <= nbits) {
+        // @range-cat: branch-bound - the chosen halfword bit index stays within the 32-bit slice
+        sassert(bitno <= 32)
         nz(bit[bitno] & source.r)
     } else {
+        // @range-cat: branch-bound - the upper halfword uses the same 32-bit bound
+        sassert(bitno <= 64)
         nz(bit[bitno - nbits] & source.l)
     }
 }

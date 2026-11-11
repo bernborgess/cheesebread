@@ -66,7 +66,11 @@ func icrc1(crc: UInt16, onech: UInt8): UInt16 {
     var ans: UInt16 = crc ^ (UInt16(onech) << 8)
 
     while (i < 8) {
+        // @range-cat: loop-bound - the bit loop runs exactly eight times
+        sassert(i <= 7)
         if ((ans & 0x8000) != 0) {
+            // @range-cat: branch-bound - the true branch means the high bit is set
+            sassert(ans >= 32768)
             ans = ans << 1
             ans = ans ^ 0x1021
         } else {
@@ -93,12 +97,18 @@ func icrc(crc: UInt16, len: UInt64, jinit: Int16, jrev: Int64): UInt16 {
         initFlag = 1
         j = 0
         while (j <= 255) {
+            // @range-cat: loop-bound - table initialisation stops at index 255
+            sassert(j <= 255)
             icrctb[Int64(j)] = icrc1(j << 8, 0)
+            // @range-cat: array-bound - j indexes the 256-entry tables within range
+            sassert(j <= 255)
             rchr[Int64(j)] = (it[Int64(j & 0xF)] << 4) | it[Int64(j >> 4)]
             j = j + 1
         }
     }
     if (jinit >= 0) {
+        // @range-cat: branch-bound - both call sites pass jinit = 0
+        sassert(jinit >= 0)
         cword = UInt16(jinit & 0xFF) | (UInt16(jinit & 0xFF) << 8)
     } else if (jrev < 0) {
         cword = UInt16(rchr[Int64(HIBYTE(cword))]) |
@@ -106,6 +116,8 @@ func icrc(crc: UInt16, len: UInt64, jinit: Int16, jrev: Int64): UInt16 {
     }
     j = 1
     while (UInt64(j) <= len) {
+        // @range-cat: loop-bound - the character loop starts at one and only grows
+        sassert(j >= 1)
         if (jrev < 0) {
             tmp1 = UInt16(rchr[Int64(lin[Int64(j)])] ^ HIBYTE(cword))
         } else {
@@ -115,6 +127,8 @@ func icrc(crc: UInt16, len: UInt64, jinit: Int16, jrev: Int64): UInt16 {
         j = j + 1
     }
     if (jrev >= 0) {
+        // @range-cat: branch-bound - both call sites pass jrev = 1
+        sassert(jrev >= 0)
         tmp2 = cword
     } else {
         tmp2 = UInt16(rchr[Int64(HIBYTE(cword))]) |
@@ -138,6 +152,8 @@ main(): Int64 {
     }
 
     n = 40
+    // @range-cat: arith-bound - the string length is the literal constant 40
+    sassert(n == 40)
     lin[Int64(n) + 1] = 0
     i1 = icrc(0, n, 0, 1)
     lin[Int64(n) + 1] = HIBYTE(i1)

@@ -80,9 +80,13 @@ func ludcmp(nmax: Int64, n: Int64): Int64 {
 
     i = 0
     while (i < n) {
+        // @range-cat: loop-bound - the LU sweep stays within the active dimension
+        sassert(i <= 4)
         /* if(fabs(a[i][i]) <= eps) return(1); */
         j = i + 1
         while (j <= n) {    /* triangular loop vs. i */
+            // @range-cat: array-bound - the triangular update index stays within the 50x50 matrix
+            sassert(j <= 5)
             w = a[j][i]
             if (i != 0) {   /* sub-loop is conditional, done
                                all iterations except first of the

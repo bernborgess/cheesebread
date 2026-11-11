@@ -40,6 +40,8 @@ main(): Int64 {
    var dummy_i: Int64 = 0
 /*   dummy_i = 17; Takes too much time */
    dummy_i = 2;
+   // @range-cat: branch-bound - the loop counter is initialized to 2 and only decrements
+   sassert(dummy_i <= 2)
 
    while (dummy_i > 0) {
 
@@ -49,6 +51,8 @@ main(): Int64 {
       if ( (P1_is_marked >= 3) &&
            (P3_is_marked + 3 <= 6) &&
            (P1_marking_member_0[1] == P1_marking_member_0[2]) ) {
+         // @range-cat: branch-bound - the P1 token count is kept in range before each transition
+         sassert(P1_is_marked <= 3)
 
          var x: Int64 = 0
          var y: Int64 = 0

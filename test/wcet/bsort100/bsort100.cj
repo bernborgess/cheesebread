@@ -18,6 +18,10 @@ func Initialize(arr: Array<Int64>) {
     fact = factor
     Index = 1
     while (Index <= NUMELEMS) {
+        // @range-cat: array-bound - Index stays within the MAXDIM = 101 element buffer
+        sassert(Index <= 100)
+        // @range-cat: arith-bound - factor is the constant -1, so every generated value is <= 0
+        sassert(fact <= 0)
         arr[Index] = Index * fact
         Index = Index + 1
     }
@@ -31,12 +35,20 @@ func BubbleSort(arr: Array<Int64>) {
 
     i = 1
     while (i <= NUMELEMS - 1) {
+        // @range-cat: loop-bound - outer bubble-sort pass index never exceeds NUMELEMS - 1
+        sassert(i <= 99)
+        // @range-cat: arith-bound - Sorted is a 0/1 flag initialised to TRUE
+        sassert(Sorted <= 1)
         Sorted = TRUE
         Index = 1
         while (Index <= NUMELEMS - 1) {
+            // @range-cat: loop-bound - inner scan index is bounded by NUMELEMS - 1
+            sassert(Index <= 99)
             if (Index > NUMELEMS - i) {
                 break
             }
+            // @range-cat: array-bound - index plus one still fits inside the 101 element buffer
+            sassert(Index <= 100)
             if (arr[Index] > arr[Index + 1]) {
                 Temp = arr[Index]
                 arr[Index] = arr[Index + 1]

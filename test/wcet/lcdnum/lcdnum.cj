@@ -23,6 +23,8 @@ func num_to_lcd(a: UInt8): UInt8 {
      *   -6-           64            40
      *
      */
+    // @range-cat: branch-bound - the caller masks the argument with 0x0F before this call
+    sassert(a <= 15)
     return match (a) {
         case 0x00 => 0
         case 0x01 => 0x24
@@ -54,13 +56,23 @@ main(): Int64 {
 
     n = 10
     i = 0
+    // @range-cat: branch-bound - n is assigned the constant 10 just above
+    sassert(n == 10)
     while (i < n) {
+        // @range-cat: loop-bound - the guard i < n = 10 keeps i at most 9
+        sassert(i <= 9)
         a = IN /* scan port */
         if (i < 5) {
+            // @range-cat: branch-bound - the true branch of i < 5 caps i at 4
+            sassert(i <= 4)
             a = a & 0x0F
+            // @range-cat: arith-bound - masking with 0x0F caps the value at 15
+            sassert(a <= 15)
             OUT = num_to_lcd(a)
         }
         i = i + 1
     }
+    // @range-cat: loop-bound - the loop exits once i reaches n = 10
+    sassert(i <= 10)
     return 0
 }

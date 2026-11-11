@@ -101,9 +101,13 @@ main(): Int64 {
 
     i = 0
     while (i <= n) {
+        // @range-cat: loop-bound - the matrix setup loop stays within the 5x5 system size
+        sassert(i <= 5)
         w = 0.0
         j = 0
         while (j <= n) {
+            // @range-cat: array-bound - the inner fill index is the same bounded system size
+            sassert(j <= 5)
             a[i][j] = Float64((i + 1) + (j + 1))
             if (i == j) {
                 a[i][j] = a[i][j] * 10.0
@@ -134,6 +138,8 @@ func ludcmp(n: Int64, eps: Float64): Int64 {
     }
     i = 0
     while (i < n) {
+        // @range-cat: loop-bound - LU pivot rows stay below the active system dimension
+        sassert(i <= 4)
         if (fabs(a[i][i]) <= eps) {
             return 1
         }

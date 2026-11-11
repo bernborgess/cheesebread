@@ -74,6 +74,8 @@ func sqrtfcn(val: Float64): Float64 {
     } else {
         i = 1
         while (i < 20) {
+            // @range-cat: loop-bound - the Newton iteration count never exceeds 19
+            sassert(i <= 19)
             if (flag == 0) {
                 dx = (val - (x * x)) / (2.0 * x)
                 x = x + dx
@@ -87,6 +89,8 @@ func sqrtfcn(val: Float64): Float64 {
             i = i + 1
         }
     }
+    // @range-cat: arith-bound - the square-root approximation stays non-negative for the benchmark input
+    sassert(x >= 0.0)
     return x
 }
 

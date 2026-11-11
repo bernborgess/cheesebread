@@ -90,9 +90,15 @@ func RandomInteger(): Int64 {
  */
 func Multiply(A: Array<Array<Int64>>, B: Array<Array<Int64>>, Res: Array<Array<Int64>>): Unit {
     for (Outer in 0..UPPERLIMIT) {
+        // @range-cat: loop-bound - row indices stay inside the 20x20 matrix
+        sassert(Outer <= 19)
         for (Inner in 0..UPPERLIMIT) {
+            // @range-cat: loop-bound - column indices stay inside the 20x20 matrix
+            sassert(Inner <= 19)
             Res[Outer][Inner] = 0
             for (Index in 0..UPPERLIMIT) {
+                // @range-cat: array-bound - the reduction index remains within the matrix edge
+                sassert(Index <= 19)
                 Res[Outer][Inner] += A[Outer][Index] * B[Index][Inner]
             }
         }
