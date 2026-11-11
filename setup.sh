@@ -139,10 +139,11 @@ cat << EOF > "$WORKSPACE/cangjie_runtime/stdlib/libs/std/core/sassert.cj"
 
 package std.core
 
-// This implementation has no runtime meaning, it's only used to add static 
-// assertions to the code that will be checked after the range analysis has run
+// This function is used to test static assertions to the code that will be checked after 
+// the range analysis has run. If `cond` if false for any reason, the program panics.
 @Frozen
 public func sassert(cond: Bool): Unit {
+    throw Exception("cond was false!") // how to trace this?
 }
 EOF
 

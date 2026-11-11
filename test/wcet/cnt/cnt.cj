@@ -33,7 +33,7 @@ func Test(array: Array<Array<Int64>>): Int64 {
     return 0
 }
 
-/* Intializes the given array with random integers. */
+/* Initializes the given array with random integers. */
 func Initialize(array: Array<Array<Int64>>): Int64 {
     for (OuterIndex in 0..MAXSIZE) {
         for (InnerIndex in 0..MAXSIZE) {
