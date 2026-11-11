@@ -29,6 +29,8 @@ func select(k: Int64, n: Int64): Float64 {
     ir = n - 1
     flag = false
     while (!flag) {
+        // @range-cat: loop-bound - the active partition window never exceeds the 20-element input
+        sassert(ir <= 19)
         if (ir <= l + 1) {
             if (ir == l + 1) {
                 if (arr[ir] < arr[l]) {
@@ -90,6 +92,8 @@ func select(k: Int64, n: Int64): Float64 {
             }
         }
     }
+    // @range-cat: branch-bound - the selected index stays within the fixed array domain
+    sassert(k <= 19)
     return arr[k]
 }
 

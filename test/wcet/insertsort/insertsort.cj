@@ -40,14 +40,26 @@ main() {
     a[8] = 4; a[9] = 3; a[10] = 2
     i = 2
     while (i <= 10) {
+        // @range-cat: loop-bound - the outer index never exceeds the loop guard bound 10
+        sassert(i <= 10)
         j = i
         while (a[j] < a[j - 1]) {
+            // @range-cat: array-bound - j starts at the outer index i which is at most 10
+            sassert(j <= 10)
+            // @range-cat: array-bound - a[0] = 0 is the unique minimum so j never reaches 0
+            sassert(j >= 1)
+            // @range-cat: branch-bound - the shift guard only holds for j >= 2
+            sassert(j >= 2)
             temp = a[j]
+            // @range-cat: arith-bound - the array holds the literals 0..11, so temp <= 11
+            sassert(temp <= 11)
             a[j] = a[j - 1]
             a[j - 1] = temp
             j = j - 1
         }
         i = i + 1
     }
+    // @range-cat: loop-bound - after the loop i has advanced one past 10
+    sassert(i <= 11)
     return 1
 }

@@ -163,11 +163,15 @@ func minver(row: Int64, col: Int64, eps: Float64): Int64 {
     w1 = 1.0
     i = 0
     while (i < row) {
+        // @range-cat: loop-bound - the pivot work array is indexed by the 3x3 matrix size
+        sassert(i <= 2)
         work[i] = i
         i = i + 1
     }
     k = 0
     while (k < row) {
+        // @range-cat: loop-bound - the elimination pass stays within the 3x3 dimension
+        sassert(k <= 2)
         wmax = 0.0
         i = k
         while (i < row) {

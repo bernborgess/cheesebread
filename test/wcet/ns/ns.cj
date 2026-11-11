@@ -501,9 +501,17 @@ func foo(x: Int64): Int64 {
 /* #endif */
 
   for (i in 0..5) {
+    // @range-cat: loop-bound - the first key index remains in the 5x5x5x5 search space
+    sassert(i <= 4)
     for (j in 0..5) {
+      // @range-cat: loop-bound - the second key index also stays within the fixed array bounds
+      sassert(j <= 4)
       for (k in 0..5) {
+        // @range-cat: branch-bound - the third dimension is bounded by the 5-element inner tuple
+        sassert(k <= 4)
         for (l in 0..5) {
+          // @range-cat: array-bound - the last key coordinate stays inside the 5-slot table
+          sassert(l <= 4)
 /* #ifdef TEST
           c++; */
 /* #endif */

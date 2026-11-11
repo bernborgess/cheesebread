@@ -74,6 +74,9 @@ func sort(n: Int64) {
 
     flag = 0
     while (true) {
+        // @range-cat: loop-bound - the partition window stays inside the 20-element array
+        sassert(ir <= 19)
+        sassert(l <= 19)
         if (ir - l < M) {
             j = l + 1
             while (j <= ir) {

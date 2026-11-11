@@ -75,7 +75,13 @@ func fft1(n: Int64, flag: Int64): Int64 {
   if (n < 2) {
     return 999
   }
+  // @range-cat: branch-bound - early return excludes n below 2
+  sassert(n >= 2)
+  // @range-cat: branch-bound - flag is a transform selector, at most 1
+  sassert(flag <= 1)
   iter = Int64(log(Float64(n)) / log(2.0))
+  // @range-cat: arith-bound - log2-derived iteration count stays at most 1
+  sassert(iter <= 1)
   j = 1
   i = 0
   while (i < iter) {
@@ -163,22 +169,32 @@ func fft1(n: Int64, flag: Int64): Int64 {
 main(): Int64 {
   var i: Int64 = 0
   var n: Int64 = 8
+  // @range-cat: arith-bound - problem size fixed to 8 at the only call site
+  sassert(n == 8)
   var flag: Int64 = 0
   var chkerr: Int64 = 0
 
   /* ar */
   i = 0
   while (i < n) {
+    // @range-cat: loop-bound - init loop guard bounds index by problem size
+    sassert(i <= 7)
+    // @range-cat: array-bound - index stays within the 8-element ar/ai arrays
+    sassert(i <= 7)
     ar[i] = cos(2.0 * M_PI * Float64(i) / Float64(n))
     i = i + 1
   }
 
   /* forward fft */
   flag = 0
+  // @range-cat: branch-bound - forward transform selects flag value 0
+  sassert(flag == 0)
   chkerr = fft1(n, flag)
 
   /* inverse fft */
   flag = 1
+  // @range-cat: branch-bound - inverse transform selects flag value 1
+  sassert(flag == 1)
   chkerr = fft1(n, flag)
 
   return 0

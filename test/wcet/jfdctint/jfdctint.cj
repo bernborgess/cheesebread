@@ -110,6 +110,10 @@ func jpeg_fdct_islow(): Unit {
     base = 0
     ctr = DCTSIZE - 1
     while (ctr >= 0) {
+        // @range-cat: loop-bound - the row pass walks a fixed 8-sample block
+        sassert(ctr <= 7)
+        // @range-cat: array-bound - the row base index stays inside the 64-slot array
+        sassert(base <= 56)
         tmp0 = data[base + 0] + data[base + 7]
         tmp7 = data[base + 0] - data[base + 7]
         tmp1 = data[base + 1] + data[base + 6]
@@ -177,6 +181,10 @@ func jpeg_fdct_islow(): Unit {
     base = 0
     ctr = DCTSIZE - 1
     while (ctr >= 0) {
+        // @range-cat: loop-bound - the column pass also walks at most 8 positions
+        sassert(ctr <= 7)
+        // @range-cat: array-bound - column offsets stay within one 8x8 block row
+        sassert(base <= 7)
         tmp0 = data[base + DCTSIZE * 0] + data[base + DCTSIZE * 7]
         tmp7 = data[base + DCTSIZE * 0] - data[base + DCTSIZE * 7]
         tmp1 = data[base + DCTSIZE * 1] + data[base + DCTSIZE * 6]

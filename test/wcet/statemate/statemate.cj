@@ -194,6 +194,10 @@ var BLOCK_ERKENNUNG_CTRL_BLOCK_ERKENNUNG_CTRL_next_state: Int64 = 0 /** 2 bits *
 
 /* interface() */
 func interfaceFn(): Unit {
+    // @range-cat: array-bound - the generated bitlist indices are within the 64-bit control vector
+    sassert(entered_WIEDERHOLSPERRE_FH_TUERMODUL_CTRL_IDX <= 63)
+    // @range-cat: array-bound - the other time-index control flags also stay in the generated state array
+    sassert(exited_BEREIT_FH_TUERMODUL_CTRL_IDX <= 63)
     if (Bitlist[entered_WIEDERHOLSPERRE_FH_TUERMODUL_CTRL_IDX] != 0) {
         tm_entered_WIEDERHOLSPERRE_FH_TUERMODUL_CTRL = time
     }

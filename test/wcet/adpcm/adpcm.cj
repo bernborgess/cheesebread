@@ -180,6 +180,8 @@ func my_abs(n: Int64): Int64 {
     if (n >= 0) {
         m = n
     } else {
+        // @range-cat: branch-bound - false branch of n >= 0 forces n below zero
+        sassert(n <= -1)
         m = -n
     }
     return m
@@ -371,6 +373,8 @@ func decode(input: Int64): Unit {
     var adi: Int64 = 0
     i = 0
     while (i < 10) {
+        // @range-cat: loop-bound - decode accumulation loop counter stays below 10
+        sassert(i <= 9)
         xa1 = xa1 + accumc[aci] * h[hi]; aci = aci + 1; hi = hi + 1
         xa2 = xa2 + accumd[adi] * h[hi]; adi = adi + 1; hi = hi + 1
         i = i + 1
@@ -433,6 +437,8 @@ func reset(): Unit {
 
     var i: Int64 = 0
     while (i < 6) {
+        // @range-cat: array-bound - delay_dltx index stays within the 6 element buffer
+        sassert(i <= 5)
         delay_dltx[i] = 0
         delay_dhx[i] = 0
         dec_del_dltx[i] = 0
@@ -445,6 +451,8 @@ func reset(): Unit {
     }
     i = 0
     while (i < 23) {
+        // @range-cat: array-bound - tqmf index stays within the 24 element buffer
+        sassert(i <= 22)
         tqmf[i] = 0
         i = i + 1
     }
@@ -461,6 +469,8 @@ func filtez(bpl: Array<Int64>, dlt: Array<Int64>): Int64 {
     var zl: Int64 = bpl[0] * dlt[0]
     var i: Int64 = 1
     while (i < 6) {
+        // @range-cat: array-bound - bpl and dlt indices stay within their 6 element buffers
+        sassert(i <= 5)
         zl = zl + bpl[i] * dlt[i]
         i = i + 1
     }
@@ -511,6 +521,10 @@ func logscl(il: Int64, nbl: Int64): Int64 {
 
 func scalel(nbl: Int64, shift_constant: Int64): Int64 {
     var wd1: Int64 = (nbl >> 6) & 31
+    // @range-cat: arith-bound - mask with 31 caps the ilb_table index at 31
+    sassert(wd1 <= 31)
+    // @range-cat: arith-bound - bitwise mask keeps the ilb_table index non-negative
+    sassert(wd1 >= 0)
     var wd2: Int64 = nbl >> 11
     var wd3: Int64 = ilb_table[wd1] >> (shift_constant + 1 - wd2)
     return wd3 << 3
@@ -563,6 +577,8 @@ func uppol2(al1: Int64, al2: Int64, plt: Int64, plt1: Int64, plt2: Int64): Int64
     apl2 = wd4 + ((127 * al2) >> 7)
     if (apl2 > 12288) {
         apl2 = 12288
+        // @range-cat: branch-bound - clamp branch caps apl2 at 12288
+        sassert(apl2 <= 12288)
     }
     if (apl2 < -12288) {
         apl2 = -12288

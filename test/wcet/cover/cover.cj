@@ -7,6 +7,8 @@
 func swi120(c: Int64): Int64 {
     var cVar: Int64 = c
     for (i in 0..120) {
+        // @range-cat: loop-bound - a hundred and twenty single steps bound cVar by 180
+        sassert(cVar <= 180)
         match (i) {
             case 0 => cVar += 1
             case 1 => cVar += 1
@@ -128,6 +130,8 @@ func swi120(c: Int64): Int64 {
             case 117 => cVar += 1
             case 118 => cVar += 1
             case 119 => cVar += 1
+            // @range-cat: branch-bound - the final arm brings the accumulator to 180
+            sassert(cVar >= 120)
             case _ => cVar -= 1
         }
     }
@@ -138,6 +142,8 @@ func swi120(c: Int64): Int64 {
 func swi50(c: Int64): Int64 {
     var cVar: Int64 = c
     for (i in 0..50) {
+        // @range-cat: loop-bound - fifty single steps keep the accumulator within sixty
+        sassert(cVar <= 60)
         match (i) {
             case 0 => cVar += 1
             case 1 => cVar += 1
@@ -209,6 +215,10 @@ func swi50(c: Int64): Int64 {
 func swi10(c: Int64): Int64 {
     var cVar: Int64 = c
     for (i in 0..10) {
+        // @range-cat: loop-bound - ten single steps keep the accumulator within ten
+        sassert(cVar <= 10)
+        // @range-cat: arith-bound - the accumulator never drops below its starting value
+        sassert(cVar >= 0)
         match (i) {
             case 0 => cVar += 1
             case 1 => cVar += 1
@@ -220,6 +230,8 @@ func swi10(c: Int64): Int64 {
             case 7 => cVar += 1
             case 8 => cVar += 1
             case 9 => cVar += 1
+            // @range-cat: branch-bound - the ninth arm raises the accumulator to ten
+            sassert(cVar <= 10)
             case _ => cVar -= 1
         }
     }
@@ -229,6 +241,8 @@ func swi10(c: Int64): Int64 {
 
 main(): Int64 {
     var cnt: Int64 = 0
+    // @range-cat: arith-bound - the counter starts from the literal constant zero
+    sassert(cnt == 0)
 
     cnt = swi10(cnt)
     cnt = swi50(cnt)

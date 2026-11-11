@@ -78,6 +78,8 @@ func initbuffer() {
     for (i in 0..BUFFERSIZE) {
         tabort = i
         seed = ((seed * 133) + 81) % 8095
+        // @range-cat: arith-bound - remainder modulo 8095 stays below the divisor
+        sassert(seed <= 8094)
         orig_text_buffer[i] = seed % 256
     }
 }
@@ -87,6 +89,8 @@ func cl_hash(hsize_param: Int64) {
     var i: Int64 = hsize_param - 16
     var m1: Int64 = -1
     do {
+        // @range-cat: array-bound - htab_p is at least 16 here so htab_p-16 stays in range
+        sassert(htab_p >= 16)
         htab[htab_p - 16] = m1
         htab[htab_p - 15] = m1
         htab[htab_p - 14] = m1
@@ -108,7 +112,11 @@ func cl_hash(hsize_param: Int64) {
     } while (i >= 0)
     i = i + 16
     while (i > 0) {
+        // @range-cat: loop-bound - the guard guarantees a strictly positive counter
+        sassert(i >= 1)
         htab_p = htab_p - 1
+        // @range-cat: array-bound - decremented index never goes below zero
+        sassert(htab_p >= 0)
         htab[htab_p] = m1
         i = i - 1
     }
@@ -148,6 +156,8 @@ func output(code: Int64) {
     if (code >= 0) {
         bp = r_off >> 3
         r_off = r_off & 7
+        // @range-cat: arith-bound - mask with 7 caps the bit offset
+        sassert(r_off <= 7)
 
         buf[bp] = ((buf[bp] & rmask[r_off]) | (code << r_off)) & lmask[r_off]
         /* note: original didn't mask code<<r_off before lmask? keep as is but mask final */
@@ -156,6 +166,8 @@ func output(code: Int64) {
         var ccode: Int64 = code >> (8 - r_off)
 
         if (bits >= 8) {
+            // @range-cat: branch-bound - the true branch requires at least eight bits
+            sassert(bits >= 8)
             buf[bp] = ccode & 0xff
             bp = bp + 1
             ccode = ccode >> 8
@@ -262,6 +274,8 @@ func compress() {
     hshift = 0
     fcode = hsize
     while (fcode < 65536) {
+        // @range-cat: loop-bound - doubling loop exits once fcode reaches 65536
+        sassert(fcode <= 65535)
         hshift = hshift + 1
         fcode = fcode * 2
     }
@@ -287,6 +301,8 @@ func compress() {
         } else {
             disp = hsize_reg - i
             if (i == 0) {
+                // @range-cat: branch-bound - guard excludes every non-zero hash index
+                sassert(i == 0)
                 disp = 1
             }
             // probe loop

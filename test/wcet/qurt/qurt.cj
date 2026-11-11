@@ -149,9 +149,13 @@ func qurt(): Int64 {
     }
     d = a[1] * a[1] - 4.0 * a[0] * a[2]
     w1 = 2.0 * a[0]
+    // @range-cat: arith-bound - the leading coefficient is always one in the test cases
+    sassert(w1 >= 2.0)
     w2 = qurt_sqrt(qurt_fabs(d))
     if (d > 0.0) {
         flag = 1
+        // @range-cat: branch-bound - the positive discriminant case only sets the sign flag to 1
+        sassert(flag <= 1)
         x1[0] = (-a[1] + w2) / w1
         x1[1] = 0.0
         x2[0] = (-a[1] - w2) / w1

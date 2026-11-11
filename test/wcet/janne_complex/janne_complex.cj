@@ -5,10 +5,18 @@ func complex(a0: Int64, b0: Int64): Int64 {
     var b: Int64 = b0
 
     while (a < 30) {
+        // @range-cat: loop-bound - outer guard keeps the induction variable below 30
+        sassert(a <= 29)
         while (b < a) {
+            // @range-cat: loop-bound - inner guard b < a <= 29 keeps b below 30
+            sassert(b <= 29)
             if (b > 5) {
+                // @range-cat: branch-bound - true branch of b > 5 raises the lower bound to 6
+                sassert(b >= 6)
                 b = b * 3
             } else {
+                // @range-cat: branch-bound - false branch of b > 5 caps b at 5
+                sassert(b <= 5)
                 b = b + 2
             }
             if (b >= 10 && b <= 12) {
@@ -19,6 +27,8 @@ func complex(a0: Int64, b0: Int64): Int64 {
         }
         a = a + 2
         b = b - 10
+        // @range-cat: loop-bound - a only ever grows from its initial value 1
+        sassert(a >= 1)
     }
     return 1
 }

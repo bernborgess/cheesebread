@@ -258,16 +258,24 @@ func fir_filter_int(in_arr: Array<Int64>, out_arr: Array<Int64>, in_len: Int64,
     /* set up for coefficients */
     coef_start = 0
     coef_len2 = (coef_len + 1) >> 1
+    // @range-cat: arith-bound - half the 35-tap coefficient length is 18
+    sassert(coef_len2 == 18)
 
     /* set up input data pointers */
     in_end = in_len - 1
+    // @range-cat: arith-bound - last valid input index for in_len 700
+    sassert(in_end == 699)
     in_ptr = coef_len2 - 1
 
     /* initial value of accumulation length for startup */
     acc_length = coef_len2
+    // @range-cat: branch-bound - startup accumulation length stays positive
+    sassert(acc_length >= 1)
 
     i = 0
     while (i < in_len) {
+        // @range-cat: loop-bound - outer loop guard bounds i by input length
+        sassert(i <= 699)
         /* set up pointer for accumulation */
         data_ptr = in_ptr
         coef_ptr = coef_start
@@ -279,11 +287,19 @@ func fir_filter_int(in_arr: Array<Int64>, out_arr: Array<Int64>, in_len: Int64,
 
         j = 1
         while (j < acc_length) {
+            // @range-cat: branch-bound - inner loop counter starts at one
+            sassert(j >= 1)
+            // @range-cat: array-bound - coefficient index within 35-tap filter
+            sassert(coef_ptr <= 34)
+            // @range-cat: array-bound - input read index stays non-negative
+            sassert(data_ptr >= 0)
             acc = acc + coef[coef_ptr] * in_arr[data_ptr]
             coef_ptr = coef_ptr + 1
             data_ptr = data_ptr - 1
             j = j + 1
         }
+        // @range-cat: array-bound - output index within the 720-element buffer
+        sassert(i <= 719)
         out_arr[i] = acc / scale
 
         /* check for end case */
