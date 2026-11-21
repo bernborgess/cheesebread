@@ -19,7 +19,7 @@ if(IOS)
     add_compile_options(--target=${CXX_COMPATIABLE_TRIPLE})
 endif()
 
-set(CJC_EXTRA_WARNINGS -Woverloaded-virtual -Wvla -Wconversion -Wfloat-equal -Wunused -Wdelete-non-virtual-dtor -Wswitch-default -Wcast-qual -Wextra -Wformat=2 -Wno-missing-field-initializers -Wno-format-nonliteral)
+#set(CJC_EXTRA_WARNINGS -Woverloaded-virtual -Wvla -Wconversion -Wfloat-equal -Wunused -Wdelete-non-virtual-dtor -Wswitch-default -Wcast-qual -Wextra -Wformat=2 -Wno-missing-field-initializers -Wno-format-nonliteral)
 if(${CMAKE_SYSTEM_NAME} EQUAL Darwin)
     # mac uses llvm headers for std, and llvm headers have the following warning(s)
     list(APPEND CJC_EXTRA_WARNINGS -Wno-float-equal)

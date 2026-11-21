@@ -1,0 +1,4 @@
+buildtools/
+.vscode/
+logs/
+*.svg

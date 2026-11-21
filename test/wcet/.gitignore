@@ -1,0 +1,12 @@
+# Original C sources are only translation input, not part of the repo
+**/*.c
+
+# Cangjie build artifacts
+**/*.cjo
+**/*.cj.log
+**/*_test
+**/outs
+**/code.cj
+**/code.cj.bak
+*.o
+*.out
